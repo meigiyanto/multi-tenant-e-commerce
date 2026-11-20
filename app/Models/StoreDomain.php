@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property int $store_id
+ * @property string $domain
+ * @property string $status
+ * @property bool $is_primary
+ * @property \Illuminate\Support\Carbon|null $verified_at
+ */
 #[Fillable([
     'store_id',
     'domain',
