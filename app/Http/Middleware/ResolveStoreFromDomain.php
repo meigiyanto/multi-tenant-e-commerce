@@ -24,7 +24,9 @@ class ResolveStoreFromDomain
     {
         $domain = $this->domains->resolve($request->getHost());
 
-        abort_unless($domain?->store, 404);
+        if ($domain === null || $domain->store === null) {
+            abort(404);
+        }
 
         $store = $domain->store;
 
