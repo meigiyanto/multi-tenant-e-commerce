@@ -1,13 +1,11 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Storefront\StorefrontController;
-use App\Http\Controllers\Teams\TeamInvitationController;
-use App\Http\Middleware\EnsureTeamMembership;
-use App\Http\Middleware\ResolveStoreFromDomain;
-use Illuminate\Support\Facades\Route;
-
-Route::inertia('/', 'welcome')->name('home');
+use App\\Http\\Controllers\\DashboardController;
+use App\\Http\\Controllers\\Storefront\\StorefrontController;
+use App\\Http\\Controllers\\Teams\\TeamInvitationController;
+use App\\Http\\Middleware\\EnsureTeamMembership;
+use App\\Http\\Middleware\\ResolveStoreFromDomain;
+use Illuminate\\Support\\Facades\\Route;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
@@ -17,6 +15,10 @@ if ($storefrontRootDomain !== '') {
         ->get('/', StorefrontController::class)
         ->name('storefront.home');
 }
+
+// Register the storefront host route before the application root route.
+// Laravel gives subdomain routes precedence only when they are registered first.
+Route::inertia('/', 'welcome')->name('home');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
