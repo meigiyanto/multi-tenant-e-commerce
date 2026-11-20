@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teams;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Inventory;
+use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
@@ -171,11 +172,6 @@ class StoreCatalogController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
         $slug = $this->uniqueCategorySlug($store, Str::slug($data['name']));
-        $base = $slug;
-        $suffix = 2;
-        while ($store->categories()->where('slug', $slug)->exists()) {
-            $slug = $base.'-'.$suffix++;
-        }
         $store->categories()->create($data + ['slug' => $slug]);
 
         return back()->with('success', __('Category created.'));
@@ -186,7 +182,7 @@ class StoreCatalogController extends Controller
         $this->authorizeCategory($team, $store, $category, 'update');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('store_id', $store->id)->where('id', '!=', $category->id)],
+            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where(fn ($query) => $query->where('store_id', $store->id)->where('id', '!=', $category->id))],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['required', 'boolean'],
         ]);
