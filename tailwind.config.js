@@ -1,6 +1,9 @@
 import animate from 'tailwindcss-animate';
 import plugin from 'tailwindcss/plugin';
 
+const color = (name) =>
+    `oklch(from var(--${name}) l c h / <alpha-value>)`;
+
 export default {
     darkMode: ['class'],
     content: [
@@ -29,55 +32,55 @@ export default {
                 sm: 'calc(var(--radius) - 4px)',
             },
             colors: {
-                background: 'var(--background)',
-                foreground: 'var(--foreground)',
+                background: color('background'),
+                foreground: color('foreground'),
                 card: {
-                    DEFAULT: 'var(--card)',
-                    foreground: 'var(--card-foreground)',
+                    DEFAULT: color('card'),
+                    foreground: color('card-foreground'),
                 },
                 popover: {
-                    DEFAULT: 'var(--popover)',
-                    foreground: 'var(--popover-foreground)',
+                    DEFAULT: color('popover'),
+                    foreground: color('popover-foreground'),
                 },
                 primary: {
-                    DEFAULT: 'var(--primary)',
-                    foreground: 'var(--primary-foreground)',
+                    DEFAULT: color('primary'),
+                    foreground: color('primary-foreground'),
                 },
                 secondary: {
-                    DEFAULT: 'var(--secondary)',
-                    foreground: 'var(--secondary-foreground)',
+                    DEFAULT: color('secondary'),
+                    foreground: color('secondary-foreground'),
                 },
                 muted: {
-                    DEFAULT: 'var(--muted)',
-                    foreground: 'var(--muted-foreground)',
+                    DEFAULT: color('muted'),
+                    foreground: color('muted-foreground'),
                 },
                 accent: {
-                    DEFAULT: 'var(--accent)',
-                    foreground: 'var(--accent-foreground)',
+                    DEFAULT: color('accent'),
+                    foreground: color('accent-foreground'),
                 },
                 destructive: {
-                    DEFAULT: 'var(--destructive)',
-                    foreground: 'var(--destructive-foreground)',
+                    DEFAULT: color('destructive'),
+                    foreground: color('destructive-foreground'),
                 },
-                border: 'var(--border)',
-                input: 'var(--input)',
-                ring: 'var(--ring)',
+                border: color('border'),
+                input: color('input'),
+                ring: color('ring'),
                 chart: {
-                    1: 'var(--chart-1)',
-                    2: 'var(--chart-2)',
-                    3: 'var(--chart-3)',
-                    4: 'var(--chart-4)',
-                    5: 'var(--chart-5)',
+                    1: color('chart-1'),
+                    2: color('chart-2'),
+                    3: color('chart-3'),
+                    4: color('chart-4'),
+                    5: color('chart-5'),
                 },
                 sidebar: {
-                    DEFAULT: 'var(--sidebar)',
-                    foreground: 'var(--sidebar-foreground)',
-                    primary: 'var(--sidebar-primary)',
-                    'primary-foreground': 'var(--sidebar-primary-foreground)',
-                    accent: 'var(--sidebar-accent)',
-                    'accent-foreground': 'var(--sidebar-accent-foreground)',
-                    border: 'var(--sidebar-border)',
-                    ring: 'var(--sidebar-ring)',
+                    DEFAULT: color('sidebar'),
+                    foreground: color('sidebar-foreground'),
+                    primary: color('sidebar-primary'),
+                    'primary-foreground': color('sidebar-primary-foreground'),
+                    accent: color('sidebar-accent'),
+                    'accent-foreground': color('sidebar-accent-foreground'),
+                    border: color('sidebar-border'),
+                    ring: color('sidebar-ring'),
                 },
             },
         },
