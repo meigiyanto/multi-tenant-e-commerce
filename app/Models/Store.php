@@ -31,7 +31,7 @@ class Store extends Model
 {
     use SoftDeletes;
 
-    /** @return BelongsTo<Team, $this> */
+    /** @return HasMany<Category, $this> */\n    public function categories(): HasMany\n    {\n        return $this->hasMany(Category::class);\n    }\n\n    /** @return HasMany<Product, $this> */\n    public function products(): HasMany\n    {\n        return $this->hasMany(Product::class);\n    }\n\n    /** @return BelongsTo<Team, $this> */
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
