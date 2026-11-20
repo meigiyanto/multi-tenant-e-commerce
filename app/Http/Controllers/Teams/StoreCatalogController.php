@@ -63,6 +63,7 @@ class StoreCatalogController extends Controller
     {
         $this->authorizeStore($team, $store, 'update');
         $data = $this->validateProduct($request, $store);
+        $this->validateImageCount($request);
 
         DB::transaction(function () use ($request, $store, $data): void {
             $product = $store->products()->create($this->productAttributes($data, $store));
@@ -152,6 +153,7 @@ class StoreCatalogController extends Controller
     {
         $this->authorizeProduct($team, $store, $product, 'update');
         $data = $this->validateProduct($request, $store, $product);
+        $this->validateImageCount($request, $product);
         DB::transaction(function () use ($request, $store, $product, $data): void {
             $product->update($this->productAttributes($data, $store, $product));
             foreach ($data['variants'] ?? [] as $variantData) {
@@ -213,7 +215,7 @@ class StoreCatalogController extends Controller
     public function destroyCategory(Team $team, Store $store, Category $category): RedirectResponse
     {
         $this->authorizeCategory($team, $store, $category, 'update');
-        abort_if($category->products()->exists() || $category->children()->exists(), 422, __('Move its products and subcategories before deleting this category.'));
+        abort_if($category->products()->withTrashed()->exists() || $category->children()->exists(), 422, __('Move its products and subcategories before deleting this category.'));
         $category->delete();
 
         return back()->with('success', __('Category deleted.'));
@@ -258,6 +260,16 @@ class StoreCatalogController extends Controller
         });
 
         return back()->with('success', __('Inventory adjusted.'));
+    }
+
+    private function validateImageCount(Request $request, ?Product $product = null): void
+    {
+        $files = $request->file('images', []);
+        $incoming = is_array($files) ? count($files) : ($files ? 1 : 0);
+        $existing = $product?->images()->count() ?? 0;
+        if ($existing + $incoming > 10) {
+            throw ValidationException::withMessages(['images' => __('A product can have up to 10 photos.')]);
+        }
     }
 
     private function validateProduct(Request $request, Store $store, ?Product $product = null): array
@@ -317,7 +329,7 @@ class StoreCatalogController extends Controller
         $base = $slug !== '' ? $slug : 'product';
         $candidate = $base;
         $suffix = 2;
-        while ($store->products()->where('slug', $candidate)->when($product, fn ($query) => $query->where('id', '!=', $product->id))->exists()) {
+        while (Product::withTrashed()->where('store_id', $store->id)->where('slug', $candidate)->when($product, fn ($query) => $query->where('id', '!=', $product->id))->exists()) {
             $candidate = $base.'-'.$suffix++;
         }
 
