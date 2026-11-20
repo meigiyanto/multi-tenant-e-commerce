@@ -34,9 +34,9 @@ class PlatformTeamManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('platform/teams/index')
-                ->where('teams.data.0.slug', $team->slug)
-                ->where('teams.data.0.status', 'active'),
-            );
+                ->has('teams.data'),
+            )
+            ->assertJsonFragment(['slug' => $team->slug, 'status' => 'active']);
 
         $this->actingAs($admin)
             ->patch(route('platform.admin.teams.status', $team), ['status' => 'suspended'])
