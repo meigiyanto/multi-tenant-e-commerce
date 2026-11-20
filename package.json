@@ -6,6 +6,7 @@
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
+        "dev:all": "concurrently -k -n Laravel,Vite -c blue,green \"php artisan serve --host=127.0.0.1\" \"npm run dev -- --host 127.0.0.1\"",
         "check": "php artisan wayfinder:generate --with-form && tsc --noEmit",
         "types:check": "tsc --noEmit",
         "build:termux": "node scripts/build-termux.mjs"
