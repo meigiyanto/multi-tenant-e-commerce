@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Teams;
 
+use App\Enums\TeamStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StoreDomain;
@@ -21,7 +22,7 @@ class StoreController extends Controller
         Gate::authorize('view', $team);
 
         return Inertia::render('stores/index', [
-            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug],
+            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'canManageStores' => Gate::allows('update', $team),
             'stores' => $team->stores()->withCount('domains')->latest()->get()->map(
                 fn (Store $store) => [
@@ -41,6 +42,7 @@ class StoreController extends Controller
     public function store(Request $request, Team $team): RedirectResponse
     {
         Gate::authorize('update', $team);
+        abort_unless($team->status === TeamStatus::Active->value, 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -64,7 +66,7 @@ class StoreController extends Controller
         $store->load(['domains' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('domain')]);
 
         return Inertia::render('stores/show', [
-            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug],
+            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'store' => [
                 'id' => $store->id,
                 'name' => $store->name,
@@ -95,7 +97,7 @@ class StoreController extends Controller
         Gate::authorize('update', $store);
 
         return Inertia::render('stores/settings', [
-            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug],
+            'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'store' => [
                 'id' => $store->id,
                 'name' => $store->name,
