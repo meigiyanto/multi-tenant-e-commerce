@@ -65,10 +65,10 @@ class StoreCatalogController extends Controller
         $data = $this->validateProduct($request, $store);
 
         DB::transaction(function () use ($request, $store, $data): void {
-            $product = $store->products()->create($this->productAttributes($data));
+            $product = $store->products()->create($this->productAttributes($data, $store));
             $variants = $data['variants'] ?? [];
             if ($variants === []) {
-                $variants = [['name' => 'Default', 'sku' => Str::upper(Str::slug($product->name)).'-'.Str::upper(Str::random(5)), 'options' => [], 'initial_stock' => 0]];
+                $variants = [['name' => 'Default', 'sku' => Str::upper(Str::slug($product->name)).'-'.Str::upper(Str::random(8)), 'options' => [], 'initial_stock' => 0]];
             }
 
             foreach ($variants as $variantData) {
@@ -135,7 +135,7 @@ class StoreCatalogController extends Controller
         $this->authorizeProduct($team, $store, $product, 'update');
         $data = $this->validateProduct($request, $store, $product);
         DB::transaction(function () use ($request, $store, $product, $data): void {
-            $product->update($this->productAttributes($data));
+            $product->update($this->productAttributes($data, $store, $product));
             foreach ($data['variants'] ?? [] as $variantData) {
                 $variant = isset($variantData['id'])
                     ? $product->variants()->where('store_id', $store->id)->findOrFail($variantData['id'])
@@ -258,12 +258,12 @@ class StoreCatalogController extends Controller
         ]);
     }
 
-    private function productAttributes(array $data): array
+    private function productAttributes(array $data, Store $store, ?Product $product = null): array
     {
         return [
             'category_id' => $data['category_id'] ?? null,
             'name' => $data['name'],
-            'slug' => $data['slug'] ?? Str::slug($data['name']),
+            'slug' => $this->uniqueProductSlug($store, $data['slug'] ?? Str::slug($data['name']), $product),
             'status' => $data['status'],
             'description' => $data['description'] ?? null,
             'price' => $data['price'],
@@ -272,7 +272,7 @@ class StoreCatalogController extends Controller
         ];
     }
 
-    private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
+    private function uniqueProductSlug(Store $store, string $slug, ?Product $product = null): string\n    {\n        $base = $slug !== '' ? $slug : 'product';\n        $candidate = $base;\n        $suffix = 2;\n        while ($store->products()->where('slug', $candidate)->when($product, fn ($query) => $query->where('id', '!=', $product->id))->exists()) {\n            $candidate = $base.'-'.$suffix++;\n        }\n\n        return $candidate;\n    }\n\n    private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
     {
         $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->where('id', '!=', $variant->id))->exists();
         if ($skuExists) {
