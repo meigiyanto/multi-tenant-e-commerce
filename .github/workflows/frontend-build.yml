@@ -4,9 +4,38 @@ on:
   push:
     branches:
       - main
+      - feat/tenant-store-foundation
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'public/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/frontend-build.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'public/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/frontend-build.yml'
   workflow_dispatch:
 
 permissions:
@@ -28,20 +57,37 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, fileinfo, pdo_sqlite, sqlite3
+          coverage: none
+
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
-          cache: npm
+          node-version: '24'
           package-manager-cache: false
 
-      # The old lockfile contains Vite Plus aliases and a native dependency graph
-      # that no longer matches package.json. Remove it before resolving Vite 7.
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          mkdir -p database
+          php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate --force
+
+      # Regenerate the obsolete lockfile on the Linux runner. Do not run npm ci
+      # against the repository lockfile until it has been regenerated and reviewed.
       - name: Remove stale npm lockfile
         run: rm -f package-lock.json
 
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Check TypeScript
+        run: npm run check
 
       - name: Build production assets
         run: npm run build
