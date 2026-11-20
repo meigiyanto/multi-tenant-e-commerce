@@ -22,6 +22,11 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    build: {
+        cssMinify: false,
+        minify: true,
+        chunkSizeWarningLimit: 500000,
+    },
     server: {
         watch: {
             ignored: [
@@ -31,6 +36,7 @@ export default defineConfig({
                 '**/.junie/**',
                 '**/vendor/**',
             ],
+            usePolling: true
         },
     },
 });
