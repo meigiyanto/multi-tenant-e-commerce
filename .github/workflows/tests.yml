@@ -31,6 +31,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Remove stale npm lockfile
+        run: rm -f package-lock.json
+
       - name: Setup Application
         run: composer setup
 
