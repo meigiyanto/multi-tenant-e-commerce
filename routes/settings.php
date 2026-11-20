@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Teams\StoreController;
+use App\Http\Controllers\Teams\StoreCatalogController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
@@ -36,6 +37,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('settings/teams/{team}/stores/{store}/domains/{domain}/verification', [StoreController::class, 'startDomainVerification'])->name('teams.stores.domains.verification.start');
         Route::post('settings/teams/{team}/stores/{store}/domains/{domain}/verification/check', [StoreController::class, 'verifyDomain'])->name('teams.stores.domains.verification.check');
         Route::patch('settings/teams/{team}/stores/{store}/domains/{domain}/status', [StoreController::class, 'updateDomainStatus'])->name('teams.stores.domains.status');
+        Route::get('settings/teams/{team}/stores/{store}/catalog', [StoreCatalogController::class, 'index'])->name('teams.stores.catalog.index');
+        Route::get('settings/teams/{team}/stores/{store}/catalog/products/create', [StoreCatalogController::class, 'create'])->name('teams.stores.catalog.products.create');
+        Route::post('settings/teams/{team}/stores/{store}/catalog/products', [StoreCatalogController::class, 'store'])->name('teams.stores.catalog.products.store');
+        Route::get('settings/teams/{team}/stores/{store}/catalog/products/{product}/edit', [StoreCatalogController::class, 'edit'])->name('teams.stores.catalog.products.edit');
+        Route::patch('settings/teams/{team}/stores/{store}/catalog/products/{product}', [StoreCatalogController::class, 'update'])->name('teams.stores.catalog.products.update');
+        Route::delete('settings/teams/{team}/stores/{store}/catalog/products/{product}', [StoreCatalogController::class, 'destroy'])->name('teams.stores.catalog.products.destroy');
+        Route::delete('settings/teams/{team}/stores/{store}/catalog/products/{product}/images/{image}', [StoreCatalogController::class, 'destroyImage'])->name('teams.stores.catalog.images.destroy');
+        Route::post('settings/teams/{team}/stores/{store}/catalog/products/{product}/variants/{variant}/stock', [StoreCatalogController::class, 'adjustStock'])->name('teams.stores.catalog.stock.adjust');
+        Route::delete('settings/teams/{team}/stores/{store}/catalog/products/{product}/variants/{variant}', [StoreCatalogController::class, 'destroyVariant'])->name('teams.stores.catalog.variants.destroy');
+        Route::post('settings/teams/{team}/stores/{store}/catalog/categories', [StoreCatalogController::class, 'storeCategory'])->name('teams.stores.catalog.categories.store');
+        Route::patch('settings/teams/{team}/stores/{store}/catalog/categories/{category}', [StoreCatalogController::class, 'updateCategory'])->name('teams.stores.catalog.categories.update');
+        Route::delete('settings/teams/{team}/stores/{store}/catalog/categories/{category}', [StoreCatalogController::class, 'destroyCategory'])->name('teams.stores.catalog.categories.destroy');
         Route::patch('settings/teams/{team}', [TeamController::class, 'update'])->name('teams.update');
         Route::delete('settings/teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
         Route::post('settings/teams/{team}/switch', [TeamController::class, 'switch'])->name('teams.switch');
