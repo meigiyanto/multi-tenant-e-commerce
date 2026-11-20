@@ -14,6 +14,7 @@ type StoreDomain = {
     status: string;
     is_primary: boolean;
     verification_token: string | null;
+    verification_expires_at: string | null;
     verified_at: string | null;
 };
 
@@ -105,12 +106,13 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                                         <div className="flex items-center gap-3"><Globe2 className="h-4 w-4 text-muted-foreground" /><div><p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">{domain.type}{domain.is_primary ? ' · Primary' : ''}</p></div></div>
                                         <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
                                     </div>
-                                    {canManageStore && domain.status === 'pending' ? (
-                                        <Form action={base + '/domains/' + domain.id + '/verification'} method="post"><Button size="sm" variant="outline" type="submit">Generate DNS challenge</Button></Form>
+                                    {canManageStore && ['pending', 'expired'].includes(domain.status) ? (
+                                        <Form action={base + '/domains/' + domain.id + '/verification'} method="post"><Button size="sm" variant="outline" type="submit">{domain.status === 'expired' ? 'Generate a new DNS challenge' : 'Generate DNS challenge'}</Button></Form>
                                     ) : null}
                                     {canManageStore && domain.status === 'verifying' && domain.verification_token ? (
                                         <div className="space-y-2 rounded-lg bg-muted/50 p-3">
                                             <p className="text-sm font-medium">Add this DNS TXT record at your DNS provider</p>
+                                            {domain.verification_expires_at ? <p className="text-xs text-muted-foreground">Challenge expires {new Date(domain.verification_expires_at).toLocaleString()}.</p> : null}
                                             <dl className="grid gap-2 text-sm sm:grid-cols-2">
                                                 <div><dt className="text-muted-foreground">Host / Name</dt><dd className="break-all font-mono">_store-verification.{domain.domain}</dd></div>
                                                 <div><dt className="text-muted-foreground">TXT value</dt><dd className="break-all font-mono">{domain.verification_token}</dd></div>
