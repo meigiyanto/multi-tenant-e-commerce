@@ -34,6 +34,7 @@ class PlatformTeamManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('platform/teams/index')
+                ->where('auth.isPlatformAdmin', true)
                 ->has('teams.data'),
             );
 

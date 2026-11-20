@@ -97,6 +97,10 @@ export default function TeamEdit({
             <div className="flex flex-col space-y-10">
                 <div className="space-y-6">
                     <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <div><p className="font-medium">Team status</p><p className="text-sm text-muted-foreground">Account lifecycle state</p></div>
+                            <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>{team.status ?? 'unknown'}</Badge>
+                        </div>
                         <div>
                             <p className="font-medium">Storefronts</p>
                             <p className="text-sm text-muted-foreground">Create and manage online stores owned by this team.</p>
