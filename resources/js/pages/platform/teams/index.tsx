@@ -16,7 +16,7 @@ type Team = {
 };
 
 type Props = {
-    teams: {
+    platformTeams: {
         data: Team[];
         links: { url: string | null; label: string; active: boolean }[];
         current_page: number;
@@ -32,7 +32,7 @@ function nextStatuses(status: string): string[] {
     return [];
 }
 
-export default function PlatformTeamsIndex({ teams }: Props) {
+export default function PlatformTeamsIndex({ platformTeams }: Props) {
     return (
         <>
             <Head title="Platform — Teams" />
@@ -40,10 +40,10 @@ export default function PlatformTeamsIndex({ teams }: Props) {
                 <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted"><ShieldCheck className="h-5 w-5" /></div>
                     <Heading variant="small" title="Platform Teams" description="Review tenant accounts and control their lifecycle." />
-                    <Badge className="ml-auto" variant="secondary">{teams.total} teams</Badge>
+                    <Badge className="ml-auto" variant="secondary">{platformTeams.total} teams</Badge>
                 </div>
                 <div className="space-y-3">
-                    {teams.data.map((team) => (
+                    {platformTeams.data.map((team) => (
                         <article key={team.id} className="flex flex-col gap-4 rounded-xl border p-4 lg:flex-row lg:items-center lg:justify-between">
                             <div className="min-w-0 space-y-1">
                                 <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{team.name}</h2><Badge variant={team.status === 'active' ? 'default' : 'secondary'}>{team.status}</Badge>{team.is_personal ? <Badge variant="outline">Personal</Badge> : null}</div>
@@ -60,14 +60,14 @@ export default function PlatformTeamsIndex({ teams }: Props) {
                             </div>
                         </article>
                     ))}
-                    {teams.data.length === 0 ? <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No Teams found.</div> : null}
+                    {platformTeams.data.length === 0 ? <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No Teams found.</div> : null}
                 </div>
                 <nav className="flex flex-wrap justify-center gap-2" aria-label="Pagination">
-                    {teams.links.map((link, index) => (
+                    {platformTeams.links.map((link, index) => (
                         link.url ? <Button key={index} asChild size="sm" variant={link.active ? 'default' : 'outline'}><Link href={link.url}>{link.label.replace(/<[^>]*>/g, "").replace(/&laquo;/g, "«").replace(/&raquo;/g, "»")}</Link></Button> : <Button key={index} size="sm" variant="outline" disabled>{link.label.replace(/&laquo;|&raquo;/g, '')}</Button>
                     ))}
                 </nav>
-                <p className="text-center text-xs text-muted-foreground">Page {teams.current_page} of {teams.last_page}</p>
+                <p className="text-center text-xs text-muted-foreground">Page {platformTeams.current_page} of {platformTeams.last_page}</p>
             </div>
         </>
     );

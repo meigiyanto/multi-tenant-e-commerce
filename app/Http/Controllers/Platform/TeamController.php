@@ -17,7 +17,7 @@ class TeamController extends Controller
     public function index(): Response
     {
         return Inertia::render('platform/teams/index', [
-            'teams' => Team::query()
+            'platformTeams' => Team::query()
                 ->withCount(['stores', 'members'])
                 ->latest()
                 ->paginate(20)
