@@ -1,0 +1,104 @@
+name: frontend-build
+
+on:
+  push:
+    branches:
+      - main
+      - feat/tenant-store-foundation
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'public/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/frontend-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'public/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/frontend-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build frontend assets (Ubuntu x64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, fileinfo, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          mkdir -p database
+          php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate --force
+
+      # Regenerate the obsolete lockfile on the Linux runner. Do not run npm ci
+      # against the repository lockfile until it has been regenerated and reviewed.
+      - name: Remove stale npm lockfile
+        run: rm -f package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check TypeScript
+        run: npm run check
+
+      - name: Build production assets
+        run: npm run build
+
+      - name: Verify Laravel Vite manifest
+        run: test -s public/build/manifest.json
+
+      - name: Upload Laravel production assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-build-${{ github.sha }}
+          path: public/build/
+          if-no-files-found: error
+          retention-days: 14
