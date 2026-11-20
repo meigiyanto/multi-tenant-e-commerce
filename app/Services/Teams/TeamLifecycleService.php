@@ -12,7 +12,7 @@ class TeamLifecycleService
     public function transition(Team $team, TeamStatus $target): Team
     {
         return DB::transaction(function () use ($team, $target): Team {
-            $lockedTeam = Team::query()->lockForUpdate()->findOrFail($team->getKey());
+            $lockedTeam = Team::query()->whereKey($team->getKey())->lockForUpdate()->firstOrFail();
             $current = TeamStatus::tryFrom($lockedTeam->status);
 
             if ($current === null || ! $current->canTransitionTo($target)) {
