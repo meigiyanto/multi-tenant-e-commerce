@@ -31,5 +31,4 @@ php artisan config:cache
 ```
 
 Custom domains remain optional and continue to require ownership verification.
-The platform subdomain is provisioned as an active, platform-owned domain and does
-not require customer DNS verification.
+The platform subdomain is provisioned as an active, platform-owned domain when a Store is created. Existing draft Stores receive the same platform subdomain when activated. It does not require customer DNS verification.
