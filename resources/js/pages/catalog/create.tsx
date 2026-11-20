@@ -18,11 +18,13 @@ export default function CatalogCreate({ team, store, categories }: Props) {
         <>
             <Head title={'Add product — ' + store.name} />
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-                <Button asChild size="sm" variant="ghost" className="self-start"><Link href={base}><ArrowLeft /> Back to catalog</Link></Button>
-                <Heading title="Add product" description="Create a product and its Store-specific variants, pricing, photos, and initial inventory." />
+                <div className="m-2">
+                    <Button asChild size="sm" variant="ghost" className="self-start"><Link href={base}><ArrowLeft /> Back to catalog</Link></Button>
+                    <Heading title="Add product" description="Create a product and its Store-specific variants, pricing, photos, and initial inventory." />
+                </div>
                 <Form action={base + '/products'} method="post" encType="multipart/form-data" className="space-y-6">
                     {({ errors, processing }) => <>
-                        <section className="grid gap-4 rounded-md border p-5">
+                        <section className="grid gap-4 rounded-md border p-5 m-2">
                             <h2 className="font-semibold">Product details</h2>
                             <div className="grid gap-2"><Label htmlFor="name">Product name</Label><Input id="name" name="name" required maxLength={180} /><InputError message={errors.name} /></div>
                             <div className="grid gap-2"><Label htmlFor="slug">URL slug (optional)</Label><Input id="slug" name="slug" placeholder="generated-from-product-name" /><InputError message={errors.slug} /></div>
@@ -32,7 +34,7 @@ export default function CatalogCreate({ team, store, categories }: Props) {
                             <div className="grid gap-2"><Label htmlFor="status">Status</Label><select id="status" name="status" className="h-10 rounded-sm border bg-background px-3 text-sm"><option value="draft">Draft</option><option value="active">Active</option></select></div>
                             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="track_inventory" value="0" /><input type="checkbox" name="track_inventory" value="1" defaultChecked /> Track inventory</label>
                         </section>
-                        <section className="space-y-4 rounded-md border p-5">
+                        <section className="space-y-4 rounded-md border p-5 m-2">
                             <div className="flex items-center justify-between"><div><h2 className="font-semibold">Variants and inventory</h2><p className="text-sm text-muted-foreground">Each variant has its own SKU and stock balance.</p></div><Button type="button" size="sm" variant="outline" onClick={() => setVariants((rows) => [...rows, { name: 'New variant', sku: '', option: '', value: '', option2: '', value2: '', price: '', initial_stock: '0', low_stock_threshold: '0' }])}><Plus /> Add variant</Button></div>
                             {variants.map((variant, index) => <div key={index} className="space-y-3 rounded-sm border p-4">
                                 <div className="flex items-center justify-between"><h3 className="text-sm font-medium">Variant {index + 1}</h3>{variants.length > 1 ? <Button type="button" size="icon" variant="ghost" onClick={() => setVariants((rows) => rows.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button> : null}</div>
@@ -42,8 +44,20 @@ export default function CatalogCreate({ team, store, categories }: Props) {
                             </div>)}
                             <InputError message={errors.variants} />
                         </section>
-                        <section className="grid gap-3 rounded-md border p-5"><h2 className="font-semibold">Product photos</h2><div className="grid gap-2"><Label htmlFor="images">Upload photos (JPG, PNG, WebP; max 5 MB each; up to 10)</Label><Input id="images" name="images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple /><InputError message={errors.images} /></div></section>
-                        <div className="flex justify-end gap-2"><Button asChild variant="outline"><Link href={base}>Cancel</Link></Button><Button type="submit" disabled={processing}>Create product</Button></div>
+                        <section className="grid gap-3 rounded-md border p-5 m-2">
+                            <h2 className="font-semibold">Product photos</h2>
+                            <div className="grid gap-2">
+                                <Label htmlFor="images">Upload photos (JPG, PNG, WebP; max 5 MB each; up to 10)</Label>
+                                <Input id="images" name="images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+                                <InputError message={errors.images} />
+                            </div>
+                        </section>
+                        <div className="flex justify-end gap-2 m-2">
+                            <Button asChild variant="outline">
+                                <Link href={base}>Cancel</Link>
+                            </Button>
+                            <Button type="submit" disabled={processing}>Create product</Button>
+                        </div>
                     </>}
                 </Form>
             </div>
