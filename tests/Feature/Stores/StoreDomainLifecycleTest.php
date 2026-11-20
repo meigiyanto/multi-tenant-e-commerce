@@ -25,7 +25,7 @@ class StoreDomainLifecycleTest extends TestCase
         ]);
         $service = app(StoreDomainLifecycleService::class);
 
-        $service->transition($domain, StoreDomainStatus::Verifying);
+        $service->startVerification($domain);
 
         try {
             $service->transition($domain->fresh(), StoreDomainStatus::Active);
@@ -34,6 +34,7 @@ class StoreDomainLifecycleTest extends TestCase
             $this->assertSame(StoreDomainStatus::Verifying->value, $domain->fresh()->status);
         }
 
+        $this->assertNotNull($domain->fresh()->verification_token);
         $service->markVerified($domain->fresh());
         $this->assertInstanceOf(CarbonImmutable::class, $domain->fresh()->verified_at);
         $this->assertSame(StoreDomainStatus::Verified->value, $domain->fresh()->status);
