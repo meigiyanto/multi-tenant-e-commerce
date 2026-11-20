@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class StoreLifecycleService
 {
+    public function __construct(private readonly PlatformStorefrontDomainService $platformDomains) {}
+
     public function transition(Store $store, StoreStatus $target): Store
     {
         return DB::transaction(function () use ($store, $target): Store {
@@ -22,10 +24,14 @@ class StoreLifecycleService
                 ]);
             }
 
-            if ($target === StoreStatus::Active && $lockedStore->team?->status !== TeamStatus::Active->value) {
-                throw ValidationException::withMessages([
-                    'status' => __('A Store can only be activated while its Team is active.'),
-                ]);
+            if ($target === StoreStatus::Active) {
+                if ($lockedStore->team?->status !== TeamStatus::Active->value) {
+                    throw ValidationException::withMessages([
+                        'status' => __('A Store can only be activated while its Team is active.'),
+                    ]);
+                }
+
+                $this->platformDomains->ensureFor($lockedStore);
             }
 
             $lockedStore->status = $target->value;
