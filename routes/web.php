@@ -1,11 +1,11 @@
 <?php
 
-use App\\Http\\Controllers\\DashboardController;
-use App\\Http\\Controllers\\Storefront\\StorefrontController;
-use App\\Http\\Controllers\\Teams\\TeamInvitationController;
-use App\\Http\\Middleware\\EnsureTeamMembership;
-use App\\Http\\Middleware\\ResolveStoreFromDomain;
-use Illuminate\\Support\\Facades\\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Storefront\StorefrontController;
+use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Middleware\EnsureTeamMembership;
+use App\Http\Middleware\ResolveStoreFromDomain;
+use Illuminate\Support\Facades\Route;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 

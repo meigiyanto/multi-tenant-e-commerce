@@ -69,9 +69,11 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
         <>
             <Head title={store.name + ' — ' + team.name} />
             <div className="flex flex-col gap-8">
-                <div>
-                    <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
-                        <Link href={'/settings/teams/' + team.slug + '/stores'}><ArrowLeft /> Back to stores</Link>
+                <div className="m-2">
+                    <Button asChild variant="ghost" size="sm" className="ml-0 mb-2">
+                        <Link href={'/settings/teams/' + team.slug + '/stores'}>
+                            <ArrowLeft /> Back to stores
+                        </Link>
                     </Button>
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store details for ' + team.name + '.'} />
@@ -81,7 +83,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                     </div>
                 </div>
 
-                <section className="rounded-xl border p-5">
+                <section className="rounded-xl border p-5 m-2">
                     <div className="mb-5 flex items-center gap-3">
                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground"><StoreIcon className="h-6 w-6" /></div>
                         <div className="min-w-0"><p className="font-semibold">{store.name}</p><p className="text-sm text-muted-foreground">/{store.slug}</p></div>
@@ -92,44 +94,72 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                         <div><dt className="text-sm text-muted-foreground">Timezone</dt><dd className="mt-1 font-medium">{store.timezone}</dd></div>
                         <div><dt className="text-sm text-muted-foreground">Created</dt><dd className="mt-1 font-medium">{store.created_at ? new Date(store.created_at).toLocaleString() : '—'}</dd></div>
                     </dl>
+                    
                     {canManageStore && storeNextStatus ? (
                         <Form action={base + '/status'} method="patch" className="mt-5">
                             <input type="hidden" name="status" value={storeNextStatus} />
                             <Button size="sm" variant="outline" type="submit">{storeNextStatus === 'active' ? 'Activate store' : 'Suspend store'}</Button>
                         </Form>
                     ) : null}
+                    
                 </section>
 
                 <section className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
-                        <div><h2 className="font-semibold">Storefront address</h2><p className="text-sm text-muted-foreground">This platform subdomain is provided automatically and does not require a domain purchase.</p></div>
+                        <div className="m-2">
+                            <h2 className="font-semibold">Storefront address</h2>
+                            <p className="text-sm text-muted-foreground">This platform subdomain is provided automatically and does not require a domain purchase.</p>
+                        </div>
                     </div>
+                    
                     {store.domains.filter((domain) => domain.type === 'subdomain').map((domain) => (
-                        <div key={domain.id} className="flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div><p className="font-medium">{store.storefront_url ? <a href={store.storefront_url} target="_blank" rel="noreferrer" className="hover:underline">{domain.domain}</a> : domain.domain}</p><p className="text-xs text-muted-foreground">Platform-provided address · no DNS setup required</p></div>
+                        <div key={domain.id} className="flex flex-col gap-2 rounded-xl border p-4 m-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="font-medium">{store.storefront_url ? <a href={store.storefront_url} target="_blank" rel="noreferrer" className="hover:underline">{domain.domain}</a> : domain.domain}</p>
+                                <p className="text-xs text-muted-foreground">Platform-provided address · no DNS setup required</p>/
+                            </div>
                             <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
                         </div>
                     ))}
-                    <div className="flex items-center justify-between gap-3 pt-3">
-                        <div><h2 className="font-semibold">Custom domains</h2><p className="text-sm text-muted-foreground">Optional: connect your own domain and verify ownership with a DNS TXT record.</p></div>
+                    
+                    <div className="flex items-center justify-between gap-3 pt-3 m-2">
+                        <div>
+                            <h2 className="font-semibold">Custom domains</h2>
+                            <p className="text-sm text-muted-foreground">Optional: connect your own domain and verify ownership with a DNS TXT record.</p>
+                        </div>
                         <Badge variant="secondary">{store.domains.filter((domain) => domain.type === 'custom').length}</Badge>
                     </div>
+                    
                     {canManageStore ? (
-                        <Form action={base + '/domains'} method="post" className="grid gap-3 rounded-xl border p-4 sm:grid-cols-[1fr_auto]">
+                        <Form action={base + '/domains'} method="post" className="grid gap-3 rounded-xl border p-4 m-2 sm:grid-cols-[1fr_auto]">
                             {({ errors, processing }) => (
                                 <>
-                                    <div className="grid gap-2"><Label htmlFor="custom-domain">Domain name</Label><Input id="custom-domain" name="domain" placeholder="shop.example.com" required maxLength={253} /><InputError message={errors.domain} /></div>
-                                    <div className="flex items-end"><Button type="submit" disabled={processing}><Globe2 /> Add domain</Button></div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="custom-domain">Domain name</Label>
+                                        <Input id="custom-domain" name="domain" placeholder="shop.example.com" required maxLength={253} />
+                                        <InputError message={errors.domain} />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <Button type="submit" disabled={processing}>
+                                            <Globe2 /> Add domain
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </Form>
                     ) : null}
+                    
                     {store.domains.some((domain) => domain.type === 'custom') ? (
-                        <div className="divide-y rounded-xl border">
+                        <div className="divide-y rounded-xl border m-2">
                             {store.domains.filter((domain) => domain.type === 'custom').map((domain) => (
-                                <div key={domain.id} className="space-y-3 p-4">
+                                <div key={domain.id} className="space-y-3 p-4 m-2">
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="flex items-center gap-3"><Globe2 className="h-4 w-4 text-muted-foreground" /><div><p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">{domain.type}{domain.is_primary ? ' · Primary' : ''}</p></div></div>
+                                        <div className="flex items-center gap-3">
+                                            <Globe2 className="h-4 w-4 text-muted-foreground" />
+                                            <div>
+                                                <p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">{domain.type}{domain.is_primary ? ' · Primary' : ''}</p>
+                                            </div>
+                                        </div>
                                         <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
                                     </div>
                                     {canManageStore && ['pending', 'expired'].includes(domain.status) ? (

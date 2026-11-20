@@ -32,7 +32,8 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                 <div className="flex items-center justify-between gap-4">
                     <div className="m-2">
                         <Button asChild variant="ghost" size="sm" className="mb-2">
-                            <Link href={`/settings/teams/${team.slug}`}><ArrowLeft /> Back to team</Link>
+                            <Link href={`/settings/teams/${team.slug}`}>
+                                <ArrowLeft /> Back to team</Link>
                         </Button>
                         <Heading variant="small" title="Stores" description={`Manage storefronts owned by ${team.name}.`} />
                     </div>
@@ -86,6 +87,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                         <p className="mt-1 text-sm text-muted-foreground">Store activation and storefront availability may be restricted until this Team becomes active.</p>
                     </div>
                 ) : null}
+                
                 <section className="space-y-6 m-2">
                     <h2 className="font-semibold">Your stores</h2>
                     {stores.length > 0 ? (
