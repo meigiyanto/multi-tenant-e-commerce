@@ -82,6 +82,7 @@ return new class extends Migration
             $table->unsignedInteger('low_stock_threshold')->default(0);
             $table->timestamps();
             $table->unique(['store_id', 'product_variant_id']);
+            $table->unique(['store_id', 'id']);
             $table->foreign(['store_id', 'product_variant_id'])->references(['store_id', 'id'])->on('product_variants')->cascadeOnDelete();
             $table->index(['store_id', 'quantity']);
         });
@@ -89,7 +90,7 @@ return new class extends Migration
         Schema::create('inventory_movements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('inventory_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('inventory_id');
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('type', 20);
             $table->integer('quantity');
@@ -97,6 +98,7 @@ return new class extends Migration
             $table->string('reference')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
+            $table->foreign(['store_id', 'inventory_id'])->references(['store_id', 'id'])->on('inventories')->cascadeOnDelete();
             $table->index(['store_id', 'inventory_id', 'created_at']);
         });
     }
