@@ -18,10 +18,10 @@ class SetTeamUrlDefaults
     {
         $currentTeam = $request->user()?->currentTeam;
 
-        URL::defaults($currentTeam ? [
-            'current_team' => $currentTeam->slug,
-            'team' => $currentTeam->slug,
-        ] : []);
+        URL::defaults([
+            'current_team' => $currentTeam?->slug,
+            'team' => $currentTeam?->slug,
+        ]);
 
         return $next($request);
     }
