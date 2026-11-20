@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
  * @property string $domain
  * @property string $status
  * @property bool $is_primary
+ * @property string|null $verification_token
  * @property CarbonImmutable|null $verified_at
  */
 #[Fillable([
@@ -23,6 +24,7 @@ use Illuminate\Support\Str;
     'is_primary',
     'status',
     'verified_at',
+    'verification_token',
 ])]
 class StoreDomain extends Model
 {
