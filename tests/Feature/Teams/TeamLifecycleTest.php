@@ -20,6 +20,15 @@ class TeamLifecycleTest extends TestCase
         $this->assertSame(TeamStatus::Active->value, $team->status);
     }
 
+    public function test_pending_team_can_be_activated(): void
+    {
+        $team = Team::factory()->create(['status' => TeamStatus::Pending->value]);
+
+        app(TeamLifecycleService::class)->transition($team, TeamStatus::Active);
+
+        $this->assertSame(TeamStatus::Active->value, $team->fresh()->status);
+    }
+
     public function test_active_team_can_be_suspended_and_reactivated(): void
     {
         $team = Team::factory()->create();
