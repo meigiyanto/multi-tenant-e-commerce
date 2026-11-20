@@ -262,6 +262,7 @@ class StoreCatalogController extends Controller
             'variants.*.name' => ['required', 'string', 'max:120'],
             'variants.*.sku' => ['required', 'string', 'max:100'],
             'variants.*.options' => ['nullable', 'array'],
+            'variants.*.options.*' => ['nullable', 'string', 'max:100'],
             'variants.*.price' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
             'variants.*.compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.initial_stock' => ['nullable', 'integer', 'min:0', 'max:100000000'],
