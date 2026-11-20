@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Stores;
 
+use Carbon\CarbonImmutable;
 use App\Enums\StoreDomainStatus;
 use App\Models\Team;
 use App\Services\Stores\StoreDomainLifecycleService;
@@ -34,7 +35,7 @@ class StoreDomainLifecycleTest extends TestCase
         }
 
         $service->markVerified($domain->fresh());
-        $this->assertNotNull($domain->fresh()->verified_at);
+        $this->assertInstanceOf(CarbonImmutable::class, $domain->fresh()->verified_at);
         $this->assertSame(StoreDomainStatus::Verified->value, $domain->fresh()->status);
 
         $service->transition($domain->fresh(), StoreDomainStatus::Active);
