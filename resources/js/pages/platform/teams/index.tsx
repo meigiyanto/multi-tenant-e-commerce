@@ -64,7 +64,7 @@ export default function PlatformTeamsIndex({ teams }: Props) {
                 </div>
                 <nav className="flex flex-wrap justify-center gap-2" aria-label="Pagination">
                     {teams.links.map((link, index) => (
-                        link.url ? <Button key={index} asChild size="sm" variant={link.active ? 'default' : 'outline'}><Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} /></Button> : <Button key={index} size="sm" variant="outline" disabled>{link.label.replace(/&laquo;|&raquo;/g, '')}</Button>
+                        link.url ? <Button key={index} asChild size="sm" variant={link.active ? 'default' : 'outline'}><Link href={link.url}>{link.label.replace(/<[^>]*>/g, "").replace(/&laquo;/g, "«").replace(/&raquo;/g, "»")}</Link></Button> : <Button key={index} size="sm" variant="outline" disabled>{link.label.replace(/&laquo;|&raquo;/g, '')}</Button>
                     ))}
                 </nav>
                 <p className="text-center text-xs text-muted-foreground">Page {teams.current_page} of {teams.last_page}</p>
