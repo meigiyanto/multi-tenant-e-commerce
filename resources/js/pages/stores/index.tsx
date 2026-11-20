@@ -14,7 +14,7 @@ type StoreRecord = {
     status: string;
     timezone: string;
     currency: string;
-    domains_count: number;
+    custom_domains_count: number;
     created_at: string | null;
 };
 
