@@ -16,7 +16,7 @@ return new class extends Migration
         DB::table('store_domains')
             ->where('status', 'verifying')
             ->whereNotNull('verification_token')
-            ->update(['verification_expires_at' => now()->addHours(72)]);
+            ->update(['verification_expires_at' => now()->addMinutes((int) config('storefront.domain_verification_minutes', 1))]);
     }
 
     public function down(): void

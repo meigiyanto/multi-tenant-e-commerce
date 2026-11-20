@@ -18,8 +18,8 @@ return [
     | Custom Domain Verification
     |--------------------------------------------------------------------------
     |
-    | Number of hours a DNS TXT challenge remains valid before it expires.
+    | Number of minutes a DNS TXT challenge remains valid before it expires (temporary test default: 1).
     |
     */
-    'domain_verification_hours' => max(1, (int) env('STOREFRONT_DOMAIN_VERIFICATION_HOURS', 72)),
+    'domain_verification_minutes' => max(1, (int) env('STOREFRONT_DOMAIN_VERIFICATION_MINUTES', 1)),
 ];

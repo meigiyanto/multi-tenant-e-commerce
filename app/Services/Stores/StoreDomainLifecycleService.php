@@ -56,8 +56,8 @@ class StoreDomainLifecycleService
             $lockedDomain->status = StoreDomainStatus::Verifying->value;
             $lockedDomain->verified_at = null;
             $lockedDomain->verification_token = Str::random(48);
-            $lockedDomain->verification_expires_at = now()->addHours(
-                (int) config('storefront.domain_verification_hours', 72),
+            $lockedDomain->verification_expires_at = now()->addMinutes(
+                (int) config('storefront.domain_verification_minutes', 1),
             );
             $lockedDomain->save();
 

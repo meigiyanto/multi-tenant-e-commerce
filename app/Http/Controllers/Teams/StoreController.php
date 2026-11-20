@@ -68,10 +68,16 @@ class StoreController extends Controller
         return to_route('teams.stores.index', ['team' => $team->slug]);
     }
 
-    public function show(Team $team, Store $store): Response
+    public function show(Team $team, Store $store, StoreDomainLifecycleService $domainLifecycle): Response
     {
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('view', $store);
+        $store->load(['domains' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('domain')]);
+        foreach ($store->domains as $domain) {
+            if ($domain->status === StoreDomainStatus::Verifying->value) {
+                $domainLifecycle->expireIfOverdue($domain);
+            }
+        }
         $store->load(['domains' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('domain')]);
         $platformDomain = $store->domains->firstWhere('type', 'subdomain');
 

@@ -62,9 +62,9 @@ class StoreDomainLifecycleTest extends TestCase
         $this->assertSame(StoreDomainStatus::Disabled->value, $domain->fresh()->status);
     }
 
-    public function test_verification_challenge_expires_after_configured_hours_and_can_be_renewed(): void
+    public function test_verification_challenge_expires_after_configured_minutes_and_can_be_renewed(): void
     {
-        config(['storefront.domain_verification_hours' => 72]);
+        config(['storefront.domain_verification_minutes' => 1]);
         $start = CarbonImmutable::parse('2026-11-20 10:00:00');
         $this->travelTo($start);
 
@@ -80,9 +80,9 @@ class StoreDomainLifecycleTest extends TestCase
         $service->startVerification($domain);
         $domain->refresh();
 
-        $this->assertSame($start->addHours(72)->toDateTimeString(), $domain->verification_expires_at->toDateTimeString());
+        $this->assertSame($start->addMinute()->toDateTimeString(), $domain->verification_expires_at->toDateTimeString());
 
-        $this->travel(72)->hours();
+        $this->travel(1)->minutes();
         $this->assertTrue($service->expireIfOverdue($domain->fresh()));
         $this->assertSame(StoreDomainStatus::Expired->value, $domain->fresh()->status);
         $this->assertNull($domain->fresh()->verification_token);
