@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
  * @property bool $is_primary
  * @property string|null $verification_token
  * @property CarbonImmutable|null $verified_at
+ * @property CarbonImmutable|null $verification_expires_at
  */
 #[Fillable([
     'store_id',
@@ -25,6 +26,7 @@ use Illuminate\Support\Str;
     'status',
     'verified_at',
     'verification_token',
+    'verification_expires_at',
 ])]
 class StoreDomain extends Model
 {
@@ -49,6 +51,7 @@ class StoreDomain extends Model
         return [
             'is_primary' => 'boolean',
             'verified_at' => 'datetime',
+            'verification_expires_at' => 'datetime',
         ];
     }
 }

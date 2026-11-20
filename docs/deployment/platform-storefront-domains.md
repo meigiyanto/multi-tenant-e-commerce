@@ -31,4 +31,29 @@ php artisan config:cache
 ```
 
 Custom domains remain optional and continue to require ownership verification.
+
+## Custom domain verification expiration
+
+DNS TXT verification challenges are valid for 72 hours by default. Configure a different
+duration in hours with:
+
+```dotenv
+STOREFRONT_DOMAIN_VERIFICATION_HOURS=72
+```
+
+When a challenge expires, its status changes to `expired` and the token is invalidated.
+The Team owner or an authorized Team admin can generate a new challenge from the Store
+detail page. A new challenge receives a fresh validity period. A verified or active
+domain is not affected by this initial verification deadline.
+
+The Laravel scheduler expires overdue challenges hourly. Ensure the server runs
+`php artisan schedule:run` every minute, for example with this cron entry:
+
+```cron
+* * * * * cd /path/to/application && php artisan schedule:run >> /dev/null 2>&1
+```
+
+The verification endpoint also checks expiration directly, so an overdue challenge
+cannot be accepted while waiting for the next scheduled run.
+
 The platform subdomain is provisioned as an active, platform-owned domain when a Store is created. Existing draft Stores receive the same platform subdomain when activated. It does not require customer DNS verification.
