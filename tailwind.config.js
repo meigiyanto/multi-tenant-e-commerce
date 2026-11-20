@@ -27,9 +27,14 @@ export default {
                 ],
             },
             borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)',
+                xs: '2px',
+                sm: '2px',
+                DEFAULT: '4px',
+                md: '4px',
+                lg: '6px',
+                xl: '6px',
+                '2xl': '6px',
+                '3xl': '6px',
             },
             colors: {
                 background: color('background'),
