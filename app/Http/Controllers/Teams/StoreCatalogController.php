@@ -171,7 +171,7 @@ class StoreCatalogController extends Controller
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('store_id', $store->id)],
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
-        $slug = Str::slug($data['name']);
+        $slug = $this->uniqueCategorySlug($store, Str::slug($data['name']));
         $base = $slug;
         $suffix = 2;
         while ($store->categories()->where('slug', $slug)->exists()) {
@@ -192,7 +192,7 @@ class StoreCatalogController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
         abort_if((int) ($data['parent_id'] ?? 0) === $category->id, 422, __('A category cannot be its own parent.'));
-        $category->update($data + ['slug' => Str::slug($data['name'])]);
+        $category->update($data + ['slug' => $this->uniqueCategorySlug($store, Str::slug($data['name']), $category)]);
 
         return back()->with('success', __('Category updated.'));
     }
@@ -218,6 +218,17 @@ class StoreCatalogController extends Controller
         }
 
         return back()->with('success', __('Product image removed.'));
+    }
+
+    public function destroyVariant(Team $team, Store $store, Product $product, ProductVariant $variant): RedirectResponse
+    {
+        $this->authorizeProduct($team, $store, $product, 'update');
+        abort_unless($variant->store_id === $store->id && $variant->product_id === $product->id, 404);
+        $inventory = $variant->inventory;
+        abort_if($inventory && ($inventory->quantity > 0 || $inventory->reserved_quantity > 0 || $inventory->movements()->exists()), 422, __('A variant with stock or movement history cannot be deleted. Adjust or archive it instead.'));
+        $variant->delete();
+
+        return back()->with('success', __('Variant deleted.'));
     }
 
     public function adjustStock(Request $request, Team $team, Store $store, Product $product, ProductVariant $variant): RedirectResponse
@@ -273,6 +284,18 @@ class StoreCatalogController extends Controller
             'compare_at_price' => $data['compare_at_price'] ?? null,
             'track_inventory' => (bool) $data['track_inventory'],
         ];
+    }
+
+    private function uniqueCategorySlug(Store $store, string $slug, ?Category $category = null): string
+    {
+        $base = $slug !== '' ? $slug : 'category';
+        $candidate = $base;
+        $suffix = 2;
+        while ($store->categories()->where('slug', $candidate)->when($category, fn ($query) => $query->where('id', '!=', $category->id))->exists()) {
+            $candidate = $base.'-'.$suffix++;
+        }
+
+        return $candidate;
     }
 
     private function uniqueProductSlug(Store $store, string $slug, ?Product $product = null): string
