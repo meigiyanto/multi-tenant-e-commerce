@@ -31,7 +31,7 @@ class Store extends Model
 {
     use SoftDeletes;
 
-    /** @return HasMany<Category, $this> */\n    public function categories(): HasMany\n    {\n        return $this->hasMany(Category::class);\n    }\n\n    /** @return HasMany<Product, $this> */\n    public function products(): HasMany\n    {\n        return $this->hasMany(Product::class);\n    }\n\n    /** @return BelongsTo<Team, $this> */
+    /** @return BelongsTo<Team, $this> */
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
@@ -46,14 +46,23 @@ class Store extends Model
     /** @return HasOne<StoreDomain, $this> */
     public function primaryDomain(): HasOne
     {
-        return $this->hasOne(StoreDomain::class)
-            ->where('is_primary', true);
+        return $this->hasOne(StoreDomain::class)->where('is_primary', true);
+    }
+
+    /** @return HasMany<Category, $this> */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    /** @return HasMany<Product, $this> */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
     }
 
     protected function casts(): array
     {
-        return [
-            'settings' => 'array',
-        ];
+        return ['settings' => 'array'];
     }
 }
