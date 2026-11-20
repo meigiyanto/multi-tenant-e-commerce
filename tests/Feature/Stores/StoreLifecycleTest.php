@@ -32,6 +32,20 @@ class StoreLifecycleTest extends TestCase
         $this->assertSame(StoreStatus::Active->value, $store->fresh()->status);
     }
 
+    public function test_store_cannot_be_activated_when_its_team_is_suspended(): void
+    {
+        $team = Team::factory()->create(['status' => 'suspended']);
+        $store = $team->stores()->create([
+            'name' => 'Blocked Store',
+            'slug' => 'blocked-store',
+            'status' => StoreStatus::Draft->value,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        app(StoreLifecycleService::class)->transition($store, StoreStatus::Active);
+    }
+
     public function test_archived_store_cannot_be_reactivated(): void
     {
         $store = Team::factory()->create()->stores()->create([
