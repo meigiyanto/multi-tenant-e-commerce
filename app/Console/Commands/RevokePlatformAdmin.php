@@ -22,6 +22,14 @@ class RevokePlatformAdmin extends Command
             return self::FAILURE;
         }
 
+        $isPlatformAdmin = PlatformAdmin::query()->where('user_id', $user->id)->exists();
+
+        if ($isPlatformAdmin && PlatformAdmin::query()->count() <= 1) {
+            $this->error('Cannot revoke the last Platform Admin.');
+
+            return self::FAILURE;
+        }
+
         $deleted = PlatformAdmin::query()->where('user_id', $user->id)->delete();
 
         $this->info($deleted > 0 ? 'Platform Admin access revoked.' : 'User was not a Platform Admin.');
