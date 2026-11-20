@@ -9,10 +9,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
-Route::domain('{storeSubdomain}.'.config('storefront.root_domain'))
-    ->middleware(ResolveStoreFromDomain::class)
-    ->get('/', StorefrontController::class)
-    ->name('storefront.home');
+$storefrontRootDomain = trim((string) config('storefront.root_domain'));
+
+if ($storefrontRootDomain !== '') {
+    Route::domain('{storeSubdomain}.'.$storefrontRootDomain)
+        ->middleware(ResolveStoreFromDomain::class)
+        ->get('/', StorefrontController::class)
+        ->name('storefront.home');
+}
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
