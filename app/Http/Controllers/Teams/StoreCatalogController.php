@@ -127,6 +127,24 @@ class StoreCatalogController extends Controller
                     'alt_text' => $image->alt_text, 'is_primary' => $image->is_primary,
                 ]),
             ],
+            'movements' => InventoryMovement::query()
+                ->where('store_id', $store->id)
+                ->whereHas('inventory.variant', fn ($query) => $query->where('product_id', $product->id))
+                ->with(['user:id,name', 'inventory.variant:id,name,sku'])
+                ->latest()
+                ->limit(25)
+                ->get()
+                ->map(fn (InventoryMovement $movement) => [
+                    'id' => $movement->id,
+                    'variant' => $movement->inventory?->variant?->name,
+                    'sku' => $movement->inventory?->variant?->sku,
+                    'type' => $movement->type,
+                    'quantity' => $movement->quantity,
+                    'balance_after' => $movement->balance_after,
+                    'notes' => $movement->notes,
+                    'user' => $movement->user?->name,
+                    'created_at' => $movement->created_at?->toISOString(),
+                ]),
         ]);
     }
 
