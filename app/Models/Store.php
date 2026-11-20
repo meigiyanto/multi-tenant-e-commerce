@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $status
  * @property string $timezone
  * @property string $currency
- * @property int $custom_domains_count
  */
 #[Fillable([
     'team_id',
