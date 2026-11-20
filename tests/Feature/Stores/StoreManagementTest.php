@@ -101,6 +101,7 @@ class StoreManagementTest extends TestCase
         $response->assertSessionHasErrors('slug');
         $this->assertDatabaseMissing('stores', ['name' => 'Duplicate Store']);
     }
+
     public function test_team_members_can_view_store_details_and_domains(): void
     {
         $user = User::factory()->create();
@@ -225,5 +226,4 @@ class StoreManagementTest extends TestCase
 
         $this->assertDatabaseHas('stores', ['id' => $store->id, 'slug' => 'first-store']);
     }
-
 }
