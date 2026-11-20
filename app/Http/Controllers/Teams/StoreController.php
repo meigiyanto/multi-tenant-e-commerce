@@ -11,7 +11,7 @@ use App\Models\Team;
 use App\Services\Stores\StoreLifecycleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -84,7 +84,7 @@ class StoreController extends Controller
                     'type' => $domain->type,
                     'status' => $domain->status,
                     'is_primary' => $domain->is_primary,
-                    'verified_at' => $domain->verified_at instanceof Carbon
+                    'verified_at' => $domain->verified_at instanceof CarbonInterface
                         ? $domain->verified_at->toISOString()
                         : null,
                 ]),
