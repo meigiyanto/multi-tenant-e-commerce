@@ -21,6 +21,12 @@ class StoreDomainLifecycleService
                 ]);
             }
 
+            if ($target === StoreDomainStatus::Active && $lockedDomain->verified_at === null) {
+                throw ValidationException::withMessages([
+                    'status' => __('A domain must be verified before it can be activated.'),
+                ]);
+            }
+
             if (in_array($target, [StoreDomainStatus::Pending, StoreDomainStatus::Disabled], true)) {
                 $lockedDomain->verified_at = null;
             }
