@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Services\Stores;
+
+use App\Enums\StoreDomainStatus;
+use App\Models\StoreDomain;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+class StoreDomainLifecycleService
+{
+    public function transition(StoreDomain $domain, StoreDomainStatus $target): StoreDomain
+    {
+        return DB::transaction(function () use ($domain, $target): StoreDomain {
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
+            $current = StoreDomainStatus::tryFrom($lockedDomain->status);
+
+            if ($current === null || ! $current->canTransitionTo($target)) {
+                throw ValidationException::withMessages([
+                    'status' => __('The requested domain status transition is not allowed.'),
+                ]);
+            }
+
+            if ($target === StoreDomainStatus::Active && $lockedDomain->verified_at === null) {
+                throw ValidationException::withMessages([
+                    'status' => __('A domain must be verified before it can be activated.'),
+                ]);
+            }
+
+            if (in_array($target, [StoreDomainStatus::Pending, StoreDomainStatus::Disabled], true)) {
+                $lockedDomain->verified_at = null;
+                $lockedDomain->verification_token = null;
+            }
+
+            $lockedDomain->status = $target->value;
+            $lockedDomain->save();
+
+            return $lockedDomain;
+        });
+    }
+
+    public function startVerification(StoreDomain $domain): StoreDomain
+    {
+        return DB::transaction(function () use ($domain): StoreDomain {
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
+            $current = StoreDomainStatus::tryFrom($lockedDomain->status);
+
+            if ($current !== StoreDomainStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'status' => __('Only pending domains can start verification.'),
+                ]);
+            }
+
+            $lockedDomain->status = StoreDomainStatus::Verifying->value;
+            $lockedDomain->verified_at = null;
+            $lockedDomain->verification_token = Str::random(48);
+            $lockedDomain->save();
+
+            return $lockedDomain;
+        });
+    }
+
+    /**
+     * This trusted operation must only be called after DomainOwnershipVerifier succeeds.
+     */
+    public function markVerified(StoreDomain $domain): StoreDomain
+    {
+        return DB::transaction(function () use ($domain): StoreDomain {
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
+            $current = StoreDomainStatus::tryFrom($lockedDomain->status);
+
+            if ($current !== StoreDomainStatus::Verifying || $lockedDomain->verification_token === null) {
+                throw ValidationException::withMessages([
+                    'status' => __('A domain must have an active verification challenge before it can be verified.'),
+                ]);
+            }
+
+            $lockedDomain->status = StoreDomainStatus::Verified->value;
+            $lockedDomain->verified_at = now();
+            $lockedDomain->save();
+
+            return $lockedDomain;
+        });
+    }
+}

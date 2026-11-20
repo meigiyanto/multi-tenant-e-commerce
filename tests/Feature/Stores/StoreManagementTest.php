@@ -227,4 +227,35 @@ class StoreManagementTest extends TestCase
         $this->assertDatabaseHas('stores', ['id' => $store->id, 'slug' => 'first-store']);
     }
 
+    public function test_team_owner_can_change_store_status(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $store = $team->stores()->create(['name' => 'Draft Store', 'slug' => 'draft-store']);
+
+        $this->actingAs($user)
+            ->patch(route('teams.stores.status', ['team' => $team, 'store' => $store]), [
+                'status' => 'active',
+            ])
+            ->assertRedirect(route('teams.stores.show', ['team' => $team, 'store' => $store]));
+
+        $this->assertDatabaseHas('stores', ['id' => $store->id, 'status' => 'active']);
+    }
+
+    public function test_team_member_without_update_permission_cannot_change_store_status(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+        $store = $team->stores()->create(['name' => 'Draft Store', 'slug' => 'draft-store']);
+
+        $this->actingAs($user)
+            ->patch(route('teams.stores.status', ['team' => $team, 'store' => $store]), [
+                'status' => 'active',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('stores', ['id' => $store->id, 'status' => 'draft']);
+    }
 }
