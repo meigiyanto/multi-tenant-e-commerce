@@ -102,7 +102,7 @@ export default function TeamEdit({
                             <p className="text-sm text-muted-foreground">Create and manage online stores owned by this team.</p>
                         </div>
                         <Button asChild variant="outline">
-                            <Link href={`/teams/${team.slug}/stores`}><Plus /> Manage stores</Link>
+                            <Link href={`/settings/teams/${team.slug}/stores`}><Plus /> Manage stores</Link>
                         </Button>
                     </div>
                     {permissions.canUpdateTeam ? (
