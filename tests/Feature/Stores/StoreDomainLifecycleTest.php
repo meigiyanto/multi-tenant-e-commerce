@@ -82,7 +82,7 @@ class StoreDomainLifecycleTest extends TestCase
 
         $this->assertSame($start->addMinute()->toDateTimeString(), $domain->verification_expires_at->toDateTimeString());
 
-        $this->travel(1)->minute();
+        $this->travel(1)->minutes();
         $this->assertTrue($service->expireIfOverdue($domain->fresh()));
         $this->assertSame(StoreDomainStatus::Expired->value, $domain->fresh()->status);
         $this->assertNull($domain->fresh()->verification_token);
