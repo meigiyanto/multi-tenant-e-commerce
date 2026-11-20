@@ -18,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -113,6 +114,8 @@ class StoreController extends Controller
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('update', $store);
 
+        $storefront = $store->settings['storefront'] ?? [];
+
         return Inertia::render('stores/settings', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'store' => [
@@ -122,6 +125,15 @@ class StoreController extends Controller
                 'status' => $store->status,
                 'timezone' => $store->timezone,
                 'currency' => $store->currency,
+                'storefront' => [
+                    'description' => $storefront['description'] ?? '',
+                    'logo_url' => filled($storefront['logo_path'] ?? null) ? Storage::disk('public')->url($storefront['logo_path']) : null,
+                    'banner_url' => filled($storefront['banner_path'] ?? null) ? Storage::disk('public')->url($storefront['banner_path']) : null,
+                    'primary_color' => $storefront['primary_color'] ?? '#2563eb',
+                    'accent_color' => $storefront['accent_color'] ?? '#0f172a',
+                    'navigation' => $storefront['navigation'] ?? [],
+                    'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $storefront['contact'] ?? []),
+                ],
             ],
         ]);
     }
@@ -202,8 +214,52 @@ class StoreController extends Controller
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('stores', 'slug')->where('team_id', $team->id)->ignore($store->id)],
             'timezone' => ['required', 'timezone:all'],
             'currency' => ['required', 'string', 'size:3', 'alpha:upper'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'navigation' => ['nullable', 'array', 'max:5'],
+            'navigation.*.label' => ['required_with:navigation.*.url', 'nullable', 'string', 'max:40'],
+            'navigation.*.url' => ['required_with:navigation.*.label', 'nullable', 'string', 'max:255', 'regex:#^(https://|/(?!/))[^\\s]+$#i'],
+            'contact.email' => ['nullable', 'email', 'max:255'],
+            'contact.phone' => ['nullable', 'string', 'max:40'],
+            'contact.address' => ['nullable', 'string', 'max:500'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'remove_logo' => ['sometimes', 'boolean'],
+            'remove_banner' => ['sometimes', 'boolean'],
         ]);
-        $store->update($validated);
+        $settings = $store->settings ?? [];
+        $storefront = $settings['storefront'] ?? [];
+        $oldFiles = [];
+        foreach (['logo' => 'logo_path', 'banner' => 'banner_path'] as $field => $key) {
+            if ($request->boolean('remove_'.$field) && filled($storefront[$key] ?? null)) {
+                $oldFiles[] = $storefront[$key];
+                $storefront[$key] = null;
+            }
+            if ($request->hasFile($field)) {
+                if (filled($storefront[$key] ?? null)) {
+                    $oldFiles[] = $storefront[$key];
+                }
+                $storefront[$key] = $request->file($field)->store("stores/{$store->id}/storefront", 'public');
+            }
+        }
+        $storefront = array_merge($storefront, [
+            'description' => $validated['description'] ?? '',
+            'primary_color' => $validated['primary_color'],
+            'accent_color' => $validated['accent_color'],
+            'navigation' => collect($validated['navigation'] ?? [])->filter(fn (array $item) => filled($item['label'] ?? null) && filled($item['url'] ?? null))->values()->all(),
+            'contact' => [
+                'email' => $validated['contact']['email'] ?? '',
+                'phone' => $validated['contact']['phone'] ?? '',
+                'address' => $validated['contact']['address'] ?? '',
+            ],
+        ]);
+        unset($validated['description'], $validated['primary_color'], $validated['accent_color'], $validated['navigation'], $validated['contact'], $validated['logo'], $validated['banner'], $validated['remove_logo'], $validated['remove_banner']);
+        $settings['storefront'] = $storefront;
+        $store->update($validated + ['settings' => $settings]);
+        foreach ($oldFiles as $oldFile) {
+            Storage::disk('public')->delete($oldFile);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Store settings updated.')]);
 
         return to_route('teams.stores.show', ['team' => $team->slug, 'store' => $store->id]);
