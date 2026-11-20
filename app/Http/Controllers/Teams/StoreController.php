@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Teams;
 
+use App\Enums\StoreStatus;
 use App\Enums\TeamStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StoreDomain;
 use App\Models\Team;
+use App\Services\Stores\StoreLifecycleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -107,6 +109,22 @@ class StoreController extends Controller
                 'currency' => $store->currency,
             ],
         ]);
+    }
+
+    public function updateStatus(Request $request, Team $team, Store $store, StoreLifecycleService $lifecycle): RedirectResponse
+    {
+        $this->ensureStoreBelongsToTeam($team, $store);
+        Gate::authorize('update', $store);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::enum(StoreStatus::class)],
+        ]);
+
+        $lifecycle->transition($store, StoreStatus::from($validated['status']));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Store status updated.')]);
+
+        return to_route('teams.stores.show', ['team' => $team->slug, 'store' => $store->id]);
     }
 
     public function update(Request $request, Team $team, Store $store): RedirectResponse
