@@ -37,6 +37,8 @@ class StoreManagementTest extends TestCase
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
+        config(['storefront.root_domain' => 'platform.test']);
+
         $response = $this->actingAs($user)->post(route('teams.stores.store', $team), [
             'name' => 'My Online Store',
             'slug' => 'my-online-store',
@@ -54,6 +56,18 @@ class StoreManagementTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'currency' => 'IDR',
         ]);
+
+        $store = $team->stores()->where('slug', 'my-online-store')->firstOrFail();
+
+        $this->assertDatabaseHas('store_domains', [
+            'store_id' => $store->id,
+            'domain' => 'my-online-store-'.$store->id.'.platform.test',
+            'type' => 'subdomain',
+            'is_primary' => true,
+            'status' => 'active',
+        ]);
+
+        $this->assertNotNull($store->domains()->where('type', 'subdomain')->value('verified_at'));
     }
 
     public function test_team_members_without_update_permission_cannot_create_stores(): void
