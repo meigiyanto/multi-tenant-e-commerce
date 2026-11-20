@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Http\\Controllers\\Storefront;
+namespace App\Http\Controllers\Storefront;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Support\\Stores\\StoreContext;
-use Illuminate\\Support\\Facades\\Storage;
-use Inertia\\Inertia;
-use Inertia\\Response;
+use App\Http\Controllers\Controller;
+use App\Support\Stores\StoreContext;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class StorefrontController extends Controller
 {
