@@ -101,7 +101,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Badge variant={store.status === 'active' ? 'default' : 'secondary'}>{store.status}</Badge>
-                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.domains_count} domains</span>
+                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.custom_domains_count} custom domains</span>
                                     </div>
                                 </article>
                             ))}
