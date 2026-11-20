@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('settings/teams/{team}/stores/{store}/catalog/products/{product}', [StoreCatalogController::class, 'destroy'])->name('teams.stores.catalog.products.destroy');
         Route::post('settings/teams/{team}/stores/{store}/catalog/products/{product}/images/{image}/delete', [StoreCatalogController::class, 'destroyImage'])->name('teams.stores.catalog.images.destroy');
         Route::post('settings/teams/{team}/stores/{store}/catalog/products/{product}/variants/{variant}/stock', [StoreCatalogController::class, 'adjustStock'])->name('teams.stores.catalog.stock.adjust');
+        Route::delete('settings/teams/{team}/stores/{store}/catalog/products/{product}/variants/{variant}', [StoreCatalogController::class, 'destroyVariant'])->name('teams.stores.catalog.variants.destroy');
         Route::post('settings/teams/{team}/stores/{store}/catalog/categories', [StoreCatalogController::class, 'storeCategory'])->name('teams.stores.catalog.categories.store');
         Route::patch('settings/teams/{team}/stores/{store}/catalog/categories/{category}', [StoreCatalogController::class, 'updateCategory'])->name('teams.stores.catalog.categories.update');
         Route::delete('settings/teams/{team}/stores/{store}/catalog/categories/{category}', [StoreCatalogController::class, 'destroyCategory'])->name('teams.stores.catalog.categories.destroy');
