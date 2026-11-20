@@ -1,6 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Globe2, Package, Settings, Store as StoreIcon } from 'lucide-react';
+import { ArrowLeft, Globe2, Settings, Store as StoreIcon } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -55,10 +55,11 @@ function VerificationCountdown({ expiresAt }: { expiresAt: string }) {
     }, [expiresAt]);
 
     const totalSeconds = Math.ceil(remaining / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor(hours / 60);
     const seconds = totalSeconds % 60;
 
-    return <p className="text-xs font-medium tabular-nums text-amber-600">Time remaining: {minutes}:{String(seconds).padStart(2, '0')}</p>;
+    return <p className="text-xs font-medium tabular-nums text-amber-600">Time remaining: {hours}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</p>;
 }
 
 export default function StoreShow({ team, store, canManageStore }: Props) {
@@ -77,7 +78,9 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                     </Button>
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store details for ' + team.name + '.'} />
-                        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button>{canManageStore ? <Button asChild><Link href={base + '/settings'}><Settings /> Store settings</Link></Button> : null}</div>
+                        {canManageStore ? (
+                            <Button asChild><Link href={base + '/settings'}><Settings /> Store settings</Link></Button>
+                        ) : null}
                     </div>
                 </div>
 
@@ -161,7 +164,9 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                                         <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
                                     </div>
                                     {canManageStore && ['pending', 'expired'].includes(domain.status) ? (
-                                        <Form action={base + '/domains/' + domain.id + '/verification'} method="post"><Button size="sm" variant="outline" type="submit">{domain.status === 'expired' ? 'Generate a new DNS challenge' : 'Generate DNS challenge'}</Button></Form>
+                                        <Form action={base + '/domains/' + domain.id + '/verification'} method="post">
+                                            <Button size="sm" variant="outline" type="submit">{domain.status === 'expired' ? 'Generate a new DNS challenge' : 'Generate DNS challenge'}</Button>
+                                        </Form>
                                     ) : null}
                                     {canManageStore && domain.status === 'verifying' && domain.verification_token ? (
                                         <div className="space-y-2 rounded-lg bg-muted/50 p-3">
@@ -171,7 +176,9 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                                                 <div><dt className="text-muted-foreground">Host / Name</dt><dd className="break-all font-mono">_store-verification.{domain.domain}</dd></div>
                                                 <div><dt className="text-muted-foreground">TXT value</dt><dd className="break-all font-mono">{domain.verification_token}</dd></div>
                                             </dl>
-                                            <Form action={base + '/domains/' + domain.id + '/verification/check'} method="post"><Button size="sm" type="submit">Check DNS record</Button></Form>
+                                            <Form action={base + '/domains/' + domain.id + '/verification/check'} method="post">
+                                                <Button size="sm" type="submit">Check DNS record</Button>
+                                            </Form>
                                         </div>
                                     ) : null}
                                     {canManageStore && domain.status === 'verified' ? (
