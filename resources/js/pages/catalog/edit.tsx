@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 
 type VariantRow = { id?: number; name: string; sku: string; option: string; value: string; option2: string; value2: string; price: string; initial_stock: string; low_stock_threshold: string };
 type Product = { id: number; name: string; slug: string; status: string; category_id: number | null; description: string | null; price: string; compare_at_price: string | null; track_inventory: boolean; variants: { id: number; name: string; sku: string; options: Record<string, string>; price: string | null; initial_stock: string; low_stock_threshold: string }[]; images: { id: number; url: string; alt_text: string | null; is_primary: boolean }[] };
-type Props = { team: { name: string; slug: string }; store: { id: number; name: string; currency: string }; categories: { id: number; name: string }[]; product: Product };
+type Movement = { id: number; variant: string | null; sku: string | null; type: string; quantity: number; balance_after: number; notes: string | null; user: string | null; created_at: string | null };\ntype Props = { movements: Movement[]; team: { name: string; slug: string }; store: { id: number; name: string; currency: string }; categories: { id: number; name: string }[]; product: Product };
 
 export default function CatalogEdit({ team, store, categories, product }: Props) {
     const base = '/settings/teams/' + team.slug + '/stores/' + store.id + '/catalog';
@@ -48,6 +48,19 @@ export default function CatalogEdit({ team, store, categories, product }: Props)
                         <div className="flex justify-end gap-2"><Button asChild variant="outline"><Link href={base}>Cancel</Link></Button><Button type="submit" disabled={processing}>Save changes</Button></div>
                     </>}
                 </Form>
+                <section className="space-y-4 rounded-md border p-5">
+                    <div><h2 className="font-semibold">Quick stock adjustment</h2><p className="text-sm text-muted-foreground">Use a positive number to add stock and a negative number to reduce it. Every adjustment is recorded.</p></div>
+                    {product.variants.map((variant) => <Form key={variant.id} action={base + '/products/' + product.id + '/variants/' + variant.id + '/stock'} method="post" className="grid gap-3 rounded-sm border p-3 sm:grid-cols-[1fr_120px_1fr_auto] sm:items-end">
+                        <div><p className="text-sm font-medium">{variant.name}</p><p className="text-xs text-muted-foreground">{variant.sku} · Current stock: {variant.initial_stock}</p></div>
+                        <div className="grid gap-1"><Label>Change (+ / −)</Label><Input name="quantity" type="number" step="1" min="-1000000" max="1000000" required /></div>
+                        <div className="grid gap-1"><Label>Reason</Label><Input name="notes" maxLength={500} placeholder="e.g. Restock / damaged" /></div>
+                        <Button type="submit" size="sm">Adjust</Button>
+                    </Form>)}
+                </section>
+                <section className="space-y-4 rounded-md border p-5">
+                    <div><h2 className="font-semibold">Inventory movement history</h2><p className="text-sm text-muted-foreground">Latest 25 movements for this product.</p></div>
+                    {movements.length ? <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2 font-medium">Date</th><th className="p-2 font-medium">Variant / SKU</th><th className="p-2 font-medium">Type</th><th className="p-2 font-medium">Change</th><th className="p-2 font-medium">Balance</th><th className="p-2 font-medium">By / Notes</th></tr></thead><tbody>{movements.map((movement) => <tr key={movement.id} className="border-b last:border-0"><td className="p-2 whitespace-nowrap">{movement.created_at ? new Date(movement.created_at).toLocaleString() : '—'}</td><td className="p-2">{movement.variant}<span className="block text-xs text-muted-foreground">{movement.sku}</span></td><td className="p-2">{movement.type}</td><td className={'p-2 font-medium ' + (movement.quantity > 0 ? 'text-emerald-700' : 'text-red-600')}>{movement.quantity > 0 ? '+' : ''}{movement.quantity}</td><td className="p-2">{movement.balance_after}</td><td className="p-2">{movement.user ?? 'System'}{movement.notes ? <span className="block text-xs text-muted-foreground">{movement.notes}</span> : null}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">No stock movements recorded yet.</p>}
+                </section>
             </div>
         </>
     );
