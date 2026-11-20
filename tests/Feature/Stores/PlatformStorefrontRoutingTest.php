@@ -2,12 +2,8 @@
 
 namespace Tests\Feature\Stores;
 
-use App\Enums\TeamRole;
-use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Models\Team;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -17,8 +13,6 @@ class PlatformStorefrontRoutingTest extends TestCase
 
     public function test_generated_platform_subdomain_resolves_an_active_storefront(): void
     {
-        config(['storefront.root_domain' => 'platform.test']);
-
         $team = Team::factory()->create();
         $store = $team->stores()->create([
             'name' => 'My Online Store',
@@ -26,7 +20,7 @@ class PlatformStorefrontRoutingTest extends TestCase
             'status' => 'active',
         ]);
         $domain = $store->domains()->create([
-            'domain' => 'my-online-store-'.$store->id.'.platform.test',
+            'domain' => 'my-online-store-'.$store->id.'.localhost',
             'type' => 'subdomain',
             'is_primary' => true,
             'status' => 'active',
@@ -47,7 +41,7 @@ class PlatformStorefrontRoutingTest extends TestCase
     {
         config(['storefront.root_domain' => 'platform.test']);
 
-        $this->get('http://unknown-store.platform.test/')
+        $this->get('http://unknown-store.localhost/')
             ->assertNotFound();
     }
 }
