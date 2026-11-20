@@ -28,7 +28,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
     return (
         <>
             <Head title={`Stores — ${team.name}`} />
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col space-y-6 gap-8">
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
