@@ -15,6 +15,7 @@ use App\Services\Stores\StoreLifecycleService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -30,7 +31,7 @@ class StoreController extends Controller
         return Inertia::render('stores/index', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'canManageStores' => Gate::allows('update', $team),
-            'stores' => $team->stores()->withCount('domains')->latest()->get()->map(
+            'stores' => $team->stores()->withCount(['domains as custom_domains_count' => fn ($query) => $query->where('type', 'custom')])->latest()->get()->map(
                 fn (Store $store) => [
                     'id' => $store->id,
                     'name' => $store->name,
@@ -57,7 +58,20 @@ class StoreController extends Controller
             'currency' => ['required', 'string', 'size:3', 'alpha:upper'],
         ]);
 
-        $team->stores()->create($validated + ['status' => 'draft']);
+        DB::transaction(function () use ($team, $validated): void {
+            $store = $team->stores()->create($validated + ['status' => StoreStatus::Draft->value]);
+            $rootDomain = trim((string) config('storefront.root_domain', 'localhost'), ". \t\n\r\0\x0B");
+            $storeLabel = rtrim(substr($store->slug, 0, 48), '-');
+            $platformDomain = $storeLabel.'-'.$store->getKey().'.'.strtolower($rootDomain);
+
+            $store->domains()->create([
+                'domain' => $platformDomain,
+                'type' => 'subdomain',
+                'is_primary' => true,
+                'status' => StoreDomainStatus::Active->value,
+                'verified_at' => now(),
+            ]);
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Store created.')]);
 
         return to_route('teams.stores.index', ['team' => $team->slug]);
