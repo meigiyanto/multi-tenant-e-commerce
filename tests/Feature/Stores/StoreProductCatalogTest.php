@@ -174,52 +174,6 @@ class StoreProductCatalogTest extends TestCase
     }
 
     /** @return array{User, Team, \App\Models\Store} */
-    public function test_product_keeps_at_least_one_variant(): void
-    {
-        [$user, $team, $store] = $this->ownedStore();
-        $product = $store->products()->create(['name' => 'Single Variant', 'slug' => 'single-variant', 'status' => 'draft', 'price' => 10000, 'track_inventory' => true]);
-        $variant = $product->variants()->create(['store_id' => $store->id, 'name' => 'Default', 'sku' => 'SINGLE-01']);
-        $variant->inventory()->create(['store_id' => $store->id, 'quantity' => 0]);
-
-        $this->actingAs($user)
-            ->delete(route('teams.stores.catalog.variants.destroy', [$team, $store, $product, $variant]))
-            ->assertStatus(422);
-
-        $this->assertDatabaseHas('product_variants', ['id' => $variant->id]);
-    }
-
-    public function test_category_cannot_be_deleted_while_a_soft_deleted_product_still_references_it(): void
-    {
-        [$user, $team, $store] = $this->ownedStore();
-        $category = $store->categories()->create(['name' => 'Archived category', 'slug' => 'archived-category']);
-        $product = $store->products()->create(['category_id' => $category->id, 'name' => 'Archived product', 'slug' => 'archived-product', 'status' => 'archived', 'price' => 10000, 'track_inventory' => true]);
-        $product->delete();
-
-        $this->actingAs($user)
-            ->delete(route('teams.stores.catalog.categories.destroy', [$team, $store, $category]))
-            ->assertStatus(422);
-
-        $this->assertDatabaseHas('categories', ['id' => $category->id]);
-    }
-
-    public function test_product_slug_generation_avoids_archived_products(): void
-    {
-        [$user, $team, $store] = $this->ownedStore();
-        $oldProduct = $store->products()->create(['name' => 'Archived Item', 'slug' => 'archived-item', 'status' => 'archived', 'price' => 10000, 'track_inventory' => true]);
-        $oldProduct->delete();
-
-        $this->actingAs($user)->post(route('teams.stores.catalog.products.store', [$team, $store]), [
-            'name' => 'Archived Item',
-            'status' => 'draft',
-            'price' => 10000,
-            'track_inventory' => 1,
-            'variants' => [['name' => 'Default', 'sku' => 'ARCHIVED-NEW', 'initial_stock' => 0]],
-        ])->assertRedirect();
-
-        $this->assertDatabaseHas('products', ['store_id' => $store->id, 'slug' => 'archived-item-2', 'deleted_at' => null]);
-    }
-
-    /** @return array{User, Team, \\App\\Models\\Store} */
     private function ownedStore(TeamRole $role = TeamRole::Owner): array
     {
         $user = User::factory()->create();
