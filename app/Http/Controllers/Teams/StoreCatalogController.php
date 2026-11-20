@@ -187,11 +187,11 @@ class StoreCatalogController extends Controller
         $this->authorizeCategory($team, $store, $category, 'update');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('store_id', $store->id)->whereNot('id', $category->id)],
+            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('store_id', $store->id)->where('id', '!=', $category->id)],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['required', 'boolean'],
         ]);
-        $category->update($data + ['slug' => Str::slug($data['name'])]);
+        abort_if((int) ($data['parent_id'] ?? 0) === $category->id, 422, __('A category cannot be its own parent.'));\n        $category->update($data + ['slug' => Str::slug($data['name'])]);
 
         return back()->with('success', __('Category updated.'));
     }
@@ -274,7 +274,7 @@ class StoreCatalogController extends Controller
 
     private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
     {
-        $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->whereKeyNot($variant->id))->exists();
+        $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->where('id', '!=', $variant->id))->exists();
         if ($skuExists) {
             throw ValidationException::withMessages(['variants' => __('A SKU is already used by another product in this Store.')]);
         }
