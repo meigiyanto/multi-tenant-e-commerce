@@ -1,5 +1,5 @@
-import { Form, Head, router } from '@inertiajs/react';
-import { ChevronDown, Mail, UserPlus, X } from 'lucide-react';
+import { Form, Head, Link, router } from '@inertiajs/react';
+import { ChevronDown, Mail, Plus, UserPlus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CancelInvitationModal from '@/components/cancel-invitation-modal';
 import DeleteTeamModal from '@/components/delete-team-modal';
@@ -96,6 +96,15 @@ export default function TeamEdit({
 
             <div className="flex flex-col space-y-10">
                 <div className="space-y-6">
+                    <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                        <div>
+                            <p className="font-medium">Storefronts</p>
+                            <p className="text-sm text-muted-foreground">Create and manage online stores owned by this team.</p>
+                        </div>
+                        <Button asChild variant="outline">
+                            <Link href={`/teams/${team.slug}/stores`}><Plus /> Manage stores</Link>
+                        </Button>
+                    </div>
                     {permissions.canUpdateTeam ? (
                         <>
                             <Heading
