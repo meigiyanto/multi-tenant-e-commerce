@@ -101,4 +101,129 @@ class StoreManagementTest extends TestCase
         $response->assertSessionHasErrors('slug');
         $this->assertDatabaseMissing('stores', ['name' => 'Duplicate Store']);
     }
+    public function test_team_members_can_view_store_details_and_domains(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+        $store = $team->stores()->create(['name' => 'Main Store', 'slug' => 'main-store']);
+        $store->domains()->create([
+            'domain' => 'shop.example.test',
+            'type' => 'custom',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('teams.stores.show', ['team' => $team, 'store' => $store]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('stores/show')
+                ->where('team.slug', $team->slug)
+                ->where('store.name', 'Main Store')
+                ->has('store.domains', 1)
+                ->where('store.domains.0.domain', 'shop.example.test')
+                ->where('canManageStore', false),
+            );
+    }
+
+    public function test_team_owners_can_view_and_update_store_settings(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $store = $team->stores()->create([
+            'name' => 'Main Store',
+            'slug' => 'main-store',
+            'settings' => ['checkout' => ['guest_enabled' => true]],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('teams.stores.edit', ['team' => $team, 'store' => $store]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('stores/settings')
+                ->where('store.slug', 'main-store'),
+            );
+
+        $this->actingAs($user)
+            ->patch(route('teams.stores.update', ['team' => $team, 'store' => $store]), [
+                'name' => 'Updated Store',
+                'slug' => 'updated-store',
+                'timezone' => 'Asia/Jakarta',
+                'currency' => 'IDR',
+            ])
+            ->assertRedirect(route('teams.stores.show', ['team' => $team, 'store' => $store]));
+
+        $this->assertDatabaseHas('stores', [
+            'id' => $store->id,
+            'team_id' => $team->id,
+            'name' => 'Updated Store',
+            'slug' => 'updated-store',
+            'timezone' => 'Asia/Jakarta',
+            'currency' => 'IDR',
+        ]);
+
+        $this->assertSame(['checkout' => ['guest_enabled' => true]], $store->fresh()->settings);
+    }
+
+    public function test_team_members_without_update_permission_cannot_edit_store_settings(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+        $store = $team->stores()->create(['name' => 'Main Store', 'slug' => 'main-store']);
+
+        $this->actingAs($user)
+            ->get(route('teams.stores.edit', ['team' => $team, 'store' => $store]))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->patch(route('teams.stores.update', ['team' => $team, 'store' => $store]), [
+                'name' => 'Changed Store',
+                'slug' => 'changed-store',
+                'timezone' => 'Asia/Jakarta',
+                'currency' => 'IDR',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('stores', ['id' => $store->id, 'name' => 'Main Store']);
+    }
+
+    public function test_store_must_belong_to_the_team_in_the_url(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $otherTeam = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $otherTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $store = $otherTeam->stores()->create(['name' => 'Other Store', 'slug' => 'other-store']);
+
+        $this->actingAs($user)
+            ->get(route('teams.stores.show', ['team' => $team, 'store' => $store]))
+            ->assertNotFound();
+    }
+
+    public function test_store_slug_must_be_unique_within_the_team_when_updated(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $store = $team->stores()->create(['name' => 'First Store', 'slug' => 'first-store']);
+        $team->stores()->create(['name' => 'Second Store', 'slug' => 'second-store']);
+
+        $this->actingAs($user)
+            ->from(route('teams.stores.edit', ['team' => $team, 'store' => $store]))
+            ->patch(route('teams.stores.update', ['team' => $team, 'store' => $store]), [
+                'name' => 'First Store',
+                'slug' => 'second-store',
+                'timezone' => 'Asia/Jakarta',
+                'currency' => 'IDR',
+            ])
+            ->assertSessionHasErrors('slug');
+
+        $this->assertDatabaseHas('stores', ['id' => $store->id, 'slug' => 'first-store']);
+    }
+
 }
