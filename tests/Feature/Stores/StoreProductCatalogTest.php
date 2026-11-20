@@ -3,9 +3,7 @@
 namespace Tests\Feature\Stores;
 
 use App\Enums\TeamRole;
-use App\Models\Category;
 use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +90,10 @@ class StoreProductCatalogTest extends TestCase
 
         $this->assertDatabaseHas('inventories', ['product_variant_id' => $variant->id, 'quantity' => 8]);
         $this->assertDatabaseHas('inventory_movements', ['store_id' => $store->id, 'type' => 'adjustment', 'quantity' => -2, 'balance_after' => 8, 'notes' => 'Damaged stock']);
+
+        $this->actingAs($user)->get(route('teams.stores.catalog.products.edit', [$team, $store, $product]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('movements.0.quantity', -2)->where('movements.0.balance_after', 8));
     }
 
     public function test_stock_cannot_be_adjusted_below_reserved_quantity(): void
@@ -144,9 +146,6 @@ class StoreProductCatalogTest extends TestCase
         $this->assertDatabaseHas('products', ['id' => $product->id, 'category_id' => $category->id]);
     }
 
-    /**
-     * @return array{User, Team, \App\Models\Store}
-     */
     public function test_public_storefront_shows_only_active_products_for_the_resolved_store(): void
     {
         [, , $store] = $this->ownedStore();
@@ -174,6 +173,7 @@ class StoreProductCatalogTest extends TestCase
             );
     }
 
+    /** @return array{User, Team, \App\Models\Store} */
     private function ownedStore(TeamRole $role = TeamRole::Owner): array
     {
         $user = User::factory()->create();
