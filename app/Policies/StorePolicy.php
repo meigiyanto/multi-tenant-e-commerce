@@ -10,11 +10,15 @@ class StorePolicy
 {
     public function view(User $user, Store $store): bool
     {
-        return $user->belongsToTeam($store->team);
+        $team = $store->team;
+
+        return $team !== null && $user->belongsToTeam($team);
     }
 
     public function update(User $user, Store $store): bool
     {
-        return $user->hasTeamPermission($store->team, TeamPermission::UpdateTeam);
+        $team = $store->team;
+
+        return $team !== null && $user->hasTeamPermission($team, TeamPermission::UpdateTeam);
     }
 }
