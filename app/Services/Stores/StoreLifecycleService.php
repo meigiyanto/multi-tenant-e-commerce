@@ -13,7 +13,7 @@ class StoreLifecycleService
     public function transition(Store $store, StoreStatus $target): Store
     {
         return DB::transaction(function () use ($store, $target): Store {
-            $lockedStore = Store::query()->with('team')->lockForUpdate()->findOrFail($store->getKey());
+            $lockedStore = Store::query()->with('team')->whereKey($store->getKey())->lockForUpdate()->firstOrFail();
             $current = StoreStatus::tryFrom($lockedStore->status);
 
             if ($current === null || ! $current->canTransitionTo($target)) {
