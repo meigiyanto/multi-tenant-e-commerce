@@ -22,4 +22,4 @@ Schedule::call(function () {
             'verification_token' => null,
             'updated_at' => now(),
         ]);
-})->hourly()->description('Expire overdue custom domain verification challenges');
+})->everyMinute()->description('Expire overdue custom domain verification challenges');
