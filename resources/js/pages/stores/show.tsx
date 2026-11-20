@@ -1,5 +1,4 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Globe2, Settings, Store as StoreIcon } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -35,31 +34,6 @@ type Props = {
     };
     canManageStore: boolean;
 };
-
-function VerificationCountdown({ expiresAt }: { expiresAt: string }) {
-    const [remaining, setRemaining] = useState(() => Math.max(0, new Date(expiresAt).getTime() - Date.now()));
-
-    useEffect(() => {
-        let interval: ReturnType<typeof window.setInterval>;
-        const update = () => {
-            const milliseconds = Math.max(0, new Date(expiresAt).getTime() - Date.now());
-            setRemaining(milliseconds);
-            if (milliseconds <= 0) {
-                window.clearInterval(interval);
-                router.reload({ only: ['store'] });
-            }
-        };
-        interval = window.setInterval(update, 1000);
-        update();
-        return () => window.clearInterval(interval);
-    }, [expiresAt]);
-
-    const totalSeconds = Math.ceil(remaining / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    return <p className="text-xs font-medium tabular-nums text-amber-600">Time remaining: {minutes}:{String(seconds).padStart(2, '0')}</p>;
-}
 
 export default function StoreShow({ team, store, canManageStore }: Props) {
     const base = '/settings/teams/' + team.slug + '/stores/' + store.id;
@@ -138,7 +112,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                                     {canManageStore && domain.status === 'verifying' && domain.verification_token ? (
                                         <div className="space-y-2 rounded-lg bg-muted/50 p-3">
                                             <p className="text-sm font-medium">Add this DNS TXT record at your DNS provider</p>
-                                            {domain.verification_expires_at ? <VerificationCountdown expiresAt={domain.verification_expires_at} /> : null}
+                                            {domain.verification_expires_at ? <p className="text-xs text-muted-foreground">Challenge expires {new Date(domain.verification_expires_at).toLocaleString()}.</p> : null}
                                             <dl className="grid gap-2 text-sm sm:grid-cols-2">
                                                 <div><dt className="text-muted-foreground">Host / Name</dt><dd className="break-all font-mono">_store-verification.{domain.domain}</dd></div>
                                                 <div><dt className="text-muted-foreground">TXT value</dt><dd className="break-all font-mono">{domain.verification_token}</dd></div>
