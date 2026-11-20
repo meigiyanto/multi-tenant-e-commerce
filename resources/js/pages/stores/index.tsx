@@ -45,7 +45,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                             <Plus className="h-5 w-5" />
                             <h2 className="font-semibold">Create a store</h2>
                         </div>
-                        <p className="text-sm text-muted-foreground">Create a storefront workspace. It starts as a draft and can be connected to a domain in a later step.</p>
+                        <p className="text-sm text-muted-foreground">Create a storefront workspace. A platform subdomain is provided automatically; a custom domain is optional.</p>
                         <Form action={`/settings/teams/${team.slug}/stores`} method="post" className="grid gap-4 md:grid-cols-2">
                             {({ errors, processing }) => (
                                 <>
