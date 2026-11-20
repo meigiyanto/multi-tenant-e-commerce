@@ -11,6 +11,7 @@ use Tests\TestCase;
 
 class StoreManagementTest extends TestCase
 {
+
     use RefreshDatabase;
 
     public function test_team_members_can_view_their_stores_page(): void
