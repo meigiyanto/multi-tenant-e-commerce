@@ -22,16 +22,19 @@ class Store extends Model
 {
     use SoftDeletes;
 
+    /** @return BelongsTo<Team, $this> */
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
     }
 
+    /** @return HasMany<StoreDomain, $this> */
     public function domains(): HasMany
     {
         return $this->hasMany(StoreDomain::class);
     }
 
+    /** @return HasOne<StoreDomain, $this> */
     public function primaryDomain(): HasOne
     {
         return $this->hasOne(StoreDomain::class)
