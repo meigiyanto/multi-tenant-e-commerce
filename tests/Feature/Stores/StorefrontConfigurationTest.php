@@ -75,6 +75,39 @@ class StorefrontConfigurationTest extends TestCase
         Storage::disk('public')->assertExists($settings['banner_path']);
     }
 
+    public function test_public_storefront_renders_saved_branding_navigation_and_contact_details(): void
+    {
+        $settings = [
+            'storefront' => [
+                'description' => 'Handpicked products for everyday life.',
+                'primary_color' => '#123456',
+                'accent_color' => '#654321',
+                'navigation' => [['label' => 'About', 'url' => '/about']],
+                'contact' => ['email' => 'hello@example.test', 'phone' => '+62812345678', 'address' => 'Jakarta'],
+            ],
+        ];
+        [, , $store] = $this->createOwnedStore($settings);
+        $store->update(['status' => 'active']);
+        $store->domains()->create([
+            'domain' => 'shop.localhost',
+            'type' => 'subdomain',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+
+        $this->get('http://shop.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->where('store.name', 'Example Store')
+                ->where('store.description', 'Handpicked products for everyday life.')
+                ->where('store.primary_color', '#123456')
+                ->where('store.navigation.0.label', 'About')
+                ->where('store.contact.email', 'hello@example.test'),
+            );
+    }
+
     public function test_storefront_configuration_rejects_invalid_theme_colors_and_navigation_urls(): void
     {
         [$user, $team, $store] = $this->createOwnedStore();
