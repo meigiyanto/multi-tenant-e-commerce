@@ -6,7 +6,6 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 type VariantRow = { name: string; sku: string; option: string; value: string; price: string; initial_stock: string; low_stock_threshold: string };
 type Props = { team: { name: string; slug: string }; store: { id: number; name: string; currency: string }; categories: { id: number; name: string }[] };
@@ -28,7 +27,7 @@ export default function CatalogCreate({ team, store, categories }: Props) {
                             <div className="grid gap-2"><Label htmlFor="name">Product name</Label><Input id="name" name="name" required maxLength={180} /><InputError message={errors.name} /></div>
                             <div className="grid gap-2"><Label htmlFor="slug">URL slug (optional)</Label><Input id="slug" name="slug" placeholder="generated-from-product-name" /><InputError message={errors.slug} /></div>
                             <div className="grid gap-2"><Label htmlFor="category_id">Category</Label><select id="category_id" name="category_id" className="h-10 rounded-sm border bg-background px-3 text-sm"><option value="">Uncategorized</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select><InputError message={errors.category_id} /></div>
-                            <div className="grid gap-2"><Label htmlFor="description">Description</Label><Textarea id="description" name="description" rows={5} maxLength={10000} /><InputError message={errors.description} /></div>
+                            <div className="grid gap-2"><Label htmlFor="description">Description</Label><textarea id="description" name="description" rows={5} maxLength={10000} className="min-h-28 w-full rounded-sm border bg-background px-3 py-2 text-sm" /><InputError message={errors.description} /></div>
                             <div className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="price">Base price ({store.currency})</Label><Input id="price" name="price" type="number" min="0" step="0.01" required /><InputError message={errors.price} /></div><div className="grid gap-2"><Label htmlFor="compare_at_price">Compare-at price</Label><Input id="compare_at_price" name="compare_at_price" type="number" min="0" step="0.01" /><InputError message={errors.compare_at_price} /></div></div>
                             <div className="grid gap-2"><Label htmlFor="status">Status</Label><select id="status" name="status" className="h-10 rounded-sm border bg-background px-3 text-sm"><option value="draft">Draft</option><option value="active">Active</option></select></div>
                             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="track_inventory" value="0" /><input type="checkbox" name="track_inventory" value="1" defaultChecked /> Track inventory</label>
