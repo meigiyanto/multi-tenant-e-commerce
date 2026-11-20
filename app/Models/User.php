@@ -32,7 +32,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property-read Team|null $currentTeam
  * @property-read Collection<int, Team> $ownedTeams
  * @property-read Collection<int, Membership> $teamMemberships
- * @property-read Collection<int, Team> $teams
+ * @property-read Collection<int, Team> $teams\n * @property-read PlatformAdmin|null $platformAdmin
  */
 #[Fillable(['name', 'email', 'password', 'current_team_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -46,7 +46,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
      *
      * @return array<string, string>
      */
-    protected function casts(): array
+    /** @return HasOne<PlatformAdmin, $this> */\n    public function platformAdmin(): HasOne\n    {\n        return $this->hasOne(PlatformAdmin::class);\n    }\n\n    public function isPlatformAdmin(): bool\n    {\n        return $this->platformAdmin()->exists();\n    }\n\n    protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
