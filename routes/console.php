@@ -23,3 +23,15 @@ Schedule::call(function () {
             'updated_at' => now(),
         ]);
 })->hourly()->description('Expire overdue custom domain verification challenges');
+
+Schedule::call(function () {
+    StoreDomain::query()
+        ->where('status', StoreDomainStatus::Verifying->value)
+        ->whereNotNull('verification_expires_at')
+        ->where('verification_expires_at', '<=', now())
+        ->update([
+            'status' => StoreDomainStatus::Expired->value,
+            'verification_token' => null,
+            'updated_at' => now(),
+        ]);
+})->hourly()->description('Expire overdue custom domain verification challenges');
