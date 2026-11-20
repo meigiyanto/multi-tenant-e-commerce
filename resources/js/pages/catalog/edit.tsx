@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 
 type VariantRow = { id?: number; name: string; sku: string; option: string; value: string; option2: string; value2: string; price: string; initial_stock: string; low_stock_threshold: string };
 type Product = { id: number; name: string; slug: string; status: string; category_id: number | null; description: string | null; price: string; compare_at_price: string | null; track_inventory: boolean; variants: { id: number; name: string; sku: string; options: Record<string, string>; price: string | null; initial_stock: string; low_stock_threshold: string }[]; images: { id: number; url: string; alt_text: string | null; is_primary: boolean }[] };
-type Movement = { id: number; variant: string | null; sku: string | null; type: string; quantity: number; balance_after: number; notes: string | null; user: string | null; created_at: string | null };\ntype Props = { movements: Movement[]; team: { name: string; slug: string }; store: { id: number; name: string; currency: string }; categories: { id: number; name: string }[]; product: Product };
+type Movement = { id: number; variant: string | null; sku: string | null; type: string; quantity: number; balance_after: number; notes: string | null; user: string | null; created_at: string | null };
+type Props = { movements: Movement[]; team: { name: string; slug: string }; store: { id: number; name: string; currency: string }; categories: { id: number; name: string }[]; product: Product };
 
 export default function CatalogEdit({ team, store, categories, product, movements }: Props) {
     const base = '/settings/teams/' + team.slug + '/stores/' + store.id + '/catalog';
