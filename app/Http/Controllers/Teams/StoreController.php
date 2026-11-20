@@ -33,7 +33,7 @@ class StoreController extends Controller
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'canManageStores' => Gate::allows('update', $team),
             'stores' => $team->stores()->withCount(['domains as custom_domains_count' => fn ($query) => $query->where('type', 'custom')])->latest()->get()->map(
-                fn (Store $store) => [
+                fn (Store $store): array => [
                     'id' => $store->id,
                     'name' => $store->name,
                     'slug' => $store->slug,
