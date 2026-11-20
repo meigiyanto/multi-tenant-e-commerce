@@ -19,7 +19,7 @@ type StoreRecord = {
 };
 
 type Props = {
-    team: { id: number; name: string; slug: string };
+    team: { id: number; name: string; slug: string; status?: string };
     canManageStores: boolean;
     stores: StoreRecord[];
 };
@@ -80,6 +80,12 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                     </section>
                 ) : null}
 
+                {team.status && team.status !== 'active' ? (
+                    <div className="mx-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                        <p className="font-medium">Team status: {team.status}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Store activation and storefront availability may be restricted until this Team becomes active.</p>
+                    </div>
+                ) : null}
                 <section className="space-y-6 m-2">
                     <h2 className="font-semibold">Your stores</h2>
                     {stores.length > 0 ? (
