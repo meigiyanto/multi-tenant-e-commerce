@@ -1,5 +1,4 @@
 import { Head } from '@inertiajs/react';
-import type { CSSProperties } from 'react';
 import { Mail, MapPin, Phone, Store } from 'lucide-react';
 
 type NavigationItem = { label: string; url: string };
@@ -23,7 +22,7 @@ export default function StorefrontIndex({ store, domain }: Props) {
     return (
         <>
             <Head title={store.name} />
-            <div className="min-h-screen bg-white text-slate-900" style={{ '--store-primary': store.primary_color, '--store-accent': store.accent_color } as CSSProperties}>
+            <div className="min-h-screen bg-white text-slate-900">
                 <header className="border-b border-slate-200 bg-white">
                     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
                         <a href="/" className="flex min-w-0 items-center gap-3">
