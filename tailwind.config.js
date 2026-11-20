@@ -2,7 +2,7 @@ import animate from 'tailwindcss-animate';
 import plugin from 'tailwindcss/plugin';
 
 const color = (name) =>
-    `oklch(from var(--${name}) l c h / <alpha-value>)`;
+    `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
 
 export default {
     darkMode: ['class'],
