@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $this->call(TeamSeeder::class);
+        $this->call([
+            TeamSeeder::class,
+            FashionProductSeeder::class,
+        ]);
     }
 }
