@@ -191,7 +191,8 @@ class StoreCatalogController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['required', 'boolean'],
         ]);
-        abort_if((int) ($data['parent_id'] ?? 0) === $category->id, 422, __('A category cannot be its own parent.'));\n        $category->update($data + ['slug' => Str::slug($data['name'])]);
+        abort_if((int) ($data['parent_id'] ?? 0) === $category->id, 422, __('A category cannot be its own parent.'));
+        $category->update($data + ['slug' => Str::slug($data['name'])]);
 
         return back()->with('success', __('Category updated.'));
     }
@@ -227,8 +228,10 @@ class StoreCatalogController extends Controller
             'quantity' => ['required', 'integer', 'not_in:0', 'between:-1000000,1000000'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
-        $inventory = $variant->inventory()->firstOrCreate(['store_id' => $store->id]);
-        $this->adjustInventory($request, $store, $inventory, (int) $data['quantity'], 'adjustment', $data['notes'] ?? null);
+        DB::transaction(function () use ($request, $store, $variant, $data): void {
+            $inventory = $variant->inventory()->firstOrCreate(['store_id' => $store->id]);
+            $this->adjustInventory($request, $store, $inventory, (int) $data['quantity'], 'adjustment', $data['notes'] ?? null);
+        });
 
         return back()->with('success', __('Inventory adjusted.'));
     }
@@ -272,7 +275,19 @@ class StoreCatalogController extends Controller
         ];
     }
 
-    private function uniqueProductSlug(Store $store, string $slug, ?Product $product = null): string\n    {\n        $base = $slug !== '' ? $slug : 'product';\n        $candidate = $base;\n        $suffix = 2;\n        while ($store->products()->where('slug', $candidate)->when($product, fn ($query) => $query->where('id', '!=', $product->id))->exists()) {\n            $candidate = $base.'-'.$suffix++;\n        }\n\n        return $candidate;\n    }\n\n    private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
+    private function uniqueProductSlug(Store $store, string $slug, ?Product $product = null): string
+    {
+        $base = $slug !== '' ? $slug : 'product';
+        $candidate = $base;
+        $suffix = 2;
+        while ($store->products()->where('slug', $candidate)->when($product, fn ($query) => $query->where('id', '!=', $product->id))->exists()) {
+            $candidate = $base.'-'.$suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
     {
         $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->where('id', '!=', $variant->id))->exists();
         if ($skuExists) {
