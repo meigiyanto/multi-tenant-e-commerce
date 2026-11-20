@@ -24,6 +24,12 @@ class StoreLifecycleTest extends TestCase
 
         $service->transition($store, StoreStatus::Active);
         $this->assertSame(StoreStatus::Active->value, $store->fresh()->status);
+        $this->assertDatabaseHas('store_domains', [
+            'store_id' => $store->id,
+            'domain' => 'lifecycle-store-'.$store->id.'.localhost',
+            'type' => 'subdomain',
+            'status' => 'active',
+        ]);
 
         $service->transition($store->fresh(), StoreStatus::Suspended);
         $this->assertSame(StoreStatus::Suspended->value, $store->fresh()->status);
