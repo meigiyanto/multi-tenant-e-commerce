@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature\\Stores;
+namespace Tests\Feature\Stores;
 
-use App\\Models\\Team;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Models\Team;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class StoreRelationshipTest extends TestCase
 {
