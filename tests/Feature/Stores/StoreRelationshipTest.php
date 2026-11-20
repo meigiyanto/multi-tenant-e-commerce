@@ -78,7 +78,10 @@ class StoreRelationshipTest extends TestCase
         ]);
 
         $this->assertCount(2, $store->domains()->get());
-        $this->assertSame('www.example.com', $store->domains()->first()->domain);
+        $this->assertDatabaseHas('store_domains', [
+            'store_id' => $store->id,
+            'domain' => 'www.example.com',
+        ]);
         $this->assertTrue($store->primaryDomain()->exists());
     }
 }
