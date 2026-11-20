@@ -59,7 +59,17 @@ export default function StorefrontIndex({ store, products, domain }: Props) {
                             <div className="aspect-[4/3] bg-slate-100">{product.image_url ? <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><Package className="h-10 w-10" /></div>}</div>
                             <div className="space-y-3 p-4"><div>{product.category ? <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{product.category}</p> : null}<h3 className="mt-1 font-semibold text-slate-900">{product.name}</h3>{product.description ? <p className="line-clamp-2 text-sm text-slate-600">{product.description}</p> : null}</div>
                                 <div className="flex items-center gap-2"><p className="font-semibold" style={{ color: store.primary_color }}>{formatPrice(product.price)}</p>{product.compare_at_price && Number(product.compare_at_price) > Number(product.price) ? <p className="text-xs text-slate-400 line-through">{formatPrice(product.compare_at_price)}</p> : null}</div>
-                                {product.variants.length ? <div className="space-y-1 border-t border-slate-100 pt-3">{product.variants.slice(0, 3).map((variant) => <div key={variant.id} className="flex justify-between gap-2 text-xs text-slate-500"><span>{variant.name} {Object.values(variant.options).filter(Boolean).join(' / ')}</span><span className="shrink-0">{formatPrice(variant.price)}{variant.stock === null ? '' : ' · ' + (variant.stock > 0 ? variant.stock + ' available' : 'Out of stock')}</span>}</div>)}</div> : null}
+                                {product.variants.length > 0 && (
+                                    <div className="space-y-1 border-t border-slate-100 pt-3">
+                                        {product.variants.slice(0, 3).map((variant) => (
+                                            <div key={variant.id} className="flex justify-between gap-2 text-xs text-slate-500">
+                                                <span>{variant.name} {Object.values(variant.options).filter(Boolean).join(' / ')}</span>
+                                                <span className="shrink-0">{formatPrice(variant.price)}</span>
+                                                {variant.stock !== null ? <span>{variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</span> : null}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 <p className={'text-xs font-medium ' + (product.in_stock ? 'text-emerald-700' : 'text-red-600')}>{product.in_stock ? 'In stock' : 'Out of stock'}</p>
                             </div>
                         </article>)}</div> : <div className="rounded-md border border-dashed border-slate-300 px-6 py-14 text-center"><Package className="mx-auto mb-3 h-8 w-8 text-slate-400" /><h3 className="font-semibold">No products published yet</h3><p className="mt-1 text-sm text-slate-500">Please check back later for new products.</p></div>}
