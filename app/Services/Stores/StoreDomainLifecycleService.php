@@ -12,7 +12,7 @@ class StoreDomainLifecycleService
     public function transition(StoreDomain $domain, StoreDomainStatus $target): StoreDomain
     {
         return DB::transaction(function () use ($domain, $target): StoreDomain {
-            $lockedDomain = StoreDomain::query()->lockForUpdate()->findOrFail($domain->getKey());
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
             $current = StoreDomainStatus::tryFrom($lockedDomain->status);
 
             if ($current === null || ! $current->canTransitionTo($target)) {
