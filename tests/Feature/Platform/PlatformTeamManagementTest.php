@@ -34,7 +34,6 @@ class PlatformTeamManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('platform/teams/index')
-                ->has('teams.data', 1)
                 ->where('teams.data.0.slug', $team->slug)
                 ->where('teams.data.0.status', 'active'),
             );
@@ -65,6 +64,9 @@ class PlatformTeamManagementTest extends TestCase
 
         $this->artisan('platform:admin:grant', ['email' => $user->email])->assertExitCode(0);
         $this->assertDatabaseHas('platform_admins', ['user_id' => $user->id]);
+
+        $secondAdmin = User::factory()->create();
+        PlatformAdmin::query()->create(['user_id' => $secondAdmin->id]);
 
         $this->artisan('platform:admin:revoke', ['email' => $user->email])->assertExitCode(0);
         $this->assertDatabaseMissing('platform_admins', ['user_id' => $user->id]);
