@@ -26,6 +26,7 @@ type Props = {
         status: string;
         timezone: string;
         currency: string;
+        storefront_url: string | null;
         created_at: string | null;
         updated_at: string | null;
         domains: StoreDomain[];
@@ -78,7 +79,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                     </div>
                     {store.domains.filter((domain) => domain.type === 'subdomain').map((domain) => (
                         <div key={domain.id} className="flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div><p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">Platform-provided address · no DNS setup required</p></div>
+                            <div><p className="font-medium">{store.storefront_url ? <a href={store.storefront_url} target="_blank" rel="noreferrer" className="hover:underline">{domain.domain}</a> : domain.domain}</p><p className="text-xs text-muted-foreground">Platform-provided address · no DNS setup required</p></div>
                             <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
                         </div>
                     ))}
