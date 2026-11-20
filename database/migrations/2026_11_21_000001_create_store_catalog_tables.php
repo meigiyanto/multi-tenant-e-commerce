@@ -39,7 +39,7 @@ return new class extends Migration
             $table->softDeletes();
             $table->unique(['store_id', 'id']);
             $table->unique(['store_id', 'slug']);
-            $table->foreign(['store_id', 'category_id'])->references(['store_id', 'id'])->on('categories')->nullOnDelete();
+            $table->foreign(['store_id', 'category_id'])->references(['store_id', 'id'])->on('categories')->restrictOnDelete();
             $table->index(['store_id', 'status', 'created_at']);
         });
 
