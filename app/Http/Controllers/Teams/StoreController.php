@@ -120,7 +120,7 @@ class StoreController extends Controller
             'status' => ['required', Rule::enum(StoreStatus::class)],
         ]);
 
-        $lifecycle->transition($store, StoreStatus::from($validated['status']));
+        $lifecycle->transition($store, StoreStatus::from((string) $validated['status']));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Store status updated.')]);
 
