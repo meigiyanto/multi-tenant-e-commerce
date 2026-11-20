@@ -217,7 +217,7 @@ class StoreController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'navigation' => ['nullable', 'array', 'max:8'],
+            'navigation' => ['nullable', 'array', 'max:5'],
             'navigation.*.label' => ['required_with:navigation.*.url', 'nullable', 'string', 'max:40'],
             'navigation.*.url' => ['required_with:navigation.*.label', 'nullable', 'string', 'max:255', 'regex:#^(https://|/(?!/))[^\\s]+$#i'],
             'contact.email' => ['nullable', 'email', 'max:255'],
