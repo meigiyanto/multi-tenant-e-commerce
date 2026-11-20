@@ -41,6 +41,8 @@
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>
+        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+        <script>eruda.init();</script>
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />

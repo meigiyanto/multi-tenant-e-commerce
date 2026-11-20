@@ -105,6 +105,7 @@ export default function TeamEdit({
                             <Link href={`/settings/teams/${team.slug}/stores`}><Plus /> Manage stores</Link>
                         </Button>
                     </div>
+                    
                     {permissions.canUpdateTeam ? (
                         <>
                             <Heading
@@ -159,9 +160,7 @@ export default function TeamEdit({
                             variant="small"
                             title="Team members"
                             description={
-                                permissions.canCreateInvitation
-                                    ? 'Manage who belongs to this team'
-                                    : ''
+                                permissions.canCreateInvitation ? 'Manage who belongs to this team' : ''
                             }
                         />
 

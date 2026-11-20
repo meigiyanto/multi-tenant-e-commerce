@@ -30,17 +30,17 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
             <Head title={`Stores — ${team.name}`} />
             <div className="flex flex-col space-y-6 gap-8">
                 <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
+                    <div className="m-2">
+                        <Button asChild variant="ghost" size="sm" className="mb-2">
                             <Link href={`/settings/teams/${team.slug}`}><ArrowLeft /> Back to team</Link>
                         </Button>
                         <Heading variant="small" title="Stores" description={`Manage storefronts owned by ${team.name}.`} />
                     </div>
-                    <Badge variant="secondary">{stores.length} {stores.length === 1 ? 'store' : 'stores'}</Badge>
+                    <Badge className="mr-2" variant="secondary">{stores.length} {stores.length === 1 ? 'store' : 'stores'}</Badge>
                 </div>
 
                 {canManageStores ? (
-                    <section className="space-y-4 rounded-xl border p-5">
+                    <section className="space-y-6 rounded-xl border p-5 m-2">
                         <div className="flex items-center gap-2">
                             <Plus className="h-5 w-5" />
                             <h2 className="font-semibold">Create a store</h2>
@@ -78,7 +78,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                     </section>
                 ) : null}
 
-                <section className="space-y-4">
+                <section className="space-y-6 m-2">
                     <h2 className="font-semibold">Your stores</h2>
                     {stores.length > 0 ? (
                         <div className="space-y-3">
