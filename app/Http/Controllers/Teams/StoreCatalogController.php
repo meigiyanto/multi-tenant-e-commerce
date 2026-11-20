@@ -63,6 +63,7 @@ class StoreCatalogController extends Controller
     {
         $this->authorizeStore($team, $store, 'update');
         $data = $this->validateProduct($request, $store);
+        $this->validateImageCount($request);
 
         DB::transaction(function () use ($request, $store, $data): void {
             $product = $store->products()->create($this->productAttributes($data, $store));
@@ -152,6 +153,7 @@ class StoreCatalogController extends Controller
     {
         $this->authorizeProduct($team, $store, $product, 'update');
         $data = $this->validateProduct($request, $store, $product);
+        $this->validateImageCount($request, $product);
         DB::transaction(function () use ($request, $store, $product, $data): void {
             $product->update($this->productAttributes($data, $store, $product));
             foreach ($data['variants'] ?? [] as $variantData) {
@@ -258,6 +260,15 @@ class StoreCatalogController extends Controller
         });
 
         return back()->with('success', __('Inventory adjusted.'));
+    }
+
+    private function validateImageCount(Request $request, ?Product $product = null): void
+    {
+        $incoming = count($request->file('images', []));
+        $existing = $product?->images()->count() ?? 0;
+        if ($existing + $incoming > 10) {
+            throw ValidationException::withMessages(['images' => __('A product can have up to 10 photos.')]);
+        }
     }
 
     private function validateProduct(Request $request, Store $store, ?Product $product = null): array
