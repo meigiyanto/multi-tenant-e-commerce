@@ -37,6 +37,8 @@ class StoreManagementTest extends TestCase
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
+        config(['storefront.root_domain' => 'platform.test']);
+
         $response = $this->actingAs($user)->post(route('teams.stores.store', $team), [
             'name' => 'My Online Store',
             'slug' => 'my-online-store',
@@ -54,6 +56,18 @@ class StoreManagementTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'currency' => 'IDR',
         ]);
+
+        $store = $team->stores()->where('slug', 'my-online-store')->firstOrFail();
+
+        $this->assertDatabaseHas('store_domains', [
+            'store_id' => $store->id,
+            'domain' => 'my-online-store-'.$store->id.'.platform.test',
+            'type' => 'subdomain',
+            'is_primary' => true,
+            'status' => 'active',
+        ]);
+
+        $this->assertNotNull($store->domains()->where('type', 'subdomain')->value('verified_at'));
     }
 
     public function test_team_members_without_update_permission_cannot_create_stores(): void
@@ -241,6 +255,45 @@ class StoreManagementTest extends TestCase
             ->assertRedirect(route('teams.stores.show', ['team' => $team, 'store' => $store]));
 
         $this->assertDatabaseHas('stores', ['id' => $store->id, 'status' => 'active']);
+    }
+
+    public function test_one_team_can_create_and_activate_multiple_stores_without_custom_domains(): void
+    {
+        config(['storefront.root_domain' => 'platform.test']);
+
+        $user = User::factory()->create();
+        $team = Team::factory()->create();
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+
+        foreach (['first-shop', 'second-shop'] as $slug) {
+            $this->actingAs($user)
+                ->post(route('teams.stores.store', $team), [
+                    'name' => ucfirst($slug),
+                    'slug' => $slug,
+                    'timezone' => 'Asia/Jakarta',
+                    'currency' => 'IDR',
+                ])
+                ->assertRedirect(route('teams.stores.index', $team));
+
+            $store = $team->stores()->where('slug', $slug)->firstOrFail();
+
+            $this->assertDatabaseHas('store_domains', [
+                'store_id' => $store->id,
+                'domain' => $slug.'-'.$store->id.'.platform.test',
+                'type' => 'subdomain',
+                'status' => 'active',
+                'is_primary' => true,
+            ]);
+
+            $this->patch(route('teams.stores.status', ['team' => $team, 'store' => $store]), [
+                'status' => 'active',
+            ])->assertRedirect(route('teams.stores.show', ['team' => $team, 'store' => $store]));
+
+            $this->assertDatabaseHas('stores', ['id' => $store->id, 'status' => 'active']);
+            $this->assertSame(0, $store->domains()->where('type', 'custom')->count());
+        }
+
+        $this->assertSame(2, $team->stores()->count());
     }
 
     public function test_team_member_without_update_permission_cannot_change_store_status(): void

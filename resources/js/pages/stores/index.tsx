@@ -14,7 +14,7 @@ type StoreRecord = {
     status: string;
     timezone: string;
     currency: string;
-    domains_count: number;
+    custom_domains_count: number;
     created_at: string | null;
 };
 
@@ -45,7 +45,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                             <Plus className="h-5 w-5" />
                             <h2 className="font-semibold">Create a store</h2>
                         </div>
-                        <p className="text-sm text-muted-foreground">Create a storefront workspace. It starts as a draft and can be connected to a domain in a later step.</p>
+                        <p className="text-sm text-muted-foreground">Create a storefront workspace. A platform subdomain is provided automatically; a custom domain is optional.</p>
                         <Form action={`/settings/teams/${team.slug}/stores`} method="post" className="grid gap-4 md:grid-cols-2">
                             {({ errors, processing }) => (
                                 <>
@@ -101,7 +101,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Badge variant={store.status === 'active' ? 'default' : 'secondary'}>{store.status}</Badge>
-                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.domains_count} domains</span>
+                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.custom_domains_count} custom domains</span>
                                     </div>
                                 </article>
                             ))}

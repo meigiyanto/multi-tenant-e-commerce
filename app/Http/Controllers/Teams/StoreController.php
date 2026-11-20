@@ -10,11 +10,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StoreDomain;
 use App\Models\Team;
+use App\Services\Stores\PlatformStorefrontDomainService;
 use App\Services\Stores\StoreDomainLifecycleService;
 use App\Services\Stores\StoreLifecycleService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -30,22 +32,22 @@ class StoreController extends Controller
         return Inertia::render('stores/index', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
             'canManageStores' => Gate::allows('update', $team),
-            'stores' => $team->stores()->withCount('domains')->latest()->get()->map(
-                fn (Store $store) => [
+            'stores' => $team->stores()->withCount(['domains as custom_domains_count' => fn ($query) => $query->where('type', 'custom')])->latest()->get()->map(
+                fn (Store $store): array => [
                     'id' => $store->id,
                     'name' => $store->name,
                     'slug' => $store->slug,
                     'status' => $store->status,
                     'timezone' => $store->timezone,
                     'currency' => $store->currency,
-                    'domains_count' => $store->domains_count,
+                    'custom_domains_count' => (int) $store->getAttribute('custom_domains_count'),
                     'created_at' => $store->created_at?->toISOString(),
                 ],
             ),
         ]);
     }
 
-    public function store(Request $request, Team $team): RedirectResponse
+    public function store(Request $request, Team $team, PlatformStorefrontDomainService $platformDomains): RedirectResponse
     {
         Gate::authorize('update', $team);
         abort_unless($team->status === TeamStatus::Active->value, 403);
@@ -57,7 +59,10 @@ class StoreController extends Controller
             'currency' => ['required', 'string', 'size:3', 'alpha:upper'],
         ]);
 
-        $team->stores()->create($validated + ['status' => 'draft']);
+        DB::transaction(function () use ($team, $validated, $platformDomains): void {
+            $store = $team->stores()->create($validated + ['status' => StoreStatus::Draft->value]);
+            $platformDomains->ensureFor($store);
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Store created.')]);
 
         return to_route('teams.stores.index', ['team' => $team->slug]);
@@ -68,6 +73,7 @@ class StoreController extends Controller
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('view', $store);
         $store->load(['domains' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('domain')]);
+        $platformDomain = $store->domains->firstWhere('type', 'subdomain');
 
         return Inertia::render('stores/show', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
@@ -78,6 +84,7 @@ class StoreController extends Controller
                 'status' => $store->status,
                 'timezone' => $store->timezone,
                 'currency' => $store->currency,
+                'storefront_url' => $platformDomain === null ? null : config('storefront.scheme', 'https').'://'.$platformDomain->domain,
                 'created_at' => $store->created_at?->toISOString(),
                 'updated_at' => $store->updated_at?->toISOString(),
                 'domains' => $store->domains->map(fn (StoreDomain $domain) => [
