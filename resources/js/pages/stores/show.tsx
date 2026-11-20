@@ -77,9 +77,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                     </Button>
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store details for ' + team.name + '.'} />
-                        {canManageStore ? (
-                            <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button><Button asChild><Link href={base + '/settings'}><Settings /> Store settings</Link></Button></div>
-                        ) : null}
+                        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button>{canManageStore ? <Button asChild><Link href={base + '/settings'}><Settings /> Store settings</Link></Button> : null}</div>
                     </div>
                 </div>
 
