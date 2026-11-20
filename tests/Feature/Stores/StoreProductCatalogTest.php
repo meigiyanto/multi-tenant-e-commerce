@@ -219,6 +219,7 @@ class StoreProductCatalogTest extends TestCase
         $this->assertDatabaseHas('products', ['store_id' => $store->id, 'slug' => 'archived-item-2', 'deleted_at' => null]);
     }
 
+    /** @return array{User, Team, \\App\\Models\\Store} */
     private function ownedStore(TeamRole $role = TeamRole::Owner): array
     {
         $user = User::factory()->create();
