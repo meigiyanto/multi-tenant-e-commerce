@@ -37,6 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('settings/teams/{team}', [TeamController::class, 'edit'])->name('teams.edit');
         Route::get('settings/teams/{team}/stores', [StoreController::class, 'index'])->name('teams.stores.index');
         Route::post('settings/teams/{team}/stores', [StoreController::class, 'store'])->name('teams.stores.store');
+        Route::get('settings/teams/{team}/stores/{store}', [StoreController::class, 'show'])->name('teams.stores.show');
+        Route::get('settings/teams/{team}/stores/{store}/settings', [StoreController::class, 'edit'])->name('teams.stores.edit');
+        Route::patch('settings/teams/{team}/stores/{store}', [StoreController::class, 'update'])->name('teams.stores.update');
         Route::patch('settings/teams/{team}', [TeamController::class, 'update'])->name('teams.update');
         Route::delete('settings/teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
         Route::post('settings/teams/{team}/switch', [TeamController::class, 'switch'])->name('teams.switch');
