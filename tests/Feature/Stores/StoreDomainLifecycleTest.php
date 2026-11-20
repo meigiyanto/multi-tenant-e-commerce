@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Stores;
 
-use Carbon\CarbonImmutable;
 use App\Enums\StoreDomainStatus;
 use App\Models\Team;
 use App\Services\Stores\StoreDomainLifecycleService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
