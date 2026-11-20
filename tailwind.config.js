@@ -2,7 +2,7 @@ import animate from 'tailwindcss-animate';
 import plugin from 'tailwindcss/plugin';
 
 const color = (name) =>
-    `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
+    `hsl(var(--${name}) / <alpha-value>)`;
 
 export default {
     darkMode: ['class'],
