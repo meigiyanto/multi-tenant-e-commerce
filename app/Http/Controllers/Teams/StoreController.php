@@ -1,16 +1,16 @@
 <?php
 
-namespace App\\Http\\Controllers\\Teams;
+namespace App\Http\Controllers\Teams;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Store;
-use App\\Models\\Team;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Gate;
-use Illuminate\\Validation\\Rule;
-use Inertia\\Inertia;
-use Inertia\\Response;
+use App\Http\Controllers\Controller;
+use App\Models\Store;
+use App\Models\Team;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class StoreController extends Controller
 {
