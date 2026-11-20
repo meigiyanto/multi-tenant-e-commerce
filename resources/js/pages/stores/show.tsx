@@ -1,6 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Globe2, Settings, Store as StoreIcon } from 'lucide-react';
+import { ArrowLeft, Globe2, Settings, Store as StoreIcon, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -157,6 +157,16 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                                             <input type="hidden" name="status" value="disabled" />
                                             <Button size="sm" variant="outline" type="submit">Disable domain</Button>
                                         </Form>
+                                    ) : null}
+                                    {canManageStore && ['pending', 'verifying', 'expired', 'disabled'].includes(domain.status) ? (
+                                        <Form action={base + '/domains/' + domain.id} method="delete" onSubmit={(event) => {
+                                            if (! window.confirm('Remove ' + domain.domain + '? This will also delete its DNS verification challenge.')) event.preventDefault();
+                                        }}>
+                                            <Button size="sm" variant="destructive" type="submit"><Trash2 /> Remove domain</Button>
+                                        </Form>
+                                    ) : null}
+                                    {canManageStore && ['verified', 'active'].includes(domain.status) ? (
+                                        <p className="text-xs text-muted-foreground">Disable this domain before removing it.</p>
                                     ) : null}
                                     {domain.verified_at ? <p className="text-xs text-muted-foreground">Verified {new Date(domain.verified_at).toLocaleString()}</p> : null}
                                 </div>
