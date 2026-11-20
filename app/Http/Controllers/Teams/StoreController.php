@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StoreDomain;
 use App\Models\Team;
+use App\Services\Stores\PlatformStorefrontDomainService;
 use App\Services\Stores\StoreDomainLifecycleService;
 use App\Services\Stores\StoreLifecycleService;
 use Carbon\CarbonInterface;
@@ -46,7 +47,7 @@ class StoreController extends Controller
         ]);
     }
 
-    public function store(Request $request, Team $team): RedirectResponse
+    public function store(Request $request, Team $team, PlatformStorefrontDomainService $platformDomains): RedirectResponse
     {
         Gate::authorize('update', $team);
         abort_unless($team->status === TeamStatus::Active->value, 403);
@@ -58,26 +59,9 @@ class StoreController extends Controller
             'currency' => ['required', 'string', 'size:3', 'alpha:upper'],
         ]);
 
-        DB::transaction(function () use ($team, $validated): void {
+        DB::transaction(function () use ($team, $validated, $platformDomains): void {
             $store = $team->stores()->create($validated + ['status' => StoreStatus::Draft->value]);
-            $rootDomain = strtolower(trim((string) config('storefront.root_domain', 'localhost'), ". \t\n\r\0\x0B"));
-
-            if (preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i', $rootDomain) !== 1) {
-                throw ValidationException::withMessages([
-                    'storefront' => __('The platform storefront root domain is not configured correctly.'),
-                ]);
-            }
-
-            $storeLabel = rtrim(substr($store->slug, 0, 48), '-');
-            $platformDomain = $storeLabel.'-'.$store->getKey().'.'.strtolower($rootDomain);
-
-            $store->domains()->create([
-                'domain' => $platformDomain,
-                'type' => 'subdomain',
-                'is_primary' => true,
-                'status' => StoreDomainStatus::Active->value,
-                'verified_at' => now(),
-            ]);
+            $platformDomains->ensureFor($store);
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Store created.')]);
 
