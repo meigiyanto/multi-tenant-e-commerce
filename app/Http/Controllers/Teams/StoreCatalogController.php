@@ -239,6 +239,7 @@ class StoreCatalogController extends Controller
     {
         $this->authorizeProduct($team, $store, $product, 'update');
         abort_unless($variant->store_id === $store->id && $variant->product_id === $product->id, 404);
+        abort_if($product->variants()->count() <= 1, 422, __('A product must have at least one variant.'));
         $inventory = $variant->inventory;
         abort_if($inventory && ($inventory->quantity > 0 || $inventory->reserved_quantity > 0 || $inventory->movements()->exists()), 422, __('A variant with stock or movement history cannot be deleted. Adjust or archive it instead.'));
         $variant->delete();
