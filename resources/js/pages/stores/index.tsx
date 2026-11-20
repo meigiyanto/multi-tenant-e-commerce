@@ -32,7 +32,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
-                            <Link href={`/teams/${team.slug}/edit`}><ArrowLeft /> Back to team</Link>
+                            <Link href={`/settings/teams/${team.slug}/edit`}><ArrowLeft /> Back to team</Link>
                         </Button>
                         <Heading variant="small" title="Stores" description={`Manage storefronts owned by ${team.name}.`} />
                     </div>
@@ -46,7 +46,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                             <h2 className="font-semibold">Create a store</h2>
                         </div>
                         <p className="text-sm text-muted-foreground">Create a storefront workspace. It starts as a draft and can be connected to a domain in a later step.</p>
-                        <Form action={`/teams/${team.slug}/stores`} method="post" className="grid gap-4 md:grid-cols-2">
+                        <Form action={`/settings/teams/${team.slug}/stores`} method="post" className="grid gap-4 md:grid-cols-2">
                             {({ errors, processing }) => (
                                 <>
                                     <div className="grid gap-2">
@@ -115,7 +115,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
 
 StoresIndex.layout = (props: { team: { name: string; slug: string } }) => ({
     breadcrumbs: [
-        { title: 'Teams', href: '/teams' },
+        { title: 'Teams', href: '/settings/teams' },
         { title: props.team.name, href: `/teams/${props.team.slug}/edit` },
         { title: 'Stores', href: `/teams/${props.team.slug}/stores` },
     ],
