@@ -1,16 +1,16 @@
 <?php
 
-namespace Tests\\Feature\\Stores;
+namespace Tests\Feature\Stores;
 
-use App\\Enums\\TeamRole;
-use App\\Models\\Store;
-use App\\Models\\Team;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Http\\UploadedFile;
-use Illuminate\\Support\\Facades\\Storage;
-use Inertia\\Testing\\AssertableInertia as Assert;
-use Tests\\TestCase;
+use App\Enums\TeamRole;
+use App\Models\Store;
+use App\Models\Team;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
 
 class StorefrontConfigurationTest extends TestCase
 {
