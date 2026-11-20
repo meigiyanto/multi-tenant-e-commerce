@@ -44,7 +44,7 @@ class StoreDomainLifecycleService
     public function markVerified(StoreDomain $domain): StoreDomain
     {
         return DB::transaction(function () use ($domain): StoreDomain {
-            $lockedDomain = StoreDomain::query()->lockForUpdate()->findOrFail($domain->getKey());
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
             $current = StoreDomainStatus::tryFrom($lockedDomain->status);
 
             if ($current !== StoreDomainStatus::Verifying) {
