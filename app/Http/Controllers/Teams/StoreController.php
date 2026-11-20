@@ -94,6 +94,7 @@ class StoreController extends Controller
                     'status' => $domain->status,
                     'is_primary' => $domain->is_primary,
                     'verification_token' => $domain->verification_token,
+                    'verification_expires_at' => $domain->verification_expires_at?->toISOString(),
                     'verified_at' => $domain->verified_at instanceof CarbonInterface ? $domain->verified_at->toISOString() : null,
                 ]),
             ],
@@ -158,6 +159,12 @@ class StoreController extends Controller
         $this->ensureDomainBelongsToStore($team, $store, $domain);
         Gate::authorize('update', $store);
         abort_unless($domain->status === StoreDomainStatus::Verifying->value && $domain->verification_token !== null, 422);
+
+        if ($lifecycle->expireIfOverdue($domain)) {
+            throw ValidationException::withMessages(['domain' => __('The DNS verification challenge has expired. Generate a new challenge to continue.')]);
+        }
+
+        $domain->refresh();
 
         if (! $verifier->verify($domain->domain, $domain->verification_token)) {
             throw ValidationException::withMessages(['domain' => __('The expected DNS TXT record was not found. DNS changes may take time to propagate.')]);
