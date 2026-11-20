@@ -21,7 +21,7 @@ class StoreDomainLifecycleService
                 ]);
             }
 
-            if ($target === StoreDomainStatus::Pending) {
+            if (in_array($target, [StoreDomainStatus::Pending, StoreDomainStatus::Disabled], true)) {
                 $lockedDomain->verified_at = null;
             }
 
