@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
+use App\Support\Stores\StoreContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use App\Support\Stores\StoreContext;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
