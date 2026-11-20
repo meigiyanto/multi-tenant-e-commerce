@@ -193,6 +193,29 @@ class StoreController extends Controller
         return to_route('teams.stores.show', ['team' => $team->slug, 'store' => $store->id]);
     }
 
+    public function destroyDomain(Team $team, Store $store, StoreDomain $domain): RedirectResponse
+    {
+        $this->ensureDomainBelongsToStore($team, $store, $domain);
+        Gate::authorize('update', $store);
+        abort_unless($domain->type === 'custom', 404);
+
+        if (! in_array($domain->status, [
+            StoreDomainStatus::Pending->value,
+            StoreDomainStatus::Verifying->value,
+            StoreDomainStatus::Expired->value,
+            StoreDomainStatus::Disabled->value,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'domain' => __('Disable a verified or active domain before removing it.'),
+            ]);
+        }
+
+        $domain->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Custom domain removed.')]);
+
+        return to_route('teams.stores.show', ['team' => $team->slug, 'store' => $store->id]);
+    }
+
     public function update(Request $request, Team $team, Store $store): RedirectResponse
     {
         $this->ensureStoreBelongsToTeam($team, $store);

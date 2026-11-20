@@ -36,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('settings/teams/{team}/stores/{store}/domains/{domain}/verification', [StoreController::class, 'startDomainVerification'])->name('teams.stores.domains.verification.start');
         Route::post('settings/teams/{team}/stores/{store}/domains/{domain}/verification/check', [StoreController::class, 'verifyDomain'])->name('teams.stores.domains.verification.check');
         Route::patch('settings/teams/{team}/stores/{store}/domains/{domain}/status', [StoreController::class, 'updateDomainStatus'])->name('teams.stores.domains.status');
+        Route::delete('settings/teams/{team}/stores/{store}/domains/{domain}', [StoreController::class, 'destroyDomain'])->name('teams.stores.domains.destroy');
         Route::patch('settings/teams/{team}', [TeamController::class, 'update'])->name('teams.update');
         Route::delete('settings/teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
         Route::post('settings/teams/{team}/switch', [TeamController::class, 'switch'])->name('teams.switch');
