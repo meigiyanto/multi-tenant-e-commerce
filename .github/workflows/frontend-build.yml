@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/tenant-store-foundation
   pull_request:
     branches:
       - main
