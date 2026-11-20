@@ -147,6 +147,33 @@ class StoreProductCatalogTest extends TestCase
     /**
      * @return array{User, Team, \App\Models\Store}
      */
+    public function test_public_storefront_shows_only_active_products_for_the_resolved_store(): void
+    {
+        [, , $store] = $this->ownedStore();
+        $store->update(['status' => 'active']);
+        $store->domains()->create([
+            'domain' => 'catalog.localhost',
+            'type' => 'subdomain',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+        $active = $store->products()->create(['name' => 'Published Tee', 'slug' => 'published-tee', 'status' => 'active', 'price' => 150000, 'track_inventory' => true]);
+        $variant = $active->variants()->create(['store_id' => $store->id, 'name' => 'Blue / L', 'sku' => 'TEE-BLUE-L', 'options' => ['Color' => 'Blue', 'Size' => 'L']]);
+        $variant->inventory()->create(['store_id' => $store->id, 'quantity' => 4]);
+        $store->products()->create(['name' => 'Draft item', 'slug' => 'draft-item', 'status' => 'draft', 'price' => 10000, 'track_inventory' => true]);
+
+        $this->get('http://catalog.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->has('products', 1)
+                ->where('products.0.name', 'Published Tee')
+                ->where('products.0.in_stock', true)
+                ->where('products.0.variants.0.stock', 4),
+            );
+    }
+
     private function ownedStore(TeamRole $role = TeamRole::Owner): array
     {
         $user = User::factory()->create();
