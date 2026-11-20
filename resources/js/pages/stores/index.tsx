@@ -87,7 +87,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted"><StoreIcon className="h-5 w-5 text-muted-foreground" /></div>
                                         <div>
-                                            <h3 className="font-medium">{store.name}</h3>
+                                            <h3 className="font-medium"><Link className="hover:underline" href={`/settings/teams/${team.slug}/stores/${store.id}`}>{store.name}</Link></h3>
                                             <p className="text-sm text-muted-foreground">/{store.slug} · {store.timezone} · {store.currency}</p>
                                         </div>
                                     </div>
