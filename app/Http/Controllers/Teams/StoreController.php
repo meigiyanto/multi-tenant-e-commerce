@@ -60,7 +60,14 @@ class StoreController extends Controller
 
         DB::transaction(function () use ($team, $validated): void {
             $store = $team->stores()->create($validated + ['status' => StoreStatus::Draft->value]);
-            $rootDomain = trim((string) config('storefront.root_domain', 'localhost'), ". \t\n\r\0\x0B");
+            $rootDomain = strtolower(trim((string) config('storefront.root_domain', 'localhost'), ". \t\n\r\0\x0B"));
+
+            if (preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i', $rootDomain) !== 1) {
+                throw ValidationException::withMessages([
+                    'storefront' => __('The platform storefront root domain is not configured correctly.'),
+                ]);
+            }
+
             $storeLabel = rtrim(substr($store->slug, 0, 48), '-');
             $platformDomain = $storeLabel.'-'.$store->getKey().'.'.strtolower($rootDomain);
 
