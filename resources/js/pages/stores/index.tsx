@@ -40,7 +40,7 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                 </div>
 
                 {canManageStores ? (
-                    <section className="space-y-6 rounded-xl border p-5 m-2">
+                    <section className="space-y-6 rounded-xl border p-3 m-2">
                         <div className="flex items-center gap-2">
                             <Plus className="h-5 w-5" />
                             <h2 className="font-semibold">Create a store</h2>
@@ -70,7 +70,9 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                         <InputError message={errors.currency} />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <Button type="submit" disabled={processing}><Plus /> {processing ? 'Creating…' : 'Create store'}</Button>
+                                        <Button type="submit" disabled={processing}>
+                                            <Plus /> {processing ? 'Creating…' : 'Create store'}
+                                        </Button>
                                     </div>
                                 </>
                             )}
