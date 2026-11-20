@@ -82,6 +82,22 @@ class StoreDomainResolutionTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_pending_team_cannot_resolve_its_storefront(): void
+    {
+        $this->createStoreDomain(teamStatus: 'pending');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
+    public function test_disabled_domain_cannot_resolve_a_store(): void
+    {
+        $this->createStoreDomain(status: 'disabled');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
     public function test_cancelled_team_cannot_resolve_its_storefront(): void
     {
         $this->createStoreDomain(teamStatus: 'cancelled');
