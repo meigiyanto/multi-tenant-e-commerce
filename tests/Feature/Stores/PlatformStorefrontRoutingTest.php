@@ -39,8 +39,6 @@ class PlatformStorefrontRoutingTest extends TestCase
 
     public function test_unknown_platform_subdomain_does_not_resolve_a_storefront(): void
     {
-        config(['storefront.root_domain' => 'platform.test']);
-
         $this->get('http://unknown-store.localhost/')
             ->assertNotFound();
     }
