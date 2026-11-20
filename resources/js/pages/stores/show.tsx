@@ -74,8 +74,17 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
 
                 <section className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
-                        <div><h2 className="font-semibold">Custom domains</h2><p className="text-sm text-muted-foreground">Verify domain ownership with a DNS TXT record before activation.</p></div>
-                        <Badge variant="secondary">{store.domains.length}</Badge>
+                        <div><h2 className="font-semibold">Storefront address</h2><p className="text-sm text-muted-foreground">This platform subdomain is provided automatically and does not require a domain purchase.</p></div>
+                    </div>
+                    {store.domains.filter((domain) => domain.type === 'subdomain').map((domain) => (
+                        <div key={domain.id} className="flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div><p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">Platform-provided address · no DNS setup required</p></div>
+                            <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>{domain.status}</Badge>
+                        </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-3 pt-3">
+                        <div><h2 className="font-semibold">Custom domains</h2><p className="text-sm text-muted-foreground">Optional: connect your own domain and verify ownership with a DNS TXT record.</p></div>
+                        <Badge variant="secondary">{store.domains.filter((domain) => domain.type === 'custom').length}</Badge>
                     </div>
                     {canManageStore ? (
                         <Form action={base + '/domains'} method="post" className="grid gap-3 rounded-xl border p-4 sm:grid-cols-[1fr_auto]">
@@ -87,9 +96,9 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                             )}
                         </Form>
                     ) : null}
-                    {store.domains.length ? (
+                    {store.domains.some((domain) => domain.type === 'custom') ? (
                         <div className="divide-y rounded-xl border">
-                            {store.domains.map((domain) => (
+                            {store.domains.filter((domain) => domain.type === 'custom').map((domain) => (
                                 <div key={domain.id} className="space-y-3 p-4">
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex items-center gap-3"><Globe2 className="h-4 w-4 text-muted-foreground" /><div><p className="font-medium">{domain.domain}</p><p className="text-xs text-muted-foreground">{domain.type}{domain.is_primary ? ' · Primary' : ''}</p></div></div>
@@ -125,7 +134,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-dashed p-8 text-center"><Globe2 className="mx-auto mb-3 h-7 w-7 text-muted-foreground" /><p className="font-medium">No domains connected</p><p className="mt-1 text-sm text-muted-foreground">Add a custom domain to begin ownership verification.</p></div>
+                        <div className="rounded-xl border border-dashed p-8 text-center"><Globe2 className="mx-auto mb-3 h-7 w-7 text-muted-foreground" /><p className="font-medium">No custom domain connected</p><p className="mt-1 text-sm text-muted-foreground">Your platform subdomain is already available. You can connect a custom domain whenever you are ready.</p></div>
                     )}
                 </section>
             </div>
