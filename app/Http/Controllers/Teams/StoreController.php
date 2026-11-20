@@ -8,6 +8,7 @@ use App\Models\StoreDomain;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -79,7 +80,7 @@ class StoreController extends Controller
                     'type' => $domain->type,
                     'status' => $domain->status,
                     'is_primary' => $domain->is_primary,
-                    'verified_at' => $domain->verified_at instanceof \Illuminate\Support\Carbon
+                    'verified_at' => $domain->verified_at instanceof Carbon
                         ? $domain->verified_at->toISOString()
                         : null,
                 ]),
