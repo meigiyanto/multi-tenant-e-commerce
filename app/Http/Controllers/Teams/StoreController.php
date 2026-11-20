@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Teams;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Models\StoreDomain;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,13 +73,15 @@ class StoreController extends Controller
                 'currency' => $store->currency,
                 'created_at' => $store->created_at?->toISOString(),
                 'updated_at' => $store->updated_at?->toISOString(),
-                'domains' => $store->domains->map(fn ($domain) => [
+                'domains' => $store->domains->map(fn (StoreDomain $domain) => [
                     'id' => $domain->id,
                     'domain' => $domain->domain,
                     'type' => $domain->type,
                     'status' => $domain->status,
                     'is_primary' => $domain->is_primary,
-                    'verified_at' => $domain->verified_at?->toISOString(),
+                    'verified_at' => $domain->verified_at instanceof \Illuminate\Support\Carbon
+                        ? $domain->verified_at->toISOString()
+                        : null,
                 ]),
             ],
             'canManageStore' => Gate::allows('update', $store),
