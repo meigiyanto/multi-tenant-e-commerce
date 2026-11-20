@@ -10,6 +10,6 @@ return [
     | Production must point a wildcard DNS record and TLS certificate here.
     |
     */
-    'root_domain' => env('STOREFRONT_ROOT_DOMAIN', 'localhost'),
+    'root_domain' => env('STOREFRONT_ROOT_DOMAIN', env('APP_ENV') === 'production' ? '' : 'localhost'),
     'scheme' => env('STOREFRONT_SCHEME', 'https'),
 ];
