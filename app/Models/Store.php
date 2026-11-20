@@ -9,6 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $team_id
+ * @property string $name
+ * @property string $slug
+ * @property string $status
+ * @property string $timezone
+ * @property string $currency
+ */
 #[Fillable([
     'team_id',
     'name',

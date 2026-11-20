@@ -34,6 +34,7 @@ class SetTeamUrlDefaultsTest extends TestCase
         URL::defaults([
             'current_team' => 'previous-team',
             'team' => 'previous-team',
+            'locale' => 'id',
         ]);
 
         $request = Request::create('/');
@@ -41,6 +42,10 @@ class SetTeamUrlDefaultsTest extends TestCase
 
         (new SetTeamUrlDefaults)->handle($request, fn () => response('ok'));
 
-        $this->assertSame([], URL::getDefaultParameters());
+        $this->assertSame([
+            'current_team' => null,
+            'team' => null,
+            'locale' => 'id',
+        ], URL::getDefaultParameters());
     }
 }

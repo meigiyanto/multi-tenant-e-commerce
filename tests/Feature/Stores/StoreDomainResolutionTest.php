@@ -74,6 +74,38 @@ class StoreDomainResolutionTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_suspended_team_cannot_resolve_its_storefront(): void
+    {
+        $this->createStoreDomain(teamStatus: 'suspended');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
+    public function test_pending_team_cannot_resolve_its_storefront(): void
+    {
+        $this->createStoreDomain(teamStatus: 'pending');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
+    public function test_disabled_domain_cannot_resolve_a_store(): void
+    {
+        $this->createStoreDomain(status: 'disabled');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
+    public function test_cancelled_team_cannot_resolve_its_storefront(): void
+    {
+        $this->createStoreDomain(teamStatus: 'cancelled');
+
+        $this->get('http://shop.example.test/__storefront-context')
+            ->assertNotFound();
+    }
+
     public function test_soft_deleted_store_cannot_be_resolved(): void
     {
         [$store] = $this->createStoreDomain();
@@ -90,8 +122,9 @@ class StoreDomainResolutionTest extends TestCase
         string $status = 'active',
         bool $verified = true,
         string $storeStatus = 'active',
+        string $teamStatus = 'active',
     ): array {
-        $team = Team::factory()->create();
+        $team = Team::factory()->create(['status' => $teamStatus]);
 
         $store = $team->stores()->create([
             'name' => 'Example Store',

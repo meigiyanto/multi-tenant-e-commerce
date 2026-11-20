@@ -14,12 +14,12 @@ type StoreRecord = {
     status: string;
     timezone: string;
     currency: string;
-    domains_count: number;
+    custom_domains_count: number;
     created_at: string | null;
 };
 
 type Props = {
-    team: { id: number; name: string; slug: string };
+    team: { id: number; name: string; slug: string; status?: string };
     canManageStores: boolean;
     stores: StoreRecord[];
 };
@@ -30,22 +30,23 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
             <Head title={`Stores — ${team.name}`} />
             <div className="flex flex-col space-y-6 gap-8">
                 <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
-                            <Link href={`/settings/teams/${team.slug}`}><ArrowLeft /> Back to team</Link>
+                    <div className="m-2">
+                        <Button asChild variant="ghost" size="sm" className="mb-2">
+                            <Link href={`/settings/teams/${team.slug}`}>
+                                <ArrowLeft /> Back to team</Link>
                         </Button>
                         <Heading variant="small" title="Stores" description={`Manage storefronts owned by ${team.name}.`} />
                     </div>
-                    <Badge variant="secondary">{stores.length} {stores.length === 1 ? 'store' : 'stores'}</Badge>
+                    <Badge className="mr-2" variant="secondary">{stores.length} {stores.length === 1 ? 'store' : 'stores'}</Badge>
                 </div>
 
                 {canManageStores ? (
-                    <section className="space-y-4 rounded-xl border p-5">
+                    <section className="space-y-6 rounded-xl border p-3 m-2">
                         <div className="flex items-center gap-2">
                             <Plus className="h-5 w-5" />
                             <h2 className="font-semibold">Create a store</h2>
                         </div>
-                        <p className="text-sm text-muted-foreground">Create a storefront workspace. It starts as a draft and can be connected to a domain in a later step.</p>
+                        <p className="text-sm text-muted-foreground">Create a storefront workspace. A platform subdomain is provided automatically; a custom domain is optional.</p>
                         <Form action={`/settings/teams/${team.slug}/stores`} method="post" className="grid gap-4 md:grid-cols-2">
                             {({ errors, processing }) => (
                                 <>
@@ -70,7 +71,9 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                         <InputError message={errors.currency} />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <Button type="submit" disabled={processing}><Plus /> {processing ? 'Creating…' : 'Create store'}</Button>
+                                        <Button type="submit" disabled={processing}>
+                                            <Plus /> {processing ? 'Creating…' : 'Create store'}
+                                        </Button>
                                     </div>
                                 </>
                             )}
@@ -78,7 +81,14 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                     </section>
                 ) : null}
 
-                <section className="space-y-4">
+                {team.status && team.status !== 'active' ? (
+                    <div className="mx-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                        <p className="font-medium">Team status: {team.status}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Store activation and storefront availability may be restricted until this Team becomes active.</p>
+                    </div>
+                ) : null}
+                
+                <section className="space-y-6 m-2">
                     <h2 className="font-semibold">Your stores</h2>
                     {stores.length > 0 ? (
                         <div className="space-y-3">
@@ -87,13 +97,13 @@ export default function StoresIndex({ team, canManageStores, stores }: Props) {
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted"><StoreIcon className="h-5 w-5 text-muted-foreground" /></div>
                                         <div>
-                                            <h3 className="font-medium">{store.name}</h3>
+                                            <h3 className="font-medium"><Link className="hover:underline" href={`/settings/teams/${team.slug}/stores/${store.id}`}>{store.name}</Link></h3>
                                             <p className="text-sm text-muted-foreground">/{store.slug} · {store.timezone} · {store.currency}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Badge variant={store.status === 'active' ? 'default' : 'secondary'}>{store.status}</Badge>
-                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.domains_count} domains</span>
+                                        <span className="flex items-center gap-1 text-sm text-muted-foreground"><Globe2 className="h-4 w-4" /> {store.custom_domains_count} custom domains</span>
                                     </div>
                                 </article>
                             ))}

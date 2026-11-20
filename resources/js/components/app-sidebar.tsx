@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, ShieldCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -29,6 +29,11 @@ export function AppSidebar() {
             href: dashboardUrl,
             icon: LayoutGrid,
         },
+        ...(page.props.auth.isPlatformAdmin ? [{
+            title: 'Platform Teams',
+            href: '/platform/admin/teams',
+            icon: ShieldCheck,
+        }] : []),
     ];
 
     const footerNavItems: NavItem[] = [
@@ -49,7 +54,7 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" className="group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:p-2!" asChild>
                             <Link href={dashboardUrl} prefetch>
                                 <AppLogo />
                             </Link>
