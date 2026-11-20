@@ -31,6 +31,7 @@ class StoreDomainLifecycleService
             if (in_array($target, [StoreDomainStatus::Pending, StoreDomainStatus::Disabled], true)) {
                 $lockedDomain->verified_at = null;
                 $lockedDomain->verification_token = null;
+                $lockedDomain->verification_expires_at = null;
             }
 
             $lockedDomain->status = $target->value;
@@ -46,18 +47,45 @@ class StoreDomainLifecycleService
             $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
             $current = StoreDomainStatus::tryFrom($lockedDomain->status);
 
-            if ($current !== StoreDomainStatus::Pending) {
+            if (! in_array($current, [StoreDomainStatus::Pending, StoreDomainStatus::Expired], true)) {
                 throw ValidationException::withMessages([
-                    'status' => __('Only pending domains can start verification.'),
+                    'status' => __('Only pending or expired domains can start verification.'),
                 ]);
             }
 
             $lockedDomain->status = StoreDomainStatus::Verifying->value;
             $lockedDomain->verified_at = null;
             $lockedDomain->verification_token = Str::random(48);
+            $lockedDomain->verification_expires_at = now()->addHours(
+                (int) config('storefront.domain_verification_hours', 72),
+            );
             $lockedDomain->save();
 
             return $lockedDomain;
+        });
+    }
+
+    /**
+     * Expire a challenge atomically when a verification request reaches the application.
+     */
+    public function expireIfOverdue(StoreDomain $domain): bool
+    {
+        return DB::transaction(function () use ($domain): bool {
+            $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
+
+            if (
+                $lockedDomain->status !== StoreDomainStatus::Verifying->value
+                || $lockedDomain->verification_expires_at === null
+                || $lockedDomain->verification_expires_at->isFuture()
+            ) {
+                return false;
+            }
+
+            $lockedDomain->status = StoreDomainStatus::Expired->value;
+            $lockedDomain->verification_token = null;
+            $lockedDomain->save();
+
+            return true;
         });
     }
 
@@ -70,14 +98,21 @@ class StoreDomainLifecycleService
             $lockedDomain = StoreDomain::query()->whereKey($domain->getKey())->lockForUpdate()->firstOrFail();
             $current = StoreDomainStatus::tryFrom($lockedDomain->status);
 
-            if ($current !== StoreDomainStatus::Verifying || $lockedDomain->verification_token === null) {
+            if (
+                $current !== StoreDomainStatus::Verifying
+                || $lockedDomain->verification_token === null
+                || $lockedDomain->verification_expires_at === null
+                || $lockedDomain->verification_expires_at->isPast()
+            ) {
                 throw ValidationException::withMessages([
-                    'status' => __('A domain must have an active verification challenge before it can be verified.'),
+                    'status' => __('The domain verification challenge is missing or has expired. Generate a new challenge to continue.'),
                 ]);
             }
 
             $lockedDomain->status = StoreDomainStatus::Verified->value;
             $lockedDomain->verified_at = now();
+            $lockedDomain->verification_token = null;
+            $lockedDomain->verification_expires_at = null;
             $lockedDomain->save();
 
             return $lockedDomain;
