@@ -39,7 +39,7 @@ class StoreController extends Controller
                     'status' => $store->status,
                     'timezone' => $store->timezone,
                     'currency' => $store->currency,
-                    'domains_count' => $store->domains_count,
+                    'custom_domains_count' => $store->custom_domains_count,
                     'created_at' => $store->created_at?->toISOString(),
                 ],
             ),
