@@ -89,6 +89,7 @@ class StoreController extends Controller
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('view', $store);
         $store->load(['domains' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('domain')]);
+        $platformDomain = $store->domains->firstWhere('type', 'subdomain');
 
         return Inertia::render('stores/show', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
@@ -99,6 +100,7 @@ class StoreController extends Controller
                 'status' => $store->status,
                 'timezone' => $store->timezone,
                 'currency' => $store->currency,
+                'storefront_url' => $platformDomain === null ? null : config('storefront.scheme', 'https').'://'.$platformDomain->domain,
                 'created_at' => $store->created_at?->toISOString(),
                 'updated_at' => $store->updated_at?->toISOString(),
                 'domains' => $store->domains->map(fn (StoreDomain $domain) => [
