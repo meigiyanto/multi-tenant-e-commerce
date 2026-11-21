@@ -3,12 +3,13 @@
 namespace App\Services\Shipping;
 
 use App\Contracts\Shipping\ShippingProvider;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class RajaOngkirShippingProvider implements ShippingProvider
 {
-    private function client()
+    private function client(): PendingRequest
     {
         $key = (string) config('shipping.providers.rajaongkir.api_key');
         if ($key === '') {

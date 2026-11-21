@@ -8,6 +8,7 @@ use App\Services\Shipping\ShippingQuoteService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class ShippingController extends Controller
 {
@@ -17,7 +18,11 @@ class ShippingController extends Controller
     {
         $validated = $request->validate(['search' => ['required', 'string', 'min:3', 'max:100']]);
 
-        return response()->json(['data' => $this->quotes->destinations($validated['search'])]);
+        try {
+            return response()->json(['data' => $this->quotes->destinations($validated['search'])]);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
     }
 
     public function quotes(Request $request, StoreContext $context): JsonResponse
@@ -33,9 +38,13 @@ class ShippingController extends Controller
             ->with('items.product')
             ->firstOrFail();
 
-        return response()->json([
-            'weight_grams' => $this->quotes->weight($cart),
-            'rates' => $this->quotes->rates($store, $cart, (int) $validated['destination_id']),
-        ]);
+        try {
+            return response()->json([
+                'weight_grams' => $this->quotes->weight($cart),
+                'rates' => $this->quotes->rates($store, $cart, (int) $validated['destination_id']),
+            ]);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
     }
 }
