@@ -1,10 +1,12 @@
 <?php
 
+use App\Services\Payments\MidtransGateway;
+
 return [
     'default' => env('PAYMENT_GATEWAY', 'midtrans'),
     'enabled' => array_filter(explode(',', env('PAYMENT_GATEWAYS_ENABLED', 'midtrans'))),
     'drivers' => [
-        'midtrans' => App\Services\Payments\MidtransGateway::class,
+        'midtrans' => MidtransGateway::class,
     ],
     'gateways' => [
         'midtrans' => [

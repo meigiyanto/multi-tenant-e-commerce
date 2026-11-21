@@ -9,8 +9,8 @@ use App\Support\Stores\StoreContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use LogicException;
 use Illuminate\Support\ServiceProvider;
+use LogicException;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
         $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
             $class = config('shipping.providers.'.config('shipping.default').'.class');
-            if (! is_string($class) || $class === '') {
+            if (!is_string($class) || $class === '') {
                 throw new LogicException('Shipping provider is not registered.');
             }
 
