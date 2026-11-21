@@ -74,7 +74,7 @@ class StorefrontCartTest extends TestCase
         [$store, $variant] = $this->activeStoreWithVariant(stock: 8, price: 50000);
         $response = $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id]);
         $response->assertRedirect();
-        $this->withCookie('storefront_cart_session_id', $this->cartCookie($response));
+        $this->withUnencryptedCookie('storefront_cart_session_id', DB::table('carts')->where('store_id', $store->id)->value('session_id'));
         $itemId = (int) DB::table('cart_items')->value('id');
 
         $this->patch('http://'.$store->slug.'.localhost/cart/items/'.$itemId, ['quantity' => 4])->assertRedirect();
