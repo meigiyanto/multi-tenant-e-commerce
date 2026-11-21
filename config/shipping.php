@@ -1,0 +1,15 @@
+<?php
+
+use App\Services\Shipping\RajaOngkirShippingProvider;
+
+return [
+    'default' => env('SHIPPING_PROVIDER', 'rajaongkir'),
+    'providers' => [
+        'rajaongkir' => [
+            'class' => RajaOngkirShippingProvider::class,
+            'api_key' => env('RAJAONGKIR_API_KEY'),
+            'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
+            'couriers' => array_filter(explode(',', (string) env('RAJAONGKIR_COURIERS', 'jne,sicepat,jnt,pos,tiki'))),
+        ],
+    ],
+];

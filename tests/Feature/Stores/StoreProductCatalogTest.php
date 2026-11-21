@@ -4,6 +4,7 @@ namespace Tests\Feature\Stores;
 
 use App\Enums\TeamRole;
 use App\Models\Product;
+use App\Models\Store;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,7 +174,7 @@ class StoreProductCatalogTest extends TestCase
             );
     }
 
-    /** @return array{User, Team, \App\Models\Store} */
+    /** @return array{User, Team, Store} */
     private function ownedStore(TeamRole $role = TeamRole::Owner): array
     {
         $user = User::factory()->create();

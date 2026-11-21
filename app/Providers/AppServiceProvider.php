@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\Shipping\ShippingProvider;
 use App\Contracts\Stores\DomainOwnershipVerifier;
 use App\Services\Stores\DnsTxtRecordVerifier;
 use App\Support\Stores\StoreContext;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use LogicException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,6 +19,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(StoreContext::class);
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
+        $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
+            $class = config('shipping.providers.'.config('shipping.default').'.class');
+            if (is_string($class) === false || $class === '') {
+                throw new LogicException('Shipping provider is not registered.');
+            }
+
+            return $app->make($class);
+        });
     }
 
     public function boot(): void

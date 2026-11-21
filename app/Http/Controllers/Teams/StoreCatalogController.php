@@ -337,6 +337,7 @@ class StoreCatalogController extends Controller
         ];
         if ($variant) {
             $variant->update($attributes);
+
             return $variant;
         }
 
@@ -351,7 +352,7 @@ class StoreCatalogController extends Controller
                 'path' => $file->store("stores/{$store->id}/products/{$product->id}", 'public'),
                 'alt_text' => $product->name,
                 'sort_order' => $product->images()->count(),
-                'is_primary' => ! $product->images()->exists() && $index === 0,
+                'is_primary' => $product->images()->exists() === false && $index === 0,
             ]);
         }
     }

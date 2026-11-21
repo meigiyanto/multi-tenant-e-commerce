@@ -5,14 +5,16 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\Storefront\CartService;
 use App\Support\Stores\StoreContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StorefrontController extends Controller
 {
-    public function __invoke(StoreContext $context): Response
+    public function __invoke(Request $request, StoreContext $context, CartService $carts): Response
     {
         $store = $context->store();
 
@@ -46,8 +48,8 @@ class StorefrontController extends Controller
                     'price' => $variant->price ?? $product->price,
                     'stock' => $product->track_inventory ? max(0, ($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) : null,
                 ])->values(),
-                'in_stock' => ! $product->track_inventory || $product->variants->contains(fn (ProductVariant $variant) =>
-                    (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0
+                'in_stock' => ! $product->track_inventory || $product->variants->contains(
+                    fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
                 ),
             ]);
 
@@ -65,6 +67,7 @@ class StorefrontController extends Controller
                 'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $settings['contact'] ?? []),
             ],
             'products' => $products,
+            'cart_count' => $carts->countForSession($store, $request->session()->getId()),
             'domain' => $context->domain()?->domain,
         ]);
     }

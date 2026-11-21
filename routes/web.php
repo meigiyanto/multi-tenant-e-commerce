@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\PaymentController;
+use App\Http\Controllers\Storefront\ProductController;
+use App\Http\Controllers\Storefront\ShippingController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -12,12 +17,26 @@ $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 if ($storefrontRootDomain !== '') {
     Route::domain('{storeSubdomain}.'.$storefrontRootDomain)
         ->middleware(ResolveStoreFromDomain::class)
-        ->get('/', StorefrontController::class)
-        ->name('storefront.home');
+        ->group(function (): void {
+            Route::get('/', StorefrontController::class)->name('storefront.home');
+            Route::get('/products/{slug}', [ProductController::class, 'show'])->name('storefront.products.show');
+            Route::get('/cart', [CartController::class, 'show'])->name('storefront.cart.show');
+            Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
+            Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
+            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+            Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
+            Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
+            Route::get('/shipping/destinations', [ShippingController::class, 'destinations'])->name('storefront.shipping.destinations');
+            Route::get('/shipping/quotes', [ShippingController::class, 'quotes'])->name('storefront.shipping.quotes');
+            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
+            Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->name('storefront.orders.payment');
+        });
 }
 
+Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
+    ->name('payments.midtrans.notification');
+
 // Register the storefront host route before the application root route.
-// Laravel gives subdomain routes precedence only when they are registered first.
 Route::inertia('/', 'welcome')->name('home');
 
 Route::prefix('{current_team}')

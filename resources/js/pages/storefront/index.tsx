@@ -1,78 +1,66 @@
-import { Head } from '@inertiajs/react';
-import { Mail, MapPin, Package, Phone, Store } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
+import { Mail, MapPin, Package, Phone, Search, ShoppingBag, Store, X } from 'lucide-react';
 
-type NavigationItem = { label: string; url: string };
-type StoreProduct = {
-    id: number;
-    name: string;
-    slug: string;
-    description: string | null;
-    category: string | null;
-    price: string;
-    compare_at_price: string | null;
-    image_url: string | null;
-    in_stock: boolean;
-    variants: { id: number; name: string; options: Record<string, string>; price: string; stock: number | null }[];
-};
+type Variant = { id: number; name: string; options: Record<string, string>; price: string; stock: number | null };
+type Product = { id: number; name: string; slug: string; description: string | null; category: string | null; price: string; compare_at_price: string | null; image_url: string | null; in_stock: boolean; variants: Variant[] };
 type Props = {
-    store: {
-        name: string;
-        slug: string;
-        currency: string;
-        description: string;
-        logo_url: string | null;
-        banner_url: string | null;
-        primary_color: string;
-        accent_color: string;
-        navigation: NavigationItem[];
-        contact: { email: string; phone: string; address: string };
-    };
-    products: StoreProduct[];
+    store: { name: string; slug: string; currency: string; description: string; logo_url: string | null; banner_url: string | null; primary_color: string; accent_color: string; navigation: { label: string; url: string }[]; contact: { email: string; phone: string; address: string } };
+    products: Product[];
     domain: string | null;
+    cart_count: number;
 };
 
-export default function StorefrontIndex({ store, products, domain }: Props) {
-    const formatPrice = (price: string | number) => new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: store.currency,
-        maximumFractionDigits: 2,
-    }).format(Number(price));
+export default function StorefrontIndex({ store, products, domain, cart_count }: Props) {
+    const [search, setSearch] = useState('');
+    const [category, setCategory] = useState('All');
+    const [sort, setSort] = useState('featured');
+    const [active, setActive] = useState<Product | null>(null);
+    const [variantId, setVariantId] = useState<number | null>(null);
+    const categories = useMemo(() => ['All', ...new Set(products.map((p) => p.category).filter((v): v is string => Boolean(v)))], [products]);
+    const visible = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        const result = products.filter((p) => (category === 'All' || p.category === category) && (!query || [p.name, p.description, p.category].some((v) => v?.toLowerCase().includes(query))));
+        if (sort === 'low') return [...result].sort((a, b) => Number(a.price) - Number(b.price));
+        if (sort === 'high') return [...result].sort((a, b) => Number(b.price) - Number(a.price));
+        return result;
+    }, [products, search, category, sort]);
+    const money = (price: string | number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: store.currency, maximumFractionDigits: 0 }).format(Number(price));
+    const openProduct = (product: Product) => {
+        setActive(product);
+        setVariantId(product.variants.find((v) => v.stock === null || v.stock > 0)?.id ?? product.variants[0]?.id ?? null);
+    };
+    const selected = active?.variants.find((v) => v.id === variantId);
 
-    return (
-        <>
-            <Head title={store.name} />
-            <div className="min-h-screen bg-white text-slate-900">
-                <header className="border-b border-slate-200 bg-white">
-                    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
-                        <a href="/" className="flex min-w-0 items-center gap-3">
-                            {store.logo_url ? <img src={store.logo_url} alt={store.name + ' logo'} className="h-11 w-11 rounded-md object-contain" /> : <span className="flex h-11 w-11 items-center justify-center rounded-md text-white" style={{ backgroundColor: store.primary_color }}><Store className="h-6 w-6" /></span>}
-                            <span className="truncate text-xl font-bold" style={{ color: store.accent_color }}>{store.name}</span>
-                        </a>
-                        {store.navigation.length > 0 ? <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-x-6 gap-y-2">{store.navigation.map((item, index) => <a key={index} href={item.url} className="text-sm font-medium text-slate-600 transition hover:text-slate-950">{item.label}</a>)}</nav> : null}
+    return <>
+        <Head title={store.name} />
+        <div className="min-h-screen bg-[#faf9f6] text-slate-900">
+            <header className="sticky top-0 z-30 border-b border-black/5 bg-[#faf9f6]/95 backdrop-blur">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-8">
+                    <a href="/" className="flex min-w-0 items-center gap-3">{store.logo_url ? <img src={store.logo_url} alt={store.name + ' logo'} className="h-10 w-10 rounded-md object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-md text-white" style={{ backgroundColor: store.primary_color }}><Store className="h-5 w-5" /></span>}<span className="truncate text-lg font-semibold tracking-tight" style={{ color: store.accent_color }}>{store.name}</span></a>
+                    <nav aria-label="Store navigation" className="hidden items-center gap-7 md:flex"><a href="#collection" className="text-sm text-slate-600 hover:text-slate-950">Shop</a>{store.navigation.map((item, i) => <a key={i} href={item.url} className="text-sm text-slate-600 hover:text-slate-950">{item.label}</a>)}</nav>
+                    <a href="/cart" aria-label={`Shopping cart, ${cart_count} items`} className="relative flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" />{cart_count > 0 ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white" style={{ backgroundColor: store.primary_color }}>{cart_count}</span> : null}</a>
+                </div>
+            </header>
+            <main>
+                <section className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-8 sm:pb-16 sm:pt-12">
+                    <div className="relative isolate overflow-hidden rounded-md bg-[#e8e3d9]">
+                        {store.banner_url ? <img src={store.banner_url} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" /> : null}
+                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#1d2520]/85 via-[#1d2520]/50 to-transparent" />
+                        <div className="flex min-h-[320px] items-end px-6 py-10 sm:min-h-[420px] sm:px-12 sm:py-14"><div className="max-w-2xl text-white"><p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">The new collection</p><h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">{store.name}</h1><p className="mt-4 max-w-xl text-sm leading-6 text-white/85 sm:text-base">{store.description || 'Thoughtful essentials and everyday pieces made to be worn your way.'}</p><a href="#collection" className="mt-7 inline-flex items-center rounded-md bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90">Explore collection <span aria-hidden="true" className="ml-3">↗</span></a></div></div>
                     </div>
-                </header>
-                <main>
-                    {store.banner_url ? <section className="relative"><img src={store.banner_url} alt={store.name + ' banner'} className="h-56 w-full object-cover sm:h-80 lg:h-[28rem]" /><div className="absolute inset-0 bg-black/25" /><div className="absolute inset-0 mx-auto flex max-w-7xl items-end px-5 pb-8 sm:px-8 sm:pb-12"><div className="max-w-2xl text-white drop-shadow"><h1 className="text-3xl font-bold sm:text-5xl">{store.name}</h1>{store.description ? <p className="mt-3 max-w-xl text-sm text-white/90 sm:text-base">{store.description}</p> : null}</div></div></section> : <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24"><p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: store.primary_color }}>Welcome to our store</p><h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl" style={{ color: store.accent_color }}>{store.name}</h1>{store.description ? <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{store.description}</p> : <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">Explore our latest products below.</p>}</section>}
-                    <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
-                        <div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: store.primary_color }}>Our collection</p><h2 className="mt-2 text-2xl font-bold sm:text-3xl" style={{ color: store.accent_color }}>Products</h2></div><span className="text-sm text-slate-500">{products.length} products</span></div>
-                        {products.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{products.map((product) => <article key={product.id} className="overflow-hidden rounded-md border border-slate-200 bg-white">
-                            <div className="aspect-[4/3] bg-slate-100">{product.image_url ? <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><Package className="h-10 w-10" /></div>}</div>
-                            <div className="space-y-3 p-4"><div>{product.category ? <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{product.category}</p> : null}<h3 className="mt-1 font-semibold text-slate-900">{product.name}</h3>{product.description ? <p className="line-clamp-2 text-sm text-slate-600">{product.description}</p> : null}</div>
-                                <div className="flex items-center gap-2"><p className="font-semibold" style={{ color: store.primary_color }}>{formatPrice(product.price)}</p>{product.compare_at_price && Number(product.compare_at_price) > Number(product.price) ? <p className="text-xs text-slate-400 line-through">{formatPrice(product.compare_at_price)}</p> : null}</div>
-                                {product.variants.length ? <div className="space-y-1 border-t border-slate-100 pt-3">{product.variants.slice(0, 3).map((variant) => <div key={variant.id} className="flex justify-between gap-2 text-xs text-slate-500"><span>{variant.name} {Object.values(variant.options).filter(Boolean).join(' / ')}</span><span className="shrink-0">{formatPrice(variant.price)}{variant.stock === null ? '' : ' · ' + (variant.stock > 0 ? variant.stock + ' available' : 'Out of stock')}</span>}</div>)}</div> : null}
-                                <p className={'text-xs font-medium ' + (product.in_stock ? 'text-emerald-700' : 'text-red-600')}>{product.in_stock ? 'In stock' : 'Out of stock'}</p>
-                            </div>
-                        </article>)}</div> : <div className="rounded-md border border-dashed border-slate-300 px-6 py-14 text-center"><Package className="mx-auto mb-3 h-8 w-8 text-slate-400" /><h3 className="font-semibold">No products published yet</h3><p className="mt-1 text-sm text-slate-500">Please check back later for new products.</p></div>}
-                    </section>
-                </main>
-                <footer className="border-t border-slate-200 bg-slate-50">
-                    <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:grid-cols-2 sm:px-8">
-                        <div><h2 className="font-semibold" style={{ color: store.accent_color }}>{store.name}</h2>{store.description ? <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{store.description}</p> : null}{domain ? <p className="mt-3 text-xs text-slate-500">{domain}</p> : null}</div>
-                        <div className="space-y-3 text-sm text-slate-600 sm:justify-self-end">{store.contact.email ? <a href={'mailto:' + store.contact.email} className="flex items-center gap-2"><Mail className="h-4 w-4" />{store.contact.email}</a> : null}{store.contact.phone ? <a href={'tel:' + store.contact.phone} className="flex items-center gap-2"><Phone className="h-4 w-4" />{store.contact.phone}</a> : null}{store.contact.address ? <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span>{store.contact.address}</span></p> : null}</div>
+                    <div className="mt-8 grid grid-cols-1 gap-3 border-b border-black/10 pb-8 text-sm text-slate-600 sm:grid-cols-3"><p><span className="font-medium text-slate-900">Considered essentials</span><br />Made for everyday rotation</p><p><span className="font-medium text-slate-900">Easy to style</span><br />Versatile pieces, season after season</p><p><span className="font-medium text-slate-900">Shop your way</span><br />Find your fit and favorite color</p></div>
+                </section>
+                <section id="collection" className="mx-auto max-w-7xl scroll-mt-24 px-4 pb-20 sm:px-8">
+                    <div className="flex flex-col justify-between gap-5 border-b border-black/10 pb-6 md:flex-row md:items-end"><div><p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: store.primary_color }}>Discover your favorites</p><h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Shop the collection</h2><p className="mt-2 text-sm text-slate-500">{visible.length} {visible.length === 1 ? 'piece' : 'pieces'} to explore</p></div>
+                        <div className="flex flex-col gap-3 sm:flex-row"><label className="relative block"><span className="sr-only">Search products</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products" className="h-11 w-full rounded-md border border-black/10 bg-white pl-9 pr-3 text-sm outline-none focus:border-slate-500 sm:w-56" /></label><label><span className="sr-only">Sort products</span><select value={sort} onChange={(e) => setSort(e.target.value)} className="h-11 w-full rounded-md border border-black/10 bg-white px-3 text-sm outline-none focus:border-slate-500 sm:w-44"><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label></div>
                     </div>
-                    <div className="border-t border-slate-200 px-5 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} {store.name}. All rights reserved.</div>
-                </footer>
-            </div>
-        </>
-    );
+                    <div className="flex gap-2 overflow-x-auto py-5">{categories.map((item) => <button key={item} type="button" onClick={() => setCategory(item)} className={'shrink-0 rounded-md border px-4 py-2 text-sm transition ' + (category === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-black/10 bg-white text-slate-600 hover:border-black/30')}>{item}</button>)}</div>
+                    {visible.length ? <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4">{visible.map((product) => <article key={product.id} className="group min-w-0"><button type="button" onClick={() => openProduct(product)} className="block w-full text-left"><div className="relative aspect-[4/5] overflow-hidden rounded-md bg-[#eeece7]">{product.image_url ? <img src={product.image_url} alt={product.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" /> : <div className="flex h-full items-center justify-center text-slate-400"><Package className="h-10 w-10" /></div>}{!product.in_stock ? <span className="absolute left-3 top-3 rounded-sm bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">Sold out</span> : null}<span className="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-md bg-white text-slate-900 opacity-0 shadow-sm transition group-hover:translate-y-0 group-hover:opacity-100"><ShoppingBag className="h-4 w-4" /></span></div><div className="pt-3">{product.category ? <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">{product.category}</p> : null}<h3 className="mt-1 line-clamp-2 text-sm font-medium leading-5 sm:text-base">{product.name}</h3><div className="mt-2 flex flex-wrap items-baseline gap-2"><span className="text-sm font-semibold" style={{ color: store.accent_color }}>{money(product.price)}</span>{product.compare_at_price && Number(product.compare_at_price) > Number(product.price) ? <span className="text-xs text-slate-400 line-through">{money(product.compare_at_price)}</span> : null}</div>{product.variants.length ? <p className="mt-2 text-xs text-slate-500">{new Set(product.variants.flatMap((v) => Object.values(v.options))).size} variant options</p> : null}</div></button></article>)}</div> : <div className="rounded-md border border-dashed border-black/15 px-6 py-16 text-center"><Package className="mx-auto mb-3 h-8 w-8 text-slate-400" /><h3 className="font-medium">Nothing matches your search</h3><p className="mt-1 text-sm text-slate-500">Try another keyword or category.</p><button type="button" onClick={() => { setSearch(''); setCategory('All'); }} className="mt-4 text-sm font-semibold underline underline-offset-4">Clear filters</button></div>}
+                </section>
+            </main>
+            <footer className="border-t border-black/10 bg-[#f1efe9]"><div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-8"><div><h2 className="font-semibold" style={{ color: store.accent_color }}>{store.name}</h2>{store.description ? <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{store.description}</p> : null}{domain ? <p className="mt-3 text-xs text-slate-500">{domain}</p> : null}</div><div className="space-y-3 text-sm text-slate-600 sm:justify-self-end">{store.contact.email ? <a href={'mailto:' + store.contact.email} className="flex items-center gap-2"><Mail className="h-4 w-4" />{store.contact.email}</a> : null}{store.contact.phone ? <a href={'tel:' + store.contact.phone} className="flex items-center gap-2"><Phone className="h-4 w-4" />{store.contact.phone}</a> : null}{store.contact.address ? <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span>{store.contact.address}</span></p> : null}</div></div><div className="border-t border-black/10 px-4 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} {store.name}. All rights reserved.</div></footer>
+        </div>
+        {active ? <div role="presentation" onClick={() => setActive(null)} className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-6"><section role="dialog" aria-modal="true" aria-labelledby="product-dialog-title" onClick={(e) => e.stopPropagation()} className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-md bg-[#faf9f6] sm:rounded-md"><button type="button" onClick={() => setActive(null)} aria-label="Close product details" className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-md bg-white/95 shadow-sm"><X className="h-5 w-5" /></button><div className="grid sm:grid-cols-2"><div className="aspect-[4/5] bg-[#eeece7] sm:aspect-auto sm:min-h-[500px]">{active.image_url ? <img src={active.image_url} alt={active.name} className="h-full w-full object-cover" /> : <div className="flex h-full min-h-64 items-center justify-center text-slate-400"><Package className="h-12 w-12" /></div>}</div><div className="p-6 sm:p-10">{active.category ? <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{active.category}</p> : null}<h2 id="product-dialog-title" className="mt-2 pr-8 text-2xl font-semibold tracking-tight sm:text-3xl">{active.name}</h2><p className="mt-4 text-lg font-semibold" style={{ color: store.accent_color }}>{money(selected?.price ?? active.price)}</p><p className="mt-5 whitespace-pre-line text-sm leading-6 text-slate-600">{active.description || 'A considered piece for your everyday wardrobe.'}</p><a href={'/products/' + active.slug} className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4">View full product details</a>{active.variants.length ? <div className="mt-6"><p className="mb-2 text-sm font-medium">Choose option</p><div className="flex flex-wrap gap-2">{active.variants.map((v) => <button key={v.id} type="button" disabled={v.stock !== null && v.stock < 1} onClick={() => setVariantId(v.id)} className={'rounded-md border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ' + (variantId === v.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-black/15 bg-white text-slate-700')}>{v.name || Object.values(v.options).join(' / ')}</button>)}</div></div> : null}{selected ? <p className="mt-4 text-xs text-slate-500">{selected.stock === null ? 'Available' : selected.stock > 0 ? selected.stock + ' in stock' : 'Out of stock'}{Object.keys(selected.options).length ? ' · ' + Object.entries(selected.options).map(([k, v]) => k + ': ' + v).join(' · ') : ''}</p> : null}<div className="mt-8 border-t border-black/10 pt-5"><button type="button" disabled={!selected || (selected.stock !== null && selected.stock < 1)} onClick={() => { if (!selected) return; router.post('/cart/items', { product_variant_id: selected.id, quantity: 1 }, { preserveScroll: true, onSuccess: () => setActive(null) }); }} className="w-full rounded-md px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: store.primary_color }}>Add to cart</button>{!active.variants.length ? <p className="mt-3 text-xs text-rose-600">This product has no active purchase variant yet.</p> : null}<button type="button" onClick={() => setActive(null)} className="mt-3 w-full rounded-md border border-black/10 px-5 py-3 text-sm font-semibold text-slate-700">Continue browsing</button></div></div></div></section></div> : null}
+    </>;
 }
