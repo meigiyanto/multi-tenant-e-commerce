@@ -14,7 +14,9 @@ class CartSessionService
 
     public function id(Request $request): string
     {
-        $id = $request->attributes->get(self::ATTRIBUTE_NAME) ?? $request->cookie(self::COOKIE_NAME);
+        $id = $request->attributes->get(self::ATTRIBUTE_NAME)
+            ?? $request->header('X-Storefront-Cart-Token')
+            ?? $request->cookie(self::COOKIE_NAME);
 
         if (is_string($id) === false || $id === '') {
             $id = Str::random(48);
