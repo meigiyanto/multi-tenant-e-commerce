@@ -4,6 +4,7 @@ namespace Tests\Feature\Storefront;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Store;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +81,7 @@ class StorefrontCartTest extends TestCase
         $this->assertDatabaseMissing('cart_items', ['id' => $itemId]);
     }
 
-    /** @return array{\App\Models\Store, ProductVariant} */
+    /** @return array{Store, ProductVariant} */
     private function activeStoreWithVariant(string $slug = 'cart-store', int $stock = 5, int $price = 100000): array
     {
         $team = Team::factory()->create();
