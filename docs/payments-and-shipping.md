@@ -19,7 +19,7 @@ MIDTRANS_SIGNATURE_SECRET_KEY=your-signature-secret-key
 MIDTRANS_IS_PRODUCTION=false
 ```
 
-Use Sandbox credentials while developing. Set `MIDTRANS_IS_PRODUCTION=true` only after the merchant account is approved for production. Never expose Server Key or Signature Secret Key to frontend code.
+Use Sandbox credentials while developing. Set `MIDTRANS_IS_PRODUCTION=true` only after the merchant account is approved for production. Never expose Server Key or Signature Secret Key to frontend code. In this first implementation, environment credentials are platform-wide and shared by all Stores. If each merchant must settle payments into their own Midtrans account, add encrypted per-Store credentials and a Store payment-settings UI in a later iteration; the gateway contract and registry are already separated from checkout.
 
 Configure the Midtrans Payment Notification URL to:
 
@@ -49,8 +49,8 @@ data_set($settings, 'shipping.origin_destination_id', 12345);
 $store->update(['settings' => $settings]);
 ```
 
-Replace `12345` with the real destination ID returned by the API. Store origin is deliberately tenant-specific; do not use a single global origin for every Store.
+Replace `12345` with the real subdistrict destination ID returned by the API. Store origin is deliberately tenant-specific; do not use a single global origin for every Store.
 
 Product weight is stored in grams in `products.weight_grams` and defaults to 1000 grams for existing products. Update product weights to improve quote accuracy. Checkout calculates total package weight from product weight multiplied by quantity, asks RajaOngkir for available services, and recalculates the selected courier/service on the server before creating the order. The final destination, courier, service, weight, and shipping amount are snapshotted on the order.
 
-RajaOngkir Shipping Cost API uses live rates; its dashboard Sandbox/Live switch does not make shipping-cost requests sandboxed. Confirm API quota and pricing with the RajaOngkir account before enabling it for a high-traffic Store.
+RajaOngkir Shipping Cost API uses live rates; its dashboard Sandbox/Live switch does not make shipping-cost requests sandboxed. The adapter requests each configured courier separately and caches matching quotes for 90 seconds, so choose the courier list with the account's API quota in mind. Confirm API quota and pricing with the RajaOngkir account before enabling it for a high-traffic Store.
