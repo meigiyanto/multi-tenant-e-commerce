@@ -73,7 +73,7 @@ class CartController extends Controller
         abort_if($store === null, 404);
 
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
-        $this->carts->update($store, $request->session()->getId(), $item, $data['quantity']);
+        $this->carts->update($store, $this->cartSessions->id($request), $item, $data['quantity']);
 
         return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
     }
@@ -83,7 +83,7 @@ class CartController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $this->carts->remove($store, $request->session()->getId(), $item);
+        $this->carts->remove($store, $this->cartSessions->id($request), $item);
 
         return $this->cartSessions->attach(back()->with('success', 'Produk dihapus dari keranjang.'), $request);
     }

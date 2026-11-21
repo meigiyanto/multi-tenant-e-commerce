@@ -101,7 +101,7 @@ class CheckoutController extends Controller
         $weight = $this->shipping->weight($cart);
         $order = $this->checkout->place(
             $store,
-            $request->session()->getId(),
+            $this->cartSessions->id($request),
             $data,
             $rate,
             $destinationId,
