@@ -6,15 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\Storefront\CartService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class StorefrontController extends Controller
 {
-    public function __invoke(Request $request, StoreContext $context, CartService $carts): Response
+    public function __invoke(Request $request, StoreContext $context, CartService $carts, CartSessionService $cartSessions): SymfonyResponse
     {
         $store = $context->store();
 
@@ -53,7 +54,7 @@ class StorefrontController extends Controller
                 ),
             ]);
 
-        return Inertia::render('storefront/index', [
+        $response = Inertia::render('storefront/index', [
             'store' => [
                 'name' => $store->name,
                 'slug' => $store->slug,
@@ -67,8 +68,10 @@ class StorefrontController extends Controller
                 'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $settings['contact'] ?? []),
             ],
             'products' => $products,
-            'cart_count' => $carts->countForSession($store, $request->session()->getId()),
+            'cart_count' => $carts->countForSession($store, $cartSessions->id($request)),
             'domain' => $context->domain()?->domain,
-        ]);
+        ])->toResponse($request);
+
+        return $cartSessions->attach($response, $request);
     }
 }

@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
-import { ArrowLeft, Check, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Check, Minus, Plus, ShoppingBag, LoaderCircle } from 'lucide-react';
 
 type Variant = { id: number; name: string; options: Record<string, string>; price: string; stock: number | null };
 type Product = {
@@ -19,14 +19,17 @@ type Props = {
     store: { name: string; currency: string; primary_color: string; accent_color: string };
     product: Product;
     related_products: RelatedProduct[];
+    cart_count: number;
 };
 
-export default function StorefrontProduct({ store, product, related_products }: Props) {
+export default function StorefrontProduct({ store, product, related_products, cart_count }: Props) {
     const availableVariant = product.variants.find((variant) => variant.stock === null || variant.stock > 0);
     const [variantId, setVariantId] = useState<number | null>(availableVariant?.id ?? product.variants[0]?.id ?? null);
     const [quantity, setQuantity] = useState(1);
     const [imageIndex, setImageIndex] = useState(Math.max(0, product.images.findIndex((image) => image.is_primary)));
     const [adding, setAdding] = useState(false);
+    const [cartCount, setCartCount] = useState(cart_count);
+    useEffect(() => setCartCount(cart_count), [cart_count]);
     const selected = product.variants.find((variant) => variant.id === variantId);
     const money = (amount: string | number) => new Intl.NumberFormat('id-ID', {
         style: 'currency', currency: store.currency, maximumFractionDigits: 0,
@@ -39,6 +42,7 @@ export default function StorefrontProduct({ store, product, related_products }: 
         setAdding(true);
         router.post('/cart/items', { product_variant_id: selected.id, quantity }, {
             preserveScroll: true,
+            onSuccess: () => setCartCount((count) => count + quantity),
             onFinish: () => setAdding(false),
         });
     };
@@ -51,7 +55,7 @@ export default function StorefrontProduct({ store, product, related_products }: 
             <header className="border-b border-black/5">
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-8">
                     <a href="/" className="text-lg font-semibold tracking-tight" style={{ color: store.accent_color }}>{store.name}</a>
-                    <a href="/cart" aria-label="Open shopping cart" className="flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" /></a>
+                    <a href="/cart" aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" />{cartCount > 0 ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-semibold text-white">{cartCount}</span> : null}</a>
                 </div>
             </header>
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12">
@@ -71,7 +75,7 @@ export default function StorefrontProduct({ store, product, related_products }: 
                         {selected ? <div className="mt-5 flex items-center justify-between text-xs text-slate-500"><span>{selected.stock === null ? 'Available' : selected.stock > 0 ? selected.stock + ' in stock' : 'Out of stock'}</span>{Object.keys(selected.options).length ? <span>{Object.entries(selected.options).map(([key, value]) => key + ': ' + value).join(' · ')}</span> : null}</div> : null}
                         <div className="mt-8 flex gap-3">
                             <div className="flex h-12 shrink-0 items-center rounded-md border border-black/10 bg-white"><button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-12 w-10 items-center justify-center disabled:opacity-30"><Minus className="h-4 w-4" /></button><span className="w-8 text-center text-sm tabular-nums">{quantity}</span><button type="button" aria-label="Increase quantity" disabled={quantity >= Math.min(99, availableStock ?? 99)} onClick={() => setQuantity((value) => Math.min(99, availableStock ?? 99, value + 1))} className="flex h-12 w-10 items-center justify-center disabled:opacity-30"><Plus className="h-4 w-4" /></button></div>
-                            <button type="button" disabled={!canAdd || adding} onClick={addToCart} className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: store.primary_color }}>{adding ? 'Adding…' : 'Add to cart'}</button>
+                            <button type="button" disabled={!canAdd || adding} onClick={addToCart} className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: store.primary_color }}>{adding ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Memproses...</> : 'Tambah ke keranjang'}</button>
                         </div>
                         <p className="mt-4 text-xs leading-5 text-slate-500">Secure checkout and delivery options will be available in the next storefront stage.</p>
                     </section>
