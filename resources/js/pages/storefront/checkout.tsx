@@ -102,6 +102,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
         setData('shipping_province', destination.province_name || destination.province || '');
         setDestinations([]);
     };
+    
     const field = (name: keyof typeof data, label: string, placeholder = '', type = 'text') => (
         <label className="block">
             <span className="mb-1.5 block text-sm font-medium">{label}</span>
@@ -132,29 +133,44 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                                 {field('customer_name', 'Full name', 'Your full name')}
                                 {field('customer_email', 'Email address', 'name@example.com', 'email')}
-                                <div className="sm:col-span-2">{field('customer_phone', 'Phone / WhatsApp', '+62')}</div>
+                                <div className="sm:col-span-2">
+                                    {field('customer_phone', 'Phone / WhatsApp', '+62')}
+                                </div>
                             </div>
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
                             <h2 className="text-lg font-semibold">Shipping address</h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <div className="sm:col-span-2"><label className="block"><span className="mb-1.5 block text-sm font-medium">Street address</span><textarea value={data.shipping_address} onChange={(event) => setData('shipping_address', event.target.value)} rows={3} placeholder="Street, building, house number, RT/RW" className={'w-full rounded-md border bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500 ' + (errors.shipping_address ? 'border-rose-400' : 'border-black/10')} />{errors.shipping_address ? <span className="mt-1 block text-xs text-rose-600">{errors.shipping_address}</span> : null}</label></div>
-                                <div className="relative sm:col-span-2"><label className="block"><span className="mb-1.5 block text-sm font-medium">Destination city / district</span><input value={destinationQuery} onChange={(event) => { setDestinationQuery(event.target.value); setSelectedDestination(null); setData('shipping_destination_id', ''); setData('shipping_courier', ''); setData('shipping_service', ''); }} placeholder="Search city, district, or postal code" className="h-11 w-full rounded-md border border-black/10 px-3 text-sm outline-none focus:border-slate-500" /></label>
+                                <div className="sm:col-span-2">
+                                    <label className="block">
+                                        <span className="mb-1.5 block text-sm font-medium">Street address</span>
+                                        <textarea value={data.shipping_address} onChange={(event) => setData('shipping_address', event.target.value)} rows={3} placeholder="Street, building, house number, RT/RW" className={'w-full rounded-md border bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500 ' + (errors.shipping_address ? 'border-rose-400' : 'border-black/10')} />{errors.shipping_address ? <span className="mt-1 block text-xs text-rose-600">{errors.shipping_address}</span> : null}
+                                    </label>
+                                </div>
+                                <div className="relative sm:col-span-2">
+                                    <label className="block">
+                                        <span className="mb-1.5 block text-sm font-medium">Destination city / district</span>
+                                        <input value={destinationQuery} onChange={(event) => { setDestinationQuery(event.target.value); setSelectedDestination(null); setData('shipping_destination_id', ''); setData('shipping_courier', ''); setData('shipping_service', ''); }} placeholder="Search city, district, or postal code here" className="h-11 w-full rounded-md border border-black/10 px-3 text-sm outline-none focus:border-slate-500" />
+                                    </label>
                                     {loadingDestinations ? <p className="mt-1 text-xs text-slate-500">Searching destinations…</p> : null}
                                     {destinations.length > 0 ? <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-black/10 bg-white shadow-lg">{destinations.map((destination) => <button type="button" key={destination.id} onClick={() => selectDestination(destination)} className="block w-full border-b border-black/5 px-3 py-2.5 text-left text-sm last:border-0 hover:bg-slate-50">{destination.label}</button>)}</div> : null}
-                                    {errors.shipping_destination_id ? <span className="mt-1 block text-xs text-rose-600">{errors.shipping_destination_id}</span> : null}
+                                    {errors.shipping_destination_id ? <span className="mt-1 block text-sm text-rose-600">{errors.shipping_destination_id}</span> : null }
                                 </div>
-                                {field('shipping_postal_code', 'Postal code')}
-                                <div className="flex items-end text-xs text-slate-500">{selectedDestination ? selectedDestination.label : 'Select a destination from search results.'}</div>
+                                <div>
+                                    {field('shipping_postal_code', 'Postal code')}
+                                    <div className="text-sm mt-2 text-slate-500">{selectedDestination ? selectedDestination.label : 'Select a destination from search results from Destination city / district input.'}</div>
+                                </div>
                             </div>
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
                             <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Shipping service</h2><span className="text-xs text-slate-500">{weight_grams.toLocaleString('id-ID')} g</span></div>
                             {!selectedDestination ? <p className="mt-4 text-sm text-slate-500">Select your destination to calculate available courier services.</p> : null}
                             {loadingRates ? <p className="mt-4 text-sm text-slate-500">Calculating shipping rates…</p> : null}
-                            {rates.map((rate) => <label key={rate.courier + rate.service} className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-md border border-black/10 p-3 hover:border-slate-500"><span className="flex min-w-0 items-start gap-3"><input type="radio" name="shipping_service" checked={data.shipping_courier === rate.courier && data.shipping_service === rate.service} onChange={() => { setData('shipping_courier', rate.courier); setData('shipping_service', rate.service); }} className="mt-1" /><span><span className="block text-sm font-medium">{rate.courier_name} · {rate.service}</span><span className="mt-0.5 block text-xs text-slate-500">{rate.description} · Est. {rate.etd || 'N/A'}</span></span></span><span className="shrink-0 text-sm font-semibold">{money(rate.amount)}</span></label>)}
+                            {rates.map((rate) => <label key={rate.courier + rate.service} className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-md border border-black/10 p-3 hover:border-slate-500"><span className="flex min-w-0 items-start gap-3">
+                                <input type="radio" name="shipping_service" checked={data.shipping_courier === rate.courier && data.shipping_service === rate.service} onChange={() => { setData('shipping_courier', rate.courier); setData('shipping_service', rate.service); }} className="mt-1" /><span><span className="block text-sm font-medium">{rate.courier_name} · {rate.service}</span>
+                                <span className="mt-0.5 block text-xs text-slate-500">{rate.description} · Est. {rate.etd || 'N/A'}</span></span></span><span className="shrink-0 text-sm font-semibold">{money(rate.amount)}</span></label>)}
                             {shippingError ? <p className="mt-3 text-sm text-rose-600">{shippingError}</p> : null}
-                            {errors.shipping_service ? <p className="mt-2 text-sm text-rose-600">{errors.shipping_service}</p> : null}
+                            {errors.shipping_service ? <p className="mt-1 text-sm text-rose-600">{errors.shipping_service}</p> : null}
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
                             <label className="block"><span className="mb-1.5 block text-sm font-medium">Order note (optional)</span><textarea value={data.customer_note} onChange={(event) => setData('customer_note', event.target.value)} rows={3} placeholder="Additional delivery instructions" className="w-full rounded-md border border-black/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500" /></label>

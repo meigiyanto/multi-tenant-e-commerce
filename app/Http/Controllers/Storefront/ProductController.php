@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\Storefront\CartService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class ProductController extends Controller
 {
-    public function show(string $storeSubdomain, string $slug, StoreContext $context): Response
+    public function show(string $storeSubdomain, string $slug, StoreContext $context, Request $request, CartService $carts, CartSessionService $cartSessions): SymfonyResponse
     {
         $store = $context->store();
 
@@ -41,7 +44,7 @@ class ProductController extends Controller
             ->get()
             ->map(fn (Product $related): array => $this->productCard($related));
 
-        return Inertia::render('storefront/product', [
+        $response = Inertia::render('storefront/product', [
             'store' => [
                 'name' => $store->name,
                 'currency' => $store->currency,
@@ -72,7 +75,10 @@ class ProductController extends Controller
                 ])->values(),
             ],
             'related_products' => $relatedProducts,
-        ]);
+            'cart_count' => $carts->countForSession($store, $cartSessions->id($request)),
+        ])->toResponse($request);
+
+        return $cartSessions->attach($response, $request);
     }
 
     private function productCard(Product $product): array
