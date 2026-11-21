@@ -19,6 +19,22 @@ class CartService
         );
     }
 
+    public function findCurrent(Store $store, string $sessionId): ?Cart
+    {
+        return Cart::query()
+            ->where('store_id', $store->id)
+            ->where('session_id', $sessionId)
+            ->where('status', 'active')
+            ->first();
+    }
+
+    public function countForSession(Store $store, string $sessionId): int
+    {
+        $cart = $this->findCurrent($store, $sessionId);
+
+        return $cart === null ? 0 : $this->count($cart);
+    }
+
     public function add(Store $store, string $sessionId, int $variantId, int $quantity = 1): Cart
     {
         return DB::transaction(function () use ($store, $sessionId, $variantId, $quantity): Cart {
@@ -47,6 +63,11 @@ class CartService
             $cart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
             $item = $cart->items()->where('product_variant_id', $variant->id)->lockForUpdate()->first();
             $newQuantity = ($item?->quantity ?? 0) + $quantity;
+
+            if ($newQuantity > 99) {
+                throw ValidationException::withMessages(['quantity' => 'Maksimal 99 item untuk satu varian.']);
+            }
+
             $this->assertStock($product, $variant, $newQuantity);
 
             $price = $variant->price ?? $product->price;
