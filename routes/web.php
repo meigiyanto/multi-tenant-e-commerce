@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -12,8 +13,13 @@ $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 if ($storefrontRootDomain !== '') {
     Route::domain('{storeSubdomain}.'.$storefrontRootDomain)
         ->middleware(ResolveStoreFromDomain::class)
-        ->get('/', StorefrontController::class)
-        ->name('storefront.home');
+        ->group(function (): void {
+            Route::get('/', StorefrontController::class)->name('storefront.home');
+            Route::get('/cart', [CartController::class, 'show'])->name('storefront.cart.show');
+            Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
+            Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
+            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+        });
 }
 
 // Register the storefront host route before the application root route.
