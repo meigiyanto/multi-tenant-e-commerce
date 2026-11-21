@@ -25,7 +25,6 @@ class StorefrontCartTest extends TestCase
             'quantity' => 2,
         ]);
         $response->assertRedirect();
-        
 
         $this->assertDatabaseHas('carts', ['store_id' => $store->id, 'status' => 'active']);
         $this->assertDatabaseHas('cart_items', [
@@ -76,7 +75,6 @@ class StorefrontCartTest extends TestCase
         $this->withHeader('X-Storefront-Cart-Token', 'cart-test-token-1111111111111111111111111111111111111111');
         $response = $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id]);
         $response->assertRedirect();
-        $this->withUnencryptedCookie('storefront_cart_session_id', DB::table('carts')->where('store_id', $store->id)->value('session_id'));
         $itemId = (int) DB::table('cart_items')->value('id');
 
         $this->patch('http://'.$store->slug.'.localhost/cart/items/'.$itemId, ['quantity' => 4])->assertRedirect();
