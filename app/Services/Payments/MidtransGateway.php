@@ -26,21 +26,33 @@ class MidtransGateway implements PaymentGateway
             ? 'https://app.midtrans.com'
             : 'https://app.sandbox.midtrans.com';
 
+        $parameters = [
+            'transaction_details' => [
+                'order_id' => $transaction->gateway_order_id,
+                'gross_amount' => (int) round((float) $order->total),
+            ],
+            'customer_details' => [
+                'first_name' => $order->customer_name,
+                'email' => $order->customer_email,
+                'phone' => $order->customer_phone,
+            ],
+        ];
+        $domain = $order->store?->domains()
+            ->where('is_primary', true)
+            ->where('status', 'active')
+            ->value('domain');
+
+        if ($domain) {
+            $parameters['callbacks'] = [
+                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/'). '://'.$domain.'/orders/'.rawurlencode($order->order_number),
+            ];
+        }
+
         $response = Http::acceptJson()
             ->asJson()
             ->withBasicAuth($serverKey, '')
             ->timeout(20)
-            ->post($baseUrl.'/snap/v1/transactions', [
-                'transaction_details' => [
-                    'order_id' => $transaction->gateway_order_id,
-                    'gross_amount' => (int) round((float) $order->total),
-                ],
-                'customer_details' => [
-                    'first_name' => $order->customer_name,
-                    'email' => $order->customer_email,
-                    'phone' => $order->customer_phone,
-                ],
-            ]);
+            ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
         if (! $response->successful() || ! $response->json('token') || ! $response->json('redirect_url')) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
