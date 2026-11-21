@@ -92,6 +92,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
     /**
      * @param array<string, mixed> $courier
      * @param array<string, mixed> $service
+     *
      * @return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
      */
     private function normalizeRate(array $courier, array $service): array

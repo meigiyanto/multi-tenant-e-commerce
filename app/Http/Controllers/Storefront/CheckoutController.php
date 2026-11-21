@@ -8,8 +8,8 @@ use App\Models\Order;
 use App\Services\Payments\PaymentService;
 use App\Services\Shipping\ShippingQuoteService;
 use App\Services\Storefront\CartService;
-use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CartSessionService;
+use App\Services\Storefront\CheckoutService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,8 +36,7 @@ class CheckoutController extends Controller
         ShippingQuoteService $shipping,
         PaymentService $payments,
         CartSessionService $cartSessions
-    )
-    {
+    ) {
         $this->carts = $carts;
         $this->checkout = $checkout;
         $this->shipping = $shipping;
