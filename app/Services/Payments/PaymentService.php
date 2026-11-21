@@ -24,6 +24,7 @@ class PaymentService
         }
 
         $gatewayName = (string) config('payments.default');
+        $gateway = $this->gateways->driver($gatewayName);
         $existing = $order->paymentTransactions()
             ->where('gateway', $gatewayName)
             ->where('status', 'pending')
@@ -66,7 +67,7 @@ class PaymentService
         });
 
         try {
-            $result = $this->gateways->driver($gatewayName)->createPayment($order, $transaction);
+            $result = $gateway->createPayment($order, $transaction);
             $transaction->update([
                 'token' => $result['token'] ?? null,
                 'redirect_url' => $result['redirect_url'] ?? null,
@@ -80,10 +81,9 @@ class PaymentService
         return $transaction->refresh();
     }
 
-    public function handleNotification(array $payload): void
+    public function handleNotification(array $payload, string $gatewayName): void
     {
-        $gatewayName = (string) config('payments.default');
-        $gateway = $this->gateways->driver($gatewayName);
+        $gateway = $this->gateways->driver($gatewayName, false);
 
         if (! $gateway->verifyNotification($payload)) {
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');

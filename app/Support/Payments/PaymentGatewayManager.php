@@ -15,12 +15,12 @@ class PaymentGatewayManager
         return $this->driver((string) config('payments.default'));
     }
 
-    public function driver(string $name): PaymentGateway
+    public function driver(string $name, bool $requireEnabled = true): PaymentGateway
     {
         $drivers = (array) config('payments.drivers', []);
         $class = $drivers[$name] ?? null;
 
-        if (! is_string($class) || ! in_array($name, (array) config('payments.enabled', []), true)) {
+        if (! is_string($class) || ($requireEnabled && !in_array($name, (array) config('payments.enabled', []), true))) {
             throw new InvalidArgumentException("Payment gateway [{$name}] is not enabled.");
         }
 

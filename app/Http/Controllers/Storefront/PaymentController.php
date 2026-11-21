@@ -33,7 +33,7 @@ class PaymentController extends Controller
     public function notification(Request $request): JsonResponse
     {
         try {
-            $this->payments->handleNotification($request->all());
+            $this->payments->handleNotification($request->all(), 'midtrans');
         } catch (RuntimeException $exception) {
             return response()->json(['success' => false, 'message' => $exception->getMessage()], 400);
         }
