@@ -28,22 +28,27 @@ class CheckoutController extends Controller
         $cart = $this->carts->findCurrent($store, $request->session()->getId());
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
-        $items = $this->carts->items($cart)->get()->map(fn ($item): array => [
-            'id' => $item->id,
-            'name' => $item->product->name,
-            'variant_name' => $item->variant->name,
-            'quantity' => $item->quantity,
-            'unit_price' => $item->unit_price,
-            'line_total' => number_format((float) $item->unit_price * $item->quantity, 2, '.', ''),
-            'image_url' => ($image = $item->product->images->firstWhere('is_primary', true) ?? $item->product->images->first())
-                ? Storage::disk('public')->url($image->path)
-                : null,
-        ]);
+        $items = $this->carts->items($cart)->get()->map(function ($item): array {
+            $unitPrice = $item->variant->price ?? $item->product->price;
+
+            return [
+                'id' => $item->id,
+                'name' => $item->product->name,
+                'variant_name' => $item->variant->name,
+                'quantity' => $item->quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
+                'image_url' => ($image = $item->product->images->firstWhere('is_primary', true) ?? $item->product->images->first())
+                    ? Storage::disk('public')->url($image->path)
+                    : null,
+            ];
+        });
+        $subtotal = number_format((float) $items->sum(fn (array $item): float => (float) $item['line_total']), 2, '.', '');
 
         return Inertia::render('storefront/checkout', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
             'items' => $items,
-            'subtotal' => $this->carts->subtotal($cart),
+            'subtotal' => $subtotal,
             'customer' => [
                 'name' => auth()->user()?->name ?? '',
                 'email' => auth()->user()?->email ?? '',
