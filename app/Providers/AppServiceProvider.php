@@ -2,16 +2,14 @@
 
 namespace App\Providers;
 
-use App\Contracts\Payments\PaymentGateway;
 use App\Contracts\Shipping\ShippingProvider;
 use App\Contracts\Stores\DomainOwnershipVerifier;
-use App\Services\Payments\MidtransGateway;
-use App\Services\Shipping\RajaOngkirShippingProvider;
 use App\Services\Stores\DnsTxtRecordVerifier;
 use App\Support\Stores\StoreContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -21,9 +19,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(StoreContext::class);
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
-        $this->app->bind(PaymentGateway::class, MidtransGateway::class);
         $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
-            $class = (string) config('shipping.providers.'.config('shipping.default').'.class', RajaOngkirShippingProvider::class);
+            $class = config('shipping.providers.'.config('shipping.default').'.class');
+            if (! is_string($class) || $class === '') {
+                throw new LogicException('Shipping provider is not registered.');
+            }
 
             return $app->make($class);
         });
