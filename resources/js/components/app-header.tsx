@@ -76,7 +76,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
         <>
             <div className="border-b border-sidebar-border/80">
                 <div className="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
-                    {/* Mobile Menu */}
                     <div className="lg:hidden">
                         <Sheet>
                             <SheetTrigger asChild>
@@ -114,7 +113,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                                 </Link>
                                             ))}
                                         </div>
-
                                         <div className="flex flex-col space-y-4">
                                             {rightNavItems.map((item) => (
                                                 <a
@@ -145,7 +143,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                         <AppLogo />
                     </Link>
 
-                    {/* Desktop Navigation */}
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
@@ -218,29 +215,34 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 ))}
                             </div>
                         </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="size-10 rounded-full p-1"
-                                >
-                                    <Avatar className="size-8 overflow-hidden rounded-full">
-                                        <AvatarImage
-                                            src={auth.user.avatar}
-                                            alt={auth.user.name}
-                                        />
-                                        <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                            {getInitials(auth.user.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end">
-                                <UserMenuContent user={auth.user} />
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <TeamSwitcher inHeader />
+                        {auth.user ? (
+                            <>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            className="size-10 rounded-full p-1"
+                                        >
+                                            <Avatar className="size-8 overflow-hidden rounded-full">
+                                                {auth.user.avatar ? (
+                                                    <AvatarImage
+                                                        src={auth.user.avatar}
+                                                        alt={auth.user.name}
+                                                    />
+                                                ) : null}
+                                                <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                                                    {getInitials(auth.user.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="end">
+                                        <UserMenuContent user={auth.user} />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <TeamSwitcher inHeader />
+                            </>
+                        ) : null}
                     </div>
                 </div>
             </div>
