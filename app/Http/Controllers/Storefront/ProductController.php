@@ -12,7 +12,7 @@ use Inertia\Response;
 
 class ProductController extends Controller
 {
-    public function show(string $slug, StoreContext $context): Response
+    public function show(string $storeSubdomain, string $slug, StoreContext $context): Response
     {
         $store = $context->store();
 
