@@ -3,23 +3,42 @@
 namespace App\Services\Storefront;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class CartSessionService
 {
     private const COOKIE_NAME = 'storefront_cart_session_id';
 
+    private const ATTRIBUTE_NAME = 'storefront_cart_session_id';
+
     public function id(Request $request): string
     {
-        $id = $request->cookie(self::COOKIE_NAME);
+        $id = $request->attributes->get(self::ATTRIBUTE_NAME) ?? $request->cookie(self::COOKIE_NAME);
 
         if (is_string($id) === false || $id === '') {
             $id = Str::random(48);
         }
 
-        Cookie::queue(cookie(self::COOKIE_NAME, $id, 60 * 24 * 30, '/', null, $request->isSecure(), true, false, 'lax'));
+        $request->attributes->set(self::ATTRIBUTE_NAME, $id);
 
         return $id;
+    }
+
+    public function attach(Response $response, Request $request): Response
+    {
+        $response->headers->setCookie(cookie(
+            self::COOKIE_NAME,
+            $this->id($request),
+            60 * 24 * 30,
+            '/',
+            null,
+            $request->isSecure(),
+            true,
+            false,
+            'lax',
+        ));
+
+        return $response;
     }
 }

@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CheckoutController extends Controller
 {
@@ -27,7 +28,7 @@ class CheckoutController extends Controller
         private readonly CartSessionService $cartSessions,
     ) {}
 
-    public function show(Request $request, StoreContext $context): Response
+    public function show(Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -53,7 +54,7 @@ class CheckoutController extends Controller
         $subtotal = number_format((float) $items->sum(fn (array $item): float => (float) $item['line_total']), 2, '.', '');
         $cart->load('items.product');
 
-        return Inertia::render('storefront/checkout', [
+        $response = Inertia::render('storefront/checkout', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
             'items' => $items,
             'subtotal' => $subtotal,
@@ -63,7 +64,9 @@ class CheckoutController extends Controller
                 'email' => auth()->user()?->email ?? '',
                 'phone' => '',
             ],
-        ]);
+        ])->toResponse($request);
+
+        return $this->cartSessions->attach($response, $request);
     }
 
     public function store(Request $request, StoreContext $context): RedirectResponse
@@ -88,7 +91,7 @@ class CheckoutController extends Controller
 
         $cart = Cart::query()
             ->where('store_id', $store->id)
-            ->where('session_id', $request->session()->getId())
+            ->where('session_id', $this->cartSessions->id($request))
             ->where('status', 'active')
             ->with('items.product')
             ->firstOrFail();
@@ -109,14 +112,14 @@ class CheckoutController extends Controller
         try {
             $payment = $this->payments->start($order);
 
-            return redirect()->away($payment->redirect_url);
+            return $this->cartSessions->attach(redirect()->away($payment->redirect_url), $request);
         } catch (\Throwable $exception) {
             report($exception);
 
-            return redirect()->route('storefront.orders.show', [
+            return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
                 'storeSubdomain' => $request->route('storeSubdomain'),
                 'orderNumber' => $order->order_number,
-            ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.');
+            ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
         }
     }
 

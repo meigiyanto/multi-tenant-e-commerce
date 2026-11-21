@@ -10,13 +10,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CartController extends Controller
 {
     public function __construct(private readonly CartService $carts, private readonly CartSessionService $cartSessions) {}
 
-    public function show(string $storeSubdomain, Request $request, StoreContext $context): Response
+    public function show(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
 
@@ -42,12 +42,14 @@ class CartController extends Controller
                 : null,
         ]);
 
-        return Inertia::render('storefront/cart', [
+        $response = Inertia::render('storefront/cart', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
             'items' => $items,
             'item_count' => $this->carts->count($cart),
             'subtotal' => $this->carts->subtotal($cart),
-        ]);
+        ])->toResponse($request);
+
+        return $this->cartSessions->attach($response, $request);
     }
 
     public function store(string $storeSubdomain, Request $request, StoreContext $context): RedirectResponse
@@ -60,9 +62,9 @@ class CartController extends Controller
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
         ]);
 
-        $this->carts->add($store, $request->session()->getId(), $data['product_variant_id'], $data['quantity'] ?? 1);
+        $this->carts->add($store, $this->cartSessions->id($request), $data['product_variant_id'], $data['quantity'] ?? 1);
 
-        return back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
+        return $this->cartSessions->attach(back()->with('success', 'Produk berhasil ditambahkan ke keranjang.'), $request);
     }
 
     public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
@@ -73,7 +75,7 @@ class CartController extends Controller
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
         $this->carts->update($store, $request->session()->getId(), $item, $data['quantity']);
 
-        return back()->with('success', 'Jumlah produk diperbarui.');
+        return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
     }
 
     public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
@@ -83,6 +85,6 @@ class CartController extends Controller
 
         $this->carts->remove($store, $request->session()->getId(), $item);
 
-        return back()->with('success', 'Produk dihapus dari keranjang.');
+        return $this->cartSessions->attach(back()->with('success', 'Produk dihapus dari keranjang.'), $request);
     }
 }

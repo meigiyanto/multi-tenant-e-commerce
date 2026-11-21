@@ -32,18 +32,19 @@ class ShippingController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
+        $cartSessionId = $this->cartSessions->id($request);
         $cart = Cart::query()
             ->where('store_id', $store->id)
-            ->where('session_id', $this->cartSessions->id($request))
+            ->where('session_id', $cartSessionId)
             ->where('status', 'active')
             ->with('items.product')
             ->firstOrFail();
 
         try {
-            return response()->json([
+            return $this->cartSessions->attach(response()->json([
                 'weight_grams' => $this->quotes->weight($cart),
                 'rates' => $this->quotes->rates($store, $cart, (int) $validated['destination_id']),
-            ]);
+            ]), $request);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
