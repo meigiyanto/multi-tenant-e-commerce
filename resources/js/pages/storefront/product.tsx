@@ -42,7 +42,7 @@ export default function StorefrontProduct({ store, product, related_products, ca
         setAdding(true);
         router.post('/cart/items', { product_variant_id: selected.id, quantity }, {
             preserveScroll: true,
-            onSuccess: () => setCartCount((count) => count + quantity),
+            onSuccess: () => {},
             onFinish: () => setAdding(false),
         });
     };
