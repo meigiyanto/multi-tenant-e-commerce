@@ -30,7 +30,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
             'offset' => 0,
         ]);
 
-        if (! $response->successful()) {
+        if ($response->successful() === false) {
             throw new RuntimeException('Gagal mencari tujuan pengiriman dari RajaOngkir.');
         }
 

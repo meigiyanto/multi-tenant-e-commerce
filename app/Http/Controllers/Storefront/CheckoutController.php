@@ -20,13 +20,7 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CheckoutController extends Controller
 {
-    public function __construct(
-        private readonly CartService $carts,
-        private readonly CheckoutService $checkout,
-        private readonly ShippingQuoteService $shipping,
-        private readonly PaymentService $payments,
-        private readonly CartSessionService $cartSessions,
-    ) {}
+    public function __construct(private readonly CartService $carts, private readonly CheckoutService $checkout, private readonly ShippingQuoteService $shipping, private readonly PaymentService $payments, private readonly CartSessionService $cartSessions) {}
 
     public function show(Request $request, StoreContext $context): SymfonyResponse
     {
