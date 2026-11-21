@@ -39,11 +39,10 @@ class RajaOngkirShippingProviderTest extends TestCase
                 'data' => [[
                     'code' => 'jne',
                     'name' => 'Jalur Nugraha Ekakurir',
-                    'costs' => [[
-                        'service' => 'REG',
-                        'description' => 'Regular Service',
-                        'cost' => ['value' => 18000, 'etd' => '2-3'],
-                    ]],
+                    'service' => 'REG',
+                    'description' => 'Regular Service',
+                    'cost' => 18000,
+                    'etd' => '2-3',
                 ]],
             ]),
         ]);

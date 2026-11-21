@@ -5,6 +5,7 @@ namespace App\Services\Shipping;
 use App\Contracts\Shipping\ShippingProvider;
 use App\Models\Cart;
 use App\Models\Store;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class ShippingQuoteService
@@ -33,12 +34,16 @@ class ShippingQuoteService
             throw ValidationException::withMessages(['shipping' => 'Alamat asal pengiriman toko belum dikonfigurasi oleh pemilik toko.']);
         }
 
-        return $this->provider->calculate(
+        $weight = $this->weight($cart);
+        $couriers = config('shipping.providers.rajaongkir.couriers', []);
+        $cacheKey = 'shipping-rates:'.hash('sha256', implode('|', [$store->id, $originId, $destinationId, $weight, implode(',', $couriers)]));
+
+        return Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate(
             $originId,
             $destinationId,
-            $this->weight($cart),
-            config('shipping.providers.rajaongkir.couriers', []),
-        );
+            $weight,
+            $couriers,
+        ));
     }
 
     public function selectedRate(Store $store, Cart $cart, int $destinationId, string $courier, string $service): array
