@@ -30,26 +30,31 @@ class Order extends Model
         ];
     }
 
+    /** @return BelongsTo<Store, $this> */
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasMany<OrderStatusHistory, $this> */
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
     }
 
+    /** @return HasMany<PaymentTransaction, $this> */
     public function paymentTransactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);

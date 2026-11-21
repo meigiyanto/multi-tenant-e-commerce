@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'store_id', 'order_id', 'product_id', 'product_variant_id', 'product_name',
     'variant_name', 'sku', 'options', 'quantity', 'track_inventory', 'unit_price', 'line_total',
 ])]
+/**
+ * @property int $quantity
+ * @property bool $track_inventory
+ * @property ProductVariant|null $variant
+ */
 class OrderItem extends Model
 {
     protected function casts(): array
@@ -23,16 +28,19 @@ class OrderItem extends Model
         ];
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
+    /** @return BelongsTo<ProductVariant, $this> */
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
