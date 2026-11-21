@@ -19,8 +19,9 @@ import type { NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
-    const dashboardUrl = page.props.currentTeam
-        ? dashboard(page.props.currentTeam.slug)
+    const { auth, currentTeam } = page.props;
+    const dashboardUrl = currentTeam
+        ? dashboard(currentTeam.slug)
         : '/';
 
     const mainNavItems: NavItem[] = [
@@ -29,7 +30,7 @@ export function AppSidebar() {
             href: dashboardUrl,
             icon: LayoutGrid,
         },
-        ...(page.props.auth.isPlatformAdmin ? [{
+        ...(auth.isPlatformAdmin ? [{
             title: 'Platform Teams',
             href: '/platform/admin/teams',
             icon: ShieldCheck,
@@ -61,11 +62,13 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <TeamSwitcher />
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                {auth.user ? (
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <TeamSwitcher />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                ) : null}
             </SidebarHeader>
 
             <SidebarContent>
