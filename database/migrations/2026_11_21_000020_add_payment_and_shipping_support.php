@@ -12,6 +12,10 @@ return new class extends Migration
             $table->unsignedInteger('weight_grams')->default(1000)->after('track_inventory');
         });
 
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->boolean('track_inventory')->default(false)->after('quantity');
+        });
+
         Schema::table('orders', function (Blueprint $table) {
             $table->unsignedBigInteger('shipping_destination_id')->nullable()->after('shipping_postal_code');
             $table->string('shipping_destination_label')->nullable()->after('shipping_destination_id');
@@ -44,6 +48,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('payment_transactions');
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->dropColumn('track_inventory');
+        });
         Schema::table('orders', function (Blueprint $table) {
             $table->dropColumn([
                 'shipping_destination_id', 'shipping_destination_label', 'shipping_provider',

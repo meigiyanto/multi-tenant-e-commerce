@@ -35,6 +35,7 @@ class CheckoutServiceTest extends TestCase
             'product_name' => 'Demo Shirt',
             'variant_name' => 'Blue / M',
             'quantity' => 2,
+            'track_inventory' => true,
             'unit_price' => '125000.00',
             'line_total' => '250000.00',
         ]);

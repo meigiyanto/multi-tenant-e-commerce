@@ -115,8 +115,8 @@ class PaymentService
             $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
             $order->update(['payment_status' => $status]);
 
-            foreach ($order->items()->with('variant.inventory', 'product')->get() as $item) {
-                if (! $item->product?->track_inventory) {
+            foreach ($order->items()->with('variant.inventory')->get() as $item) {
+                if (! $item->track_inventory) {
                     continue;
                 }
 

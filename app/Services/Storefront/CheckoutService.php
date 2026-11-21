@@ -87,6 +87,7 @@ class CheckoutService
                     'sku' => $variant->sku,
                     'options' => $variant->options ?? [],
                     'quantity' => $item->quantity,
+                    'track_inventory' => (bool) $product->track_inventory,
                     'unit_price' => number_format($unitPrice, 2, '.', ''),
                     'line_total' => number_format($lineTotal, 2, '.', ''),
                 ];
