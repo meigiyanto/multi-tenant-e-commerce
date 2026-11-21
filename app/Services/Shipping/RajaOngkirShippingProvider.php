@@ -7,6 +7,11 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
+/**
+ * @phpstan-type CourierPayload array<string, mixed>
+ * @phpstan-type ServicePayload array<string, mixed>
+ * @phpstan-type NormalizedRate array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
+ */
 class RajaOngkirShippingProvider implements ShippingProvider
 {
     private function client(): PendingRequest
@@ -90,9 +95,10 @@ class RajaOngkirShippingProvider implements ShippingProvider
     }
 
     /**
-     * @phpstan-param array<string, mixed> $courier
-     * @phpstan-param array<string, mixed> $service
-     * @phpstan-return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
+     * @param CourierPayload $courier
+     * @param ServicePayload $service
+     *
+     * @return NormalizedRate
      */
     private function normalizeRate(array $courier, array $service): array
     {
