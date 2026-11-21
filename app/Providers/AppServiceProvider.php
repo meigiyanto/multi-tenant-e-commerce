@@ -23,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
         $this->app->bind(PaymentGateway::class, MidtransGateway::class);
         $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
-            $class = config('shipping.providers.'.config('shipping.default').'.class', RajaOngkirShippingProvider::class);
+            $class = (string) config('shipping.providers.'.config('shipping.default').'.class', RajaOngkirShippingProvider::class);
 
             return $app->make($class);
         });

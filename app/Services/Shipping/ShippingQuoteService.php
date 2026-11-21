@@ -35,7 +35,7 @@ class ShippingQuoteService
         }
 
         $weight = $this->weight($cart);
-        $couriers = config('shipping.providers.rajaongkir.couriers', []);
+        $couriers = (array) config('shipping.providers.rajaongkir.couriers', []);
         $cacheKey = 'shipping-rates:'.hash('sha256', implode('|', [$store->id, $originId, $destinationId, $weight, implode(',', $couriers)]));
 
         return Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate(
