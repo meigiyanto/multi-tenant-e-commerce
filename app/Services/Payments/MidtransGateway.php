@@ -44,7 +44,7 @@ class MidtransGateway implements PaymentGateway
 
         if ($domain) {
             $parameters['callbacks'] = [
-                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/') . '://' . $domain . '/orders/' . rawurlencode($order->order_number),
+                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/').'://'.$domain.'/orders/'.rawurlencode($order->order_number),
             ];
         }
 
@@ -54,7 +54,7 @@ class MidtransGateway implements PaymentGateway
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
-        if (!$response->successful() || !$response->json('token') || !$response->json('redirect_url')) {
+        if (! $response->successful() || ! $response->json('token') || ! $response->json('redirect_url')) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
         }
 

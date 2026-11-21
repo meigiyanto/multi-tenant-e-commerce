@@ -141,13 +141,13 @@ class FashionProductSeeder extends Seeder
 
         $imageId = $data['image'] ?? null;
 
-        if (!$imageId) {
+        if (! $imageId) {
             return;
         }
 
         $path = "products/{$store->id}/{$product->slug}.jpg";
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             $url = "https://images.unsplash.com/{$imageId}?auto=format&fit=crop&w=1200&q=85";
 
             try {
@@ -160,7 +160,7 @@ class FashionProductSeeder extends Seeder
 
             $contentType = strtolower((string) $response->header('Content-Type'));
 
-            if (!$response->successful() || !str_starts_with($contentType, 'image/')) {
+            if (! $response->successful() || ! str_starts_with($contentType, 'image/')) {
                 $this->command?->warn("Image download skipped for {$product->name}: invalid image response.");
 
                 return;

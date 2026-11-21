@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
         $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
             $class = config('shipping.providers.'.config('shipping.default').'.class');
-            if (!is_string($class) || $class === '') {
+            if (! is_string($class) || $class === '') {
                 throw new LogicException('Shipping provider is not registered.');
             }
 
