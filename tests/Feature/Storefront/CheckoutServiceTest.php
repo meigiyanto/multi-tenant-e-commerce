@@ -21,13 +21,14 @@ class CheckoutServiceTest extends TestCase
     {
         [$store, $cart, $variant] = $this->cartWithStock(5, 1);
 
-        $order = app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData());
+        $order = app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
 
         $this->assertInstanceOf(Order::class, $order);
         $this->assertSame('pending', $order->status);
         $this->assertSame('pending', $order->payment_status);
         $this->assertSame('250000.00', $order->subtotal);
-        $this->assertSame('250000.00', $order->total);
+        $this->assertSame('265000.00', $order->total);
+        $this->assertSame('15000.00', $order->shipping_amount);
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,
             'store_id' => $store->id,
@@ -55,7 +56,7 @@ class CheckoutServiceTest extends TestCase
         [$store, $cart, $variant] = $this->cartWithStock(1, 0);
 
         try {
-            app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData());
+            app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
             $this->fail('Checkout should reject quantities above available stock.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('cart', $exception->errors());
@@ -76,7 +77,7 @@ class CheckoutServiceTest extends TestCase
         $otherStore = $this->makeStore();
 
         try {
-            app(CheckoutService::class)->place($otherStore, 'checkout-session', $this->customerData());
+            app(CheckoutService::class)->place($otherStore, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
             $this->fail('A cart must not be checked out through another store.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('cart', $exception->errors());
@@ -124,6 +125,11 @@ class CheckoutServiceTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'currency' => 'IDR',
         ]);
+    }
+
+    private function shippingRate(): array
+    {
+        return ['courier' => 'jne', 'service' => 'REG', 'amount' => 15000];
     }
 
     private function customerData(): array
