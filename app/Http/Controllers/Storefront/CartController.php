@@ -15,7 +15,7 @@ class CartController extends Controller
 {
     public function __construct(private readonly CartService $carts) {}
 
-    public function show(Request $request, StoreContext $context): Response
+    public function show(string $storeSubdomain, Request $request, StoreContext $context): Response
     {
         $store = $context->store();
 
@@ -49,7 +49,7 @@ class CartController extends Controller
         ]);
     }
 
-    public function store(Request $request, StoreContext $context): RedirectResponse
+    public function store(string $storeSubdomain, Request $request, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -64,7 +64,7 @@ class CartController extends Controller
         return back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
     }
 
-    public function update(Request $request, int $item, StoreContext $context): RedirectResponse
+    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
