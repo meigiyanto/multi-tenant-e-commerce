@@ -8,7 +8,9 @@ use InvalidArgumentException;
 
 class PaymentGatewayManager
 {
-    public function __construct(private readonly Container $container) {}
+    public function __construct(private readonly Container $container)
+    {
+    }
 
     public function default(): PaymentGateway
     {
@@ -20,7 +22,7 @@ class PaymentGatewayManager
         $drivers = (array) config('payments.drivers', []);
         $class = $drivers[$name] ?? null;
 
-        if (! is_string($class) || ($requireEnabled && !in_array($name, (array) config('payments.enabled', []), true))) {
+        if (! is_string($class) || ($requireEnabled && ! in_array($name, (array) config('payments.enabled', []), true))) {
             throw new InvalidArgumentException("Payment gateway [{$name}] is not enabled.");
         }
 
