@@ -1,12 +1,11 @@
 <?php
 
-namespace Tests\\Feature\\Stores;
+namespace Tests\Feature\Stores;
 
-use App\\Models\\Store;
-use App\\Models\\Team;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Inertia\\Testing\\AssertableInertia as Assert;
-use Tests\\TestCase;
+use App\Models\Team;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
 
 class StorefrontHostRoutingTest extends TestCase
 {

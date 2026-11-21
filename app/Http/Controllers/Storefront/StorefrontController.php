@@ -48,8 +48,8 @@ class StorefrontController extends Controller
                     'price' => $variant->price ?? $product->price,
                     'stock' => $product->track_inventory ? max(0, ($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) : null,
                 ])->values(),
-                'in_stock' => ! $product->track_inventory || $product->variants->contains(fn (ProductVariant $variant) =>
-                    (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0
+                'in_stock' => ! $product->track_inventory || $product->variants->contains(
+                    fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
                 ),
             ]);
 
