@@ -35,7 +35,7 @@ class CartController extends Controller
             'options' => $item->variant->options ?? [],
             'quantity' => $item->quantity,
             'unit_price' => $item->unit_price,
-            'line_total' => (string) ((float) $item->unit_price * $item->quantity),
+            'line_total' => number_format((float) $item->unit_price * $item->quantity, 2, '.', ''),
             'stock' => $item->variant->inventory
                 ? max(0, $item->variant->inventory->quantity - $item->variant->inventory->reserved_quantity)
                 : null,
