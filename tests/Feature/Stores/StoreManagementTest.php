@@ -182,7 +182,10 @@ class StoreManagementTest extends TestCase
             'currency' => 'IDR',
         ]);
 
-        $this->assertSame(['checkout' => ['guest_enabled' => true]], $store->fresh()->settings);
+        $settings = $store->fresh()->settings;
+        $this->assertTrue(data_get($settings, 'checkout.guest_enabled'));
+        $this->assertSame('#111111', data_get($settings, 'storefront.primary_color'));
+        $this->assertSame('#f5f5f5', data_get($settings, 'storefront.accent_color'));
     }
 
     public function test_team_members_without_update_permission_cannot_edit_store_settings(): void

@@ -39,7 +39,9 @@ class MidtransGateway implements PaymentGateway
                 'phone' => $order->customer_phone,
             ],
         ];
-        $domain = StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
+        $domain = $order->store_id === null
+            ? null
+            : StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
 
         if ($domain) {
             $parameters['callbacks'] = [
