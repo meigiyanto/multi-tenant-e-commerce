@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Stores;
 
-use App\Models\Store;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
