@@ -35,6 +35,7 @@ class CheckoutService
             }
 
             $subtotal = 0;
+            $actualWeightGrams = 0;
             $validatedItems = [];
 
             foreach ($items as $item) {
@@ -57,6 +58,7 @@ class CheckoutService
                     throw ValidationException::withMessages(['cart' => 'Salah satu produk di keranjang sudah tidak tersedia.']);
                 }
 
+                $actualWeightGrams += (int) ($product->weight_grams ?? 1000) * (int) $item->quantity;
                 $unitPrice = (float) ($variant->price ?? $product->price);
                 $lineTotal = round($unitPrice * $item->quantity, 2);
 
@@ -88,6 +90,10 @@ class CheckoutService
                     'unit_price' => number_format($unitPrice, 2, '.', ''),
                     'line_total' => number_format($lineTotal, 2, '.', ''),
                 ];
+            }
+
+            if (max(1, $actualWeightGrams) !== $weightGrams) {
+                throw ValidationException::withMessages(['shipping_service' => 'Berat keranjang berubah. Silakan hitung ulang ongkos kirim.']);
             }
 
             $shippingAmount = (int) $shippingRate['amount'];
