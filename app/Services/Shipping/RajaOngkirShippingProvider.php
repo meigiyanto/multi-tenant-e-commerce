@@ -58,7 +58,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
                 continue;
             }
 
-            if (! $response->successful()) {
+            if ($response->successful() === false) {
                 throw new RuntimeException('Gagal menghitung ongkos kirim dari RajaOngkir.');
             }
 

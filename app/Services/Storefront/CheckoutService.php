@@ -15,13 +15,8 @@ use Illuminate\Validation\ValidationException;
 class CheckoutService
 {
     /**
-     * @param Store                                                                                                      $store
-     * @param string                                                                                                     $sessionId
-     * @param array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $data
-     * @param array{courier: string, service: string, amount: int}                                                      $shippingRate
-     * @param int                                                                                                        $destinationId
-     * @param string                                                                                                     $destinationLabel
-     * @param int                                                                                                        $weightGrams
+     * @phpstan-param array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $data
+     * @phpstan-param array{courier: string, service: string, amount: int} $shippingRate
      */
     public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams): Order
     {
