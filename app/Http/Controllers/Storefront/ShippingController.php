@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Services\Shipping\ShippingQuoteService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use RuntimeException;
 
 class ShippingController extends Controller
 {
-    public function __construct(private readonly ShippingQuoteService $quotes) {}
+    public function __construct(private readonly ShippingQuoteService $quotes, private readonly CartSessionService $cartSessions) {}
 
     public function destinations(Request $request): JsonResponse
     {
@@ -33,7 +34,7 @@ class ShippingController extends Controller
 
         $cart = Cart::query()
             ->where('store_id', $store->id)
-            ->where('session_id', $request->session()->getId())
+            ->where('session_id', $this->cartSessions->id($request))
             ->where('status', 'active')
             ->with('items.product')
             ->firstOrFail();

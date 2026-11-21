@@ -9,6 +9,7 @@ use App\Services\Payments\PaymentService;
 use App\Services\Shipping\ShippingQuoteService;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class CheckoutController extends Controller
         private readonly CheckoutService $checkout,
         private readonly ShippingQuoteService $shipping,
         private readonly PaymentService $payments,
+        private readonly CartSessionService $cartSessions,
     ) {}
 
     public function show(Request $request, StoreContext $context): Response
@@ -30,7 +32,7 @@ class CheckoutController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $cart = $this->carts->findCurrent($store, $request->session()->getId());
+        $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Services\Storefront\CartService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $carts) {}
+    public function __construct(private readonly CartService $carts, private readonly CartSessionService $cartSessions) {}
 
     public function show(string $storeSubdomain, Request $request, StoreContext $context): Response
     {
@@ -21,7 +22,7 @@ class CartController extends Controller
 
         abort_if($store === null, 404);
 
-        $cart = $this->carts->current($store, $request->session()->getId());
+        $cart = $this->carts->current($store, $this->cartSessions->id($request));
         $items = $this->carts->items($cart)->get()->map(fn ($item): array => [
             'id' => $item->id,
             'product_id' => $item->product_id,
