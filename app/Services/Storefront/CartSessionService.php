@@ -14,7 +14,7 @@ class CartSessionService
     {
         $id = $request->cookie(self::COOKIE_NAME);
 
-        if (! is_string($id) || $id === '') {
+        if (is_string($id) === false || $id === '') {
             $id = Str::random(48);
         }
 
