@@ -75,7 +75,7 @@ class CartController extends Controller
         return back()->with('success', 'Jumlah produk diperbarui.');
     }
 
-    public function destroy(Request $request, int $item, StoreContext $context): RedirectResponse
+    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
