@@ -70,7 +70,9 @@ class StorefrontCartTest extends TestCase
     public function test_cart_item_quantity_can_be_updated_and_removed(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant(stock: 8, price: 50000);
-        $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
+        $response = $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id]);
+        $response->assertRedirect();
+        $this->withCookie('storefront_cart_session_id', $this->cartCookie($response));
         $itemId = (int) DB::table('cart_items')->value('id');
 
         $this->patch('http://'.$store->slug.'.localhost/cart/items/'.$itemId, ['quantity' => 4])->assertRedirect();
@@ -81,6 +83,14 @@ class StorefrontCartTest extends TestCase
     }
 
     /** @return array{Store, ProductVariant} */
+    private function cartCookie(\Illuminate\Testing\TestResponse $response): string
+    {
+        $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => $cookie->getName() === 'storefront_cart_session_id');
+        $this->assertNotNull($cookie);
+
+        return $cookie->getValue();
+    }
+
     private function activeStoreWithVariant(string $slug = 'cart-store', int $stock = 5, int $price = 100000): array
     {
         $team = Team::factory()->create();
