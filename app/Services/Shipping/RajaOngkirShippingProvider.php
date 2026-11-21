@@ -92,7 +92,6 @@ class RajaOngkirShippingProvider implements ShippingProvider
     /**
      * @phpstan-param array<string, mixed> $courier
      * @phpstan-param array<string, mixed> $service
-     *
      * @phpstan-return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
      */
     private function normalizeRate(array $courier, array $service): array
