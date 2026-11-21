@@ -21,7 +21,6 @@ class StorefrontController extends Controller
         abort_if($store === null, 404);
 
         $settings = $store->settings['storefront'] ?? [];
-        $cart = $carts->current($store, $request->session()->getId());
         $products = $store->products()
             ->where('status', 'active')
             ->with([
@@ -68,7 +67,7 @@ class StorefrontController extends Controller
                 'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $settings['contact'] ?? []),
             ],
             'products' => $products,
-            'cart_count' => $carts->count($cart),
+            'cart_count' => $carts->countForSession($store, $request->session()->getId()),
             'domain' => $context->domain()?->domain,
         ]);
     }
