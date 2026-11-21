@@ -7,7 +7,7 @@ use App\Services\Storefront\CartService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,6 +28,9 @@ class CartController extends Controller
             'variant_id' => $item->product_variant_id,
             'name' => $item->product->name,
             'slug' => $item->product->slug,
+            'image_url' => ($image = $item->product->images->firstWhere('is_primary', true) ?? $item->product->images->first())
+                ? Storage::disk('public')->url($image->path)
+                : null,
             'variant_name' => $item->variant->name,
             'options' => $item->variant->options ?? [],
             'quantity' => $item->quantity,
