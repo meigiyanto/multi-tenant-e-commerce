@@ -35,7 +35,13 @@ jobs:
         run: rm -f package-lock.json
 
       - name: Setup Application
+        id: setup-application
         run: composer setup
 
       - name: Run CI Checks
+        id: ci-check
         run: composer ci:check
+
+      - name: Run PHPUnit when aggregate checks fail
+        if: failure() && steps.setup-application.outcome == 'success'
+        run: php artisan test
