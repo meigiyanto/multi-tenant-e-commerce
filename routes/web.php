@@ -20,7 +20,7 @@ if ($storefrontRootDomain !== '') {
             Route::get('/cart', [CartController::class, 'show'])->name('storefront.cart.show');
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
-            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');\n            Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');\n            Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');\n            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
         });
 }
 
