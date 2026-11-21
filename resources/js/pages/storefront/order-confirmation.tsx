@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { CheckCircle2, Package, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, ShoppingBag } from 'lucide-react';
 
 type OrderItem = { product_name: string; variant_name: string; quantity: number; line_total: string };
 type Props = {
