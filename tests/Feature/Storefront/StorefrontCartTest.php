@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -70,7 +71,7 @@ class StorefrontCartTest extends TestCase
     {
         [$store, $variant] = $this->activeStoreWithVariant(stock: 8, price: 50000);
         $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
-        $itemId = (int) \DB::table('cart_items')->value('id');
+        $itemId = (int) DB::table('cart_items')->value('id');
 
         $this->patch('http://'.$store->slug.'.localhost/cart/items/'.$itemId, ['quantity' => 4])->assertRedirect();
         $this->assertDatabaseHas('cart_items', ['id' => $itemId, 'quantity' => 4]);
