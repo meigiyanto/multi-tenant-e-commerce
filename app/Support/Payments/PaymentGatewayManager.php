@@ -22,13 +22,13 @@ class PaymentGatewayManager
         $drivers = (array) config('payments.drivers', []);
         $class = $drivers[$name] ?? null;
 
-        if (! is_string($class) || ($requireEnabled && ! in_array($name, (array) config('payments.enabled', []), true))) {
+        if (is_string($class) === false || ($requireEnabled && in_array($name, (array) config('payments.enabled', []), true) === false)) {
             throw new InvalidArgumentException("Payment gateway [{$name}] is not enabled.");
         }
 
         $gateway = $this->container->make($class);
 
-        if (! $gateway instanceof PaymentGateway) {
+        if ($gateway instanceof PaymentGateway === false) {
             throw new InvalidArgumentException("Payment gateway [{$name}] must implement PaymentGateway.");
         }
 

@@ -54,7 +54,7 @@ class MidtransGateway implements PaymentGateway
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
-        if (! $response->successful() || ! $response->json('token') || ! $response->json('redirect_url')) {
+        if ($response->successful() === false || empty($response->json('token')) || empty($response->json('redirect_url'))) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
         }
 
