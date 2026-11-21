@@ -44,7 +44,7 @@ class MidtransGateway implements PaymentGateway
 
         if ($domain) {
             $parameters['callbacks'] = [
-                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/'). '://'.$domain.'/orders/'.rawurlencode($order->order_number),
+                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/') . '://' . $domain . '/orders/' . rawurlencode($order->order_number),
             ];
         }
 
