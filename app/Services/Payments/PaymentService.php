@@ -81,6 +81,7 @@ class PaymentService
         return $transaction->refresh();
     }
 
+    /** @param array<string, mixed> $payload */
     public function handleNotification(array $payload, string $gatewayName): void
     {
         $gateway = $this->gateways->driver($gatewayName, false);
@@ -108,7 +109,7 @@ class PaymentService
             $transaction->update([
                 'status' => $status,
                 'gateway_transaction_id' => $payload['transaction_id'] ?? $transaction->gateway_transaction_id,
-                'metadata' => array_merge($transaction->metadata ?? [], ['last_notification' => $payload]),
+                'metadata' => array_merge((array) ($transaction->metadata ?? []), ['last_notification' => $payload]),
                 'paid_at' => $status === 'paid' ? now() : null,
             ]);
 

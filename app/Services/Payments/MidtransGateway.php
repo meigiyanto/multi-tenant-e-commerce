@@ -5,11 +5,13 @@ namespace App\Services\Payments;
 use App\Contracts\Payments\PaymentGateway;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Models\StoreDomain;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class MidtransGateway implements PaymentGateway
 {
+    /** @return array{token: string, redirect_url: string, response: array<string, mixed>} */
     public function createPayment(Order $order, PaymentTransaction $transaction): array
     {
         $serverKey = (string) config('payments.gateways.midtrans.server_key');
@@ -37,10 +39,7 @@ class MidtransGateway implements PaymentGateway
                 'phone' => $order->customer_phone,
             ],
         ];
-        $domain = $order->store?->domains()
-            ->where('is_primary', true)
-            ->where('status', 'active')
-            ->value('domain');
+        $domain = StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
 
         if ($domain) {
             $parameters['callbacks'] = [
@@ -59,12 +58,13 @@ class MidtransGateway implements PaymentGateway
         }
 
         return [
-            'token' => $response->json('token'),
-            'redirect_url' => $response->json('redirect_url'),
-            'response' => $response->json(),
+            'token' => (string) $response->json('token'),
+            'redirect_url' => (string) $response->json('redirect_url'),
+            'response' => (array) $response->json(),
         ];
     }
 
+    /** @param array<string, mixed> $payload */
     public function verifyNotification(array $payload): bool
     {
         $secret = (string) config('payments.gateways.midtrans.signature_secret_key');
@@ -82,6 +82,7 @@ class MidtransGateway implements PaymentGateway
         return isset($payload['signature_key']) && hash_equals($expected, (string) $payload['signature_key']);
     }
 
+    /** @param array<string, mixed> $payload */
     public function normalizeStatus(array $payload): string
     {
         $status = (string) ($payload['transaction_status'] ?? '');
