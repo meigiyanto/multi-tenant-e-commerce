@@ -40,7 +40,7 @@ function VerificationCountdown({ expiresAt }: { expiresAt: string }) {
     const [remaining, setRemaining] = useState(() => Math.max(0, new Date(expiresAt).getTime() - Date.now()));
 
     useEffect(() => {
-        let interval: ReturnType<typeof window.setInterval>;
+        let interval: number;
         const update = () => {
             const milliseconds = Math.max(0, new Date(expiresAt).getTime() - Date.now());
             setRemaining(milliseconds);
