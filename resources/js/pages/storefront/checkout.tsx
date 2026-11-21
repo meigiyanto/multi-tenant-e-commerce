@@ -90,6 +90,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
         loadRates();
     }, [selectedDestination]);
 
+    const formError = Object.values(errors).find((error): error is string => typeof error === 'string');
     const selectedRate = rates.find((rate) => rate.courier === data.shipping_courier && rate.service === data.shipping_service);
     const total = Number(subtotal) + (selectedRate?.amount || 0);
     const selectDestination = (destination: Destination) => {
@@ -169,7 +170,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                         </div>
                         <div className="mt-5 space-y-3 border-t border-black/10 pt-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Subtotal</span><span>{money(subtotal)}</span></div><div className="flex justify-between"><span className="text-slate-500">Shipping</span><span>{selectedRate ? money(selectedRate.amount) : '—'}</span></div></div>
                         <div className="mt-4 flex justify-between border-t border-black/10 pt-4 text-base font-semibold"><span>Total</span><span>{money(total)}</span></div>
-                        {errors.cart ? <p className="mt-3 text-sm text-rose-600">{errors.cart}</p> : null}
+                        {formError ? <p className="mt-3 text-sm text-rose-600">{formError}</p> : null}
                         <button type="submit" disabled={processing || !items.length || !selectedRate} className="mt-5 w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{processing ? 'Placing order…' : 'Place order'}</button>
                         <p className="mt-3 text-xs leading-5 text-slate-500">Payment is securely processed by Midtrans after the order is created.</p>
                     </aside>
