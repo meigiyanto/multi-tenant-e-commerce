@@ -74,7 +74,7 @@ export default function StorefrontCart({ store, items, item_count, subtotal }: P
                         <h2 className="text-lg font-semibold">Order summary</h2>
                         <div className="mt-5 flex justify-between border-b border-black/10 pb-4 text-sm"><span className="text-slate-500">Subtotal</span><span className="font-semibold">{money(subtotal)}</span></div>
                         <p className="mt-4 text-xs leading-5 text-slate-500">Shipping and payment will be calculated during checkout.</p>
-                        <button type="button" disabled className="mt-6 w-full cursor-not-allowed rounded-md bg-slate-300 px-5 py-3 text-sm font-semibold text-slate-600">Checkout coming next</button>
+                        <a href="/checkout" className="mt-6 block w-full rounded-md bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-700">Continue to checkout</a>
                         <a href="/" className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-slate-950"><ArrowLeft className="h-4 w-4" /> Continue shopping</a>
                     </aside>
                 </div> : <div className="py-20 text-center">

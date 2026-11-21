@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
@@ -21,6 +22,9 @@ if ($storefrontRootDomain !== '') {
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+            Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
+            Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
+            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
         });
 }
 
