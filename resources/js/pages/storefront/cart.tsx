@@ -5,6 +5,7 @@ type CartItem = {
     id: number;
     name: string;
     slug: string;
+    image_url: string | null;
     variant_name: string;
     options: Record<string, string>;
     quantity: number;
@@ -50,7 +51,7 @@ export default function StorefrontCart({ store, items, item_count, subtotal }: P
                 {items.length ? <div className="grid gap-10 py-8 lg:grid-cols-[1fr_320px]">
                     <div className="divide-y divide-black/10">
                         {items.map((item) => <article key={item.id} className="grid grid-cols-[88px_1fr] gap-4 py-6 first:pt-0 sm:grid-cols-[112px_1fr_auto] sm:gap-6">
-                            <div className="flex aspect-[4/5] items-center justify-center rounded-md bg-[#eeece7] text-slate-400"><ShoppingBag className="h-7 w-7" /></div>
+                            <div className="aspect-[4/5] overflow-hidden rounded-md bg-[#eeece7]">{item.image_url ? <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><ShoppingBag className="h-7 w-7" /></div>}</div>
                             <div className="min-w-0">
                                 <h2 className="font-medium">{item.name}</h2>
                                 <p className="mt-1 text-sm text-slate-500">{item.variant_name}</p>
