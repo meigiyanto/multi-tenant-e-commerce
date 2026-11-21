@@ -168,6 +168,8 @@ class StoreManagementTest extends TestCase
                 'slug' => 'updated-store',
                 'timezone' => 'Asia/Jakarta',
                 'currency' => 'IDR',
+                'primary_color' => '#111111',
+                'accent_color' => '#f5f5f5',
             ])
             ->assertRedirect(route('teams.stores.show', ['team' => $team, 'store' => $store]));
 
