@@ -337,6 +337,7 @@ class StoreCatalogController extends Controller
         ];
         if ($variant) {
             $variant->update($attributes);
+
             return $variant;
         }
 

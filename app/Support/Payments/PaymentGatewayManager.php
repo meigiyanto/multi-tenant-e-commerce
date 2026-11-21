@@ -8,9 +8,7 @@ use InvalidArgumentException;
 
 class PaymentGatewayManager
 {
-    public function __construct(private readonly Container $container)
-    {
-    }
+    public function __construct(private readonly Container $container) {}
 
     public function default(): PaymentGateway
     {
