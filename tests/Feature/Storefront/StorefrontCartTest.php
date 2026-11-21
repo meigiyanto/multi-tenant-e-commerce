@@ -24,7 +24,7 @@ class StorefrontCartTest extends TestCase
             'quantity' => 2,
         ]);
         $response->assertRedirect();
-        $this->withCookie('storefront_cart_session_id', $this->cartCookie($response));
+        $this->withUnencryptedCookie('storefront_cart_session_id', DB::table('carts')->where('store_id', $store->id)->value('session_id'));
 
         $this->assertDatabaseHas('carts', ['store_id' => $store->id, 'status' => 'active']);
         $this->assertDatabaseHas('cart_items', [
@@ -82,14 +82,6 @@ class StorefrontCartTest extends TestCase
 
         $this->delete('http://'.$store->slug.'.localhost/cart/items/'.$itemId)->assertRedirect();
         $this->assertDatabaseMissing('cart_items', ['id' => $itemId]);
-    }
-
-    private function cartCookie(\Illuminate\Testing\TestResponse $response): string
-    {
-        $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => $cookie->getName() === 'storefront_cart_session_id');
-        $this->assertNotNull($cookie);
-
-        return $cookie->getValue();
     }
 
     /** @return array{Store, ProductVariant} */
