@@ -5,20 +5,23 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\Storefront\CartService;
 use App\Support\Stores\StoreContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StorefrontController extends Controller
 {
-    public function __invoke(StoreContext $context): Response
+    public function __invoke(Request $request, StoreContext $context, CartService $carts): Response
     {
         $store = $context->store();
 
         abort_if($store === null, 404);
 
         $settings = $store->settings['storefront'] ?? [];
+        $cart = $carts->current($store, $request->session()->getId());
         $products = $store->products()
             ->where('status', 'active')
             ->with([
@@ -65,6 +68,7 @@ class StorefrontController extends Controller
                 'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $settings['contact'] ?? []),
             ],
             'products' => $products,
+            'cart_count' => $carts->count($cart),
             'domain' => $context->domain()?->domain,
         ]);
     }
