@@ -57,7 +57,7 @@ export default function StorefrontProduct({ store, product, related_products }: 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12">
                 <a href="/" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><ArrowLeft className="h-4 w-4" /> Back to collection</a>
                 <div className="mt-7 grid gap-8 lg:grid-cols-2 lg:gap-14">
-                    <section className="grid grid-cols-1 gap-3 sm:grid-cols-[76px_1fr]">
+                    <section className={'grid grid-cols-1 gap-3 ' + (product.images.length > 1 ? 'sm:grid-cols-[76px_minmax(0,1fr)]' : 'sm:grid-cols-1')}>
                         {product.images.length > 1 ? <div className="order-2 flex gap-2 overflow-x-auto sm:order-1 sm:flex-col">{product.images.map((image, index) => <button key={image.url} type="button" onClick={() => setImageIndex(index)} aria-label={'View product image ' + (index + 1)} className={'h-16 w-16 shrink-0 overflow-hidden rounded-md border ' + (imageIndex === index ? 'border-slate-900' : 'border-black/10')}><img src={image.url} alt="" className="h-full w-full object-cover" /></button>)}</div> : null}
                         <div className="order-1 aspect-[4/5] overflow-hidden rounded-md bg-[#eeece7] sm:order-2">{product.images[imageIndex] ? <img src={product.images[imageIndex].url} alt={product.images[imageIndex].alt_text} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><ShoppingBag className="h-12 w-12" /></div>}</div>
                     </section>
