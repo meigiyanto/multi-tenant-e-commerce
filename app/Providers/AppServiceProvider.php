@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\Payments\PaymentGateway;
+use App\Contracts\Shipping\ShippingProvider;
 use App\Contracts\Stores\DomainOwnershipVerifier;
+use App\Services\Payments\MidtransGateway;
+use App\Services\Shipping\RajaOngkirShippingProvider;
 use App\Services\Stores\DnsTxtRecordVerifier;
 use App\Support\Stores\StoreContext;
 use Carbon\CarbonImmutable;
@@ -17,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(StoreContext::class);
         $this->app->bind(DomainOwnershipVerifier::class, DnsTxtRecordVerifier::class);
+        $this->app->bind(PaymentGateway::class, MidtransGateway::class);
+        $this->app->bind(ShippingProvider::class, function ($app): ShippingProvider {
+            $class = config('shipping.providers.'.config('shipping.default').'.class', RajaOngkirShippingProvider::class);
+
+            return $app->make($class);
+        });
     }
 
     public function boot(): void

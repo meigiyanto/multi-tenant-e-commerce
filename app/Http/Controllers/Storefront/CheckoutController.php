@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\Order;
+use App\Services\Shipping\ShippingQuoteService;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
 use App\Support\Stores\StoreContext;
@@ -18,6 +20,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly CartService $carts,
         private readonly CheckoutService $checkout,
+        private readonly ShippingQuoteService $shipping,
     ) {}
 
     public function show(Request $request, StoreContext $context): Response
@@ -44,11 +47,13 @@ class CheckoutController extends Controller
             ];
         });
         $subtotal = number_format((float) $items->sum(fn (array $item): float => (float) $item['line_total']), 2, '.', '');
+        $cart->load('items.product');
 
         return Inertia::render('storefront/checkout', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
             'items' => $items,
             'subtotal' => $subtotal,
+            'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
                 'name' => auth()->user()?->name ?? '',
                 'email' => auth()->user()?->email ?? '',
@@ -70,16 +75,37 @@ class CheckoutController extends Controller
             'shipping_city' => ['required', 'string', 'max:120'],
             'shipping_province' => ['required', 'string', 'max:120'],
             'shipping_postal_code' => ['required', 'string', 'max:20'],
+            'shipping_destination_id' => ['required', 'integer', 'min:1'],
+            'shipping_destination_label' => ['required', 'string', 'max:180'],
+            'shipping_courier' => ['required', 'string', 'max:40'],
+            'shipping_service' => ['required', 'string', 'max:80'],
             'customer_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $order = $this->checkout->place($store, $request->session()->getId(), $data);
+        $cart = Cart::query()
+            ->where('store_id', $store->id)
+            ->where('session_id', $request->session()->getId())
+            ->where('status', 'active')
+            ->with('items.product')
+            ->firstOrFail();
+
+        $destinationId = (int) $data['shipping_destination_id'];
+        $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
+        $weight = $this->shipping->weight($cart);
+        $order = $this->checkout->place(
+            $store,
+            $request->session()->getId(),
+            $data,
+            $rate,
+            $destinationId,
+            $data['shipping_destination_label'],
+            $weight,
+        );
 
         return redirect()->route('storefront.orders.show', [
             'storeSubdomain' => $request->route('storeSubdomain'),
             'orderNumber' => $order->order_number,
-        ])
-            ->with('success', 'Pesanan berhasil dibuat.');
+        ])->with('success', 'Pesanan berhasil dibuat. Silakan lanjutkan pembayaran.');
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
@@ -90,7 +116,7 @@ class CheckoutController extends Controller
         $order = Order::query()
             ->where('store_id', $store->id)
             ->where('order_number', $orderNumber)
-            ->with('items')
+            ->with(['items', 'paymentTransactions' => fn ($query) => $query->latest()])
             ->firstOrFail();
 
         return Inertia::render('storefront/order-confirmation', [
@@ -101,8 +127,14 @@ class CheckoutController extends Controller
                 'payment_status' => $order->payment_status,
                 'customer_name' => $order->customer_name,
                 'customer_email' => $order->customer_email,
+                'subtotal' => $order->subtotal,
+                'shipping_amount' => $order->shipping_amount,
+                'shipping_destination_label' => $order->shipping_destination_label,
+                'shipping_courier' => $order->shipping_courier,
+                'shipping_service' => $order->shipping_service,
                 'total' => $order->total,
                 'currency' => $order->currency,
+                'payment_url' => $order->paymentTransactions->first()?->redirect_url,
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
                     'variant_name' => $item->variant_name,

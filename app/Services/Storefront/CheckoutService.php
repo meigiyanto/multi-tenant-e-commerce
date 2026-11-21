@@ -14,9 +14,9 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
-    public function place(Store $store, string $sessionId, array $data): Order
+    public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams): Order
     {
-        return DB::transaction(function () use ($store, $sessionId, $data): Order {
+        return DB::transaction(function () use ($store, $sessionId, $data, $shippingRate, $destinationId, $destinationLabel, $weightGrams): Order {
             $cart = Cart::query()
                 ->where('store_id', $store->id)
                 ->where('session_id', $sessionId)
@@ -90,6 +90,7 @@ class CheckoutService
                 ];
             }
 
+            $shippingAmount = (int) $shippingRate['amount'];
             $order = Order::query()->create([
                 'store_id' => $store->id,
                 'user_id' => Auth::id(),
@@ -103,12 +104,18 @@ class CheckoutService
                 'shipping_city' => $data['shipping_city'],
                 'shipping_province' => $data['shipping_province'],
                 'shipping_postal_code' => $data['shipping_postal_code'],
+                'shipping_destination_id' => $destinationId,
+                'shipping_destination_label' => $destinationLabel,
+                'shipping_provider' => 'rajaongkir',
+                'shipping_courier' => $shippingRate['courier'],
+                'shipping_service' => $shippingRate['service'],
+                'shipping_weight_grams' => $weightGrams,
                 'customer_note' => $data['customer_note'] ?? null,
                 'currency' => $store->currency,
                 'subtotal' => number_format($subtotal, 2, '.', ''),
-                'shipping_amount' => '0.00',
+                'shipping_amount' => number_format($shippingAmount, 2, '.', ''),
                 'discount_amount' => '0.00',
-                'total' => number_format($subtotal, 2, '.', ''),
+                'total' => number_format($subtotal + $shippingAmount, 2, '.', ''),
                 'placed_at' => now(),
             ]);
 

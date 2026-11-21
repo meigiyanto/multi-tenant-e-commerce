@@ -8,14 +8,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['store_id', 'category_id', 'name', 'slug', 'status', 'description', 'price', 'compare_at_price', 'track_inventory'])]
+#[Fillable(['store_id', 'category_id', 'name', 'slug', 'status', 'description', 'price', 'compare_at_price', 'track_inventory', 'weight_grams'])]
 class Product extends Model
 {
     use SoftDeletes;
 
     protected function casts(): array
     {
-        return ['price' => 'decimal:2', 'compare_at_price' => 'decimal:2', 'track_inventory' => 'boolean'];
+        return [
+            'price' => 'decimal:2',
+            'compare_at_price' => 'decimal:2',
+            'track_inventory' => 'boolean',
+            'weight_grams' => 'integer',
+        ];
     }
 
     public function store(): BelongsTo
