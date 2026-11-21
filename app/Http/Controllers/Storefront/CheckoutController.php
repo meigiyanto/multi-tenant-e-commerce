@@ -70,7 +70,10 @@ class CheckoutController extends Controller
 
         $order = $this->checkout->place($store, $request->session()->getId(), $data);
 
-        return redirect()->route('storefront.orders.show', [\n            'storeSubdomain' => $request->route('storeSubdomain'),\n            'orderNumber' => $order->order_number,\n        ])
+        return redirect()->route('storefront.orders.show', [
+            'storeSubdomain' => $request->route('storeSubdomain'),
+            'orderNumber' => $order->order_number,
+        ])
             ->with('success', 'Pesanan berhasil dibuat.');
     }
 
