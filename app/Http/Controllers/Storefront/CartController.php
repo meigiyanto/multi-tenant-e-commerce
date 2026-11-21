@@ -4,24 +4,25 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Services\Storefront\CartService;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $carts) {}
+    public function __construct(private readonly CartService $carts, private readonly CartSessionService $cartSessions) {}
 
-    public function show(Request $request, StoreContext $context): Response
+    public function show(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
 
         abort_if($store === null, 404);
 
-        $cart = $this->carts->current($store, $request->session()->getId());
+        $cart = $this->carts->current($store, $this->cartSessions->id($request));
         $items = $this->carts->items($cart)->get()->map(fn ($item): array => [
             'id' => $item->id,
             'product_id' => $item->product_id,
@@ -41,15 +42,17 @@ class CartController extends Controller
                 : null,
         ]);
 
-        return Inertia::render('storefront/cart', [
+        $response = Inertia::render('storefront/cart', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
             'items' => $items,
             'item_count' => $this->carts->count($cart),
             'subtotal' => $this->carts->subtotal($cart),
-        ]);
+        ])->toResponse($request);
+
+        return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(Request $request, StoreContext $context): RedirectResponse
+    public function store(string $storeSubdomain, Request $request, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -59,29 +62,29 @@ class CartController extends Controller
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
         ]);
 
-        $this->carts->add($store, $request->session()->getId(), $data['product_variant_id'], $data['quantity'] ?? 1);
+        $this->carts->add($store, $this->cartSessions->id($request), $data['product_variant_id'], $data['quantity'] ?? 1);
 
-        return back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
+        return $this->cartSessions->attach(back()->with('success', 'Produk berhasil ditambahkan ke keranjang.'), $request);
     }
 
-    public function update(Request $request, int $item, StoreContext $context): RedirectResponse
+    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
 
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
-        $this->carts->update($store, $request->session()->getId(), $item, $data['quantity']);
+        $this->carts->update($store, $this->cartSessions->id($request), $item, $data['quantity']);
 
-        return back()->with('success', 'Jumlah produk diperbarui.');
+        return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
     }
 
-    public function destroy(Request $request, int $item, StoreContext $context): RedirectResponse
+    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $this->carts->remove($store, $request->session()->getId(), $item);
+        $this->carts->remove($store, $this->cartSessions->id($request), $item);
 
-        return back()->with('success', 'Produk dihapus dari keranjang.');
+        return $this->cartSessions->attach(back()->with('success', 'Produk dihapus dari keranjang.'), $request);
     }
 }

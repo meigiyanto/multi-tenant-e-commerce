@@ -18,11 +18,13 @@ class StorefrontCartTest extends TestCase
     {
         [$store, $variant] = $this->activeStoreWithVariant(stock: 5, price: 125000);
 
+        $this->withHeader('X-Storefront-Cart-Token', 'cart-test-token-0000000000000000000000000000000000000000');
         $this->get('http://'.$store->slug.'.localhost/')->assertOk();
-        $this->post('http://'.$store->slug.'.localhost/cart/items', [
+        $response = $this->post('http://'.$store->slug.'.localhost/cart/items', [
             'product_variant_id' => $variant->id,
             'quantity' => 2,
-        ])->assertRedirect();
+        ]);
+        $response->assertRedirect();
 
         $this->assertDatabaseHas('carts', ['store_id' => $store->id, 'status' => 'active']);
         $this->assertDatabaseHas('cart_items', [
@@ -70,7 +72,9 @@ class StorefrontCartTest extends TestCase
     public function test_cart_item_quantity_can_be_updated_and_removed(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant(stock: 8, price: 50000);
-        $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
+        $this->withHeader('X-Storefront-Cart-Token', 'cart-test-token-1111111111111111111111111111111111111111');
+        $response = $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id]);
+        $response->assertRedirect();
         $itemId = (int) DB::table('cart_items')->value('id');
 
         $this->patch('http://'.$store->slug.'.localhost/cart/items/'.$itemId, ['quantity' => 4])->assertRedirect();

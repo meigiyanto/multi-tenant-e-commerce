@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'store_id', 'user_id', 'order_number', 'status', 'payment_status', 'customer_name',
     'customer_email', 'customer_phone', 'shipping_address', 'shipping_city',
-    'shipping_province', 'shipping_postal_code', 'customer_note', 'currency',
+    'shipping_province', 'shipping_postal_code', 'shipping_destination_id',
+    'shipping_destination_label', 'shipping_provider', 'shipping_courier',
+    'shipping_service', 'shipping_weight_grams', 'customer_note', 'currency',
     'subtotal', 'shipping_amount', 'discount_amount', 'total', 'placed_at',
 ])]
 class Order extends Model
@@ -22,27 +24,39 @@ class Order extends Model
             'shipping_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'shipping_destination_id' => 'integer',
+            'shipping_weight_grams' => 'integer',
             'placed_at' => 'datetime',
         ];
     }
 
+    /** @return BelongsTo<Store, $this> */
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasMany<OrderStatusHistory, $this> */
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
+    }
+
+    /** @return HasMany<PaymentTransaction, $this> */
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
     }
 }
