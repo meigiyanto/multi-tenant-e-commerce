@@ -46,7 +46,13 @@ class ShippingQuoteService
         usort($rates, static function (array $first, array $second): int {
             $providerOrder = strcasecmp($first['courier_name'] ?? $first['courier'], $second['courier_name'] ?? $second['courier']);
 
-            return $providerOrder !== 0 ? $providerOrder : strcasecmp($first['service'], $second['service']);
+            if ($providerOrder !== 0) {
+                return $providerOrder;
+            }
+
+            $priceOrder = (int) $first['amount'] <=> (int) $second['amount'];
+
+            return $priceOrder !== 0 ? $priceOrder : strcasecmp($first['service'], $second['service']);
         });
 
         return $rates;
