@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft, Lock, ShoppingBag } from 'lucide-react';
-import { FormEvent } from 'react';
+import { type FormEvent } from 'react';
 
 type CheckoutItem = {
     id: number;
