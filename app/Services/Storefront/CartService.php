@@ -3,7 +3,6 @@
 namespace App\Services\Storefront;
 
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Store;
@@ -82,7 +81,7 @@ class CartService
 
     public function items(Cart $cart): HasMany
     {
-        return $cart->items()->with(['product:id,name,slug,price', 'variant:id,product_id,name,options,price', 'variant.inventory']);
+        return $cart->items()->with(['product:id,name,slug,price', 'product.images:id,product_id,path,is_primary,sort_order', 'variant:id,product_id,name,options,price', 'variant.inventory']);
     }
 
     public function count(Cart $cart): int
