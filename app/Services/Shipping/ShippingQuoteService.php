@@ -43,13 +43,13 @@ class ShippingQuoteService
         /** @var list<array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}> $rates */
         $rates = Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate($originId, $destinationId, $weight, $couriers));
 
-        return collect($rates)
-            ->sortBy([
-                fn (array $rate): string => mb_strtolower($rate['courier_name'] ?? $rate['courier']),
-                fn (array $rate): string => mb_strtolower($rate['service']),
-            ])
-            ->values()
-            ->all();
+        usort($rates, static function (array $first, array $second): int {
+            $providerOrder = strcasecmp($first['courier_name'] ?? $first['courier'], $second['courier_name'] ?? $second['courier']);
+
+            return $providerOrder !== 0 ? $providerOrder : strcasecmp($first['service'], $second['service']);
+        });
+
+        return $rates;
     }
 
     /** @return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string} */
