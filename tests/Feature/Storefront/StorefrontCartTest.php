@@ -19,10 +19,12 @@ class StorefrontCartTest extends TestCase
         [$store, $variant] = $this->activeStoreWithVariant(stock: 5, price: 125000);
 
         $this->get('http://'.$store->slug.'.localhost/')->assertOk();
-        $this->post('http://'.$store->slug.'.localhost/cart/items', [
+        $response = $this->post('http://'.$store->slug.'.localhost/cart/items', [
             'product_variant_id' => $variant->id,
             'quantity' => 2,
-        ])->assertRedirect();
+        ]);
+        $response->assertRedirect();
+        $this->withCookie('storefront_cart_session_id', $this->cartCookie($response));
 
         $this->assertDatabaseHas('carts', ['store_id' => $store->id, 'status' => 'active']);
         $this->assertDatabaseHas('cart_items', [
@@ -82,7 +84,6 @@ class StorefrontCartTest extends TestCase
         $this->assertDatabaseMissing('cart_items', ['id' => $itemId]);
     }
 
-    /** @return array{Store, ProductVariant} */
     private function cartCookie(\Illuminate\Testing\TestResponse $response): string
     {
         $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => $cookie->getName() === 'storefront_cart_session_id');
@@ -91,6 +92,7 @@ class StorefrontCartTest extends TestCase
         return $cookie->getValue();
     }
 
+    /** @return array{Store, ProductVariant} */
     private function activeStoreWithVariant(string $slug = 'cart-store', int $stock = 5, int $price = 100000): array
     {
         $team = Team::factory()->create();
