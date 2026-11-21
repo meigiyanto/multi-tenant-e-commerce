@@ -42,6 +42,7 @@ class CheckoutService
                     ->where('store_id', $store->id)
                     ->whereKey($item->product_id)
                     ->where('status', 'active')
+                    ->lockForUpdate()
                     ->first();
 
                 $variant = ProductVariant::query()
@@ -49,6 +50,7 @@ class CheckoutService
                     ->whereKey($item->product_variant_id)
                     ->where('product_id', $item->product_id)
                     ->where('is_active', true)
+                    ->lockForUpdate()
                     ->first();
 
                 if ($product === null || $variant === null) {
