@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -15,6 +16,7 @@ if ($storefrontRootDomain !== '') {
         ->middleware(ResolveStoreFromDomain::class)
         ->group(function (): void {
             Route::get('/', StorefrontController::class)->name('storefront.home');
+            Route::get('/products/{slug}', [ProductController::class, 'show'])->name('storefront.products.show');
             Route::get('/cart', [CartController::class, 'show'])->name('storefront.cart.show');
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
