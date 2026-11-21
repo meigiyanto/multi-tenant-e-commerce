@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Services\Payments\PaymentService;
 use App\Services\Shipping\ShippingQuoteService;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
@@ -21,6 +22,7 @@ class CheckoutController extends Controller
         private readonly CartService $carts,
         private readonly CheckoutService $checkout,
         private readonly ShippingQuoteService $shipping,
+        private readonly PaymentService $payments,
     ) {}
 
     public function show(Request $request, StoreContext $context): Response
@@ -102,10 +104,18 @@ class CheckoutController extends Controller
             $weight,
         );
 
-        return redirect()->route('storefront.orders.show', [
-            'storeSubdomain' => $request->route('storeSubdomain'),
-            'orderNumber' => $order->order_number,
-        ])->with('success', 'Pesanan berhasil dibuat. Silakan lanjutkan pembayaran.');
+        try {
+            $payment = $this->payments->start($order);
+
+            return redirect()->away($payment->redirect_url);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('storefront.orders.show', [
+                'storeSubdomain' => $request->route('storeSubdomain'),
+                'orderNumber' => $order->order_number,
+            ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.');
+        }
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
