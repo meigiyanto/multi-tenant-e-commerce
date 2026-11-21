@@ -44,6 +44,7 @@ class CartService
             }
 
             $cart = $this->current($store, $sessionId);
+            $cart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
             $item = $cart->items()->where('product_variant_id', $variant->id)->lockForUpdate()->first();
             $newQuantity = ($item?->quantity ?? 0) + $quantity;
             $this->assertStock($product, $variant, $newQuantity);
@@ -63,7 +64,7 @@ class CartService
         return DB::transaction(function () use ($store, $sessionId, $itemId, $quantity): Cart {
             $cart = $this->current($store, $sessionId);
             $item = $cart->items()->whereKey($itemId)->lockForUpdate()->firstOrFail();
-            $variant = ProductVariant::query()->where('store_id', $store->id)->whereKey($item->product_variant_id)->firstOrFail();
+            $variant = ProductVariant::query()->where('store_id', $store->id)->whereKey($item->product_variant_id)->where('is_active', true)->firstOrFail();
             $product = Product::query()->where('store_id', $store->id)->whereKey($item->product_id)->where('status', 'active')->firstOrFail();
 
             $this->assertStock($product, $variant, $quantity);
@@ -91,7 +92,9 @@ class CartService
 
     public function subtotal(Cart $cart): string
     {
-        return (string) $cart->items()->selectRaw('COALESCE(SUM(quantity * unit_price), 0) as subtotal')->value('subtotal');
+        $subtotal = $cart->items()->selectRaw('COALESCE(SUM(quantity * unit_price), 0) as subtotal')->value('subtotal');
+
+        return number_format((float) $subtotal, 2, '.', '');
     }
 
     private function assertStock(Product $product, ProductVariant $variant, int $quantity): void
