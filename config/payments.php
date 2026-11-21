@@ -4,7 +4,7 @@ use App\Services\Payments\MidtransGateway;
 
 return [
     'default' => env('PAYMENT_GATEWAY', 'midtrans'),
-    'enabled' => array_filter(explode(',', env('PAYMENT_GATEWAYS_ENABLED', 'midtrans'))),
+    'enabled' => array_filter(explode(',', (string) env('PAYMENT_GATEWAYS_ENABLED', 'midtrans'))),
     'drivers' => [
         'midtrans' => MidtransGateway::class,
     ],

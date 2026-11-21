@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
+    /**
+     * @param array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $data
+     * @param array{courier: string, service: string, amount: int} $shippingRate
+     */
     public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams): Order
     {
         return DB::transaction(function () use ($store, $sessionId, $data, $shippingRate, $destinationId, $destinationLabel, $weightGrams): Order {
@@ -64,7 +68,7 @@ class CheckoutService
 
                 if ($product->track_inventory) {
                     $inventory = $variant->inventory()->lockForUpdate()->first();
-                    $available = max(0, ($inventory?->quantity ?? 0) - ($inventory?->reserved_quantity ?? 0));
+                    $available = max(0, ($inventory->quantity ?? 0) - ($inventory->reserved_quantity ?? 0));
 
                     if ($item->quantity > $available) {
                         throw ValidationException::withMessages([

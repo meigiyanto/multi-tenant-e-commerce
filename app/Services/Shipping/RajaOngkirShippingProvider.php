@@ -21,6 +21,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
             ->timeout(20);
     }
 
+    /** @return list<array<string, mixed>> */
     public function searchDestinations(string $query): array
     {
         $response = $this->client()->get('destination/domestic-destination', [
@@ -36,6 +37,10 @@ class RajaOngkirShippingProvider implements ShippingProvider
         return $response->json('data', []);
     }
 
+    /**
+     * @param list<string> $couriers
+     * @return list<array<string, mixed>>
+     */
     public function calculate(int $originId, int $destinationId, int $weightGrams, array $couriers): array
     {
         $rates = [];
@@ -57,9 +62,13 @@ class RajaOngkirShippingProvider implements ShippingProvider
                 throw new RuntimeException('Gagal menghitung ongkos kirim dari RajaOngkir.');
             }
 
-            foreach ($response->json('data', []) ?? [] as $service) {
+            /** @var list<array<string, mixed>> $services */
+            $services = (array) $response->json('data', []);
+            foreach ($services as $service) {
                 if (isset($service['costs'])) {
-                    foreach ($service['costs'] as $nestedService) {
+                    /** @var list<array<string, mixed>> $nestedServices */
+                    $nestedServices = (array) $service['costs'];
+                    foreach ($nestedServices as $nestedService) {
                         $rates[] = $this->normalizeRate($service, $nestedService);
                     }
 
@@ -80,6 +89,11 @@ class RajaOngkirShippingProvider implements ShippingProvider
         return $rates;
     }
 
+    /**
+     * @param array<string, mixed> $courier
+     * @param array<string, mixed> $service
+     * @return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
+     */
     private function normalizeRate(array $courier, array $service): array
     {
         $cost = $service['cost'] ?? [];

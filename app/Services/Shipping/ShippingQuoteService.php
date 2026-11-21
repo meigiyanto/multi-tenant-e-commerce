@@ -12,6 +12,7 @@ class ShippingQuoteService
 {
     public function __construct(private readonly ShippingProvider $provider) {}
 
+    /** @return list<array<string, mixed>> */
     public function destinations(string $query): array
     {
         return $this->provider->searchDestinations($query);
@@ -20,11 +21,12 @@ class ShippingQuoteService
     public function weight(Cart $cart): int
     {
         $cart->loadMissing('items.product');
-        $weight = $cart->items->sum(fn ($item): int => (int) ($item->product?->weight_grams ?? 1000) * (int) $item->quantity);
+        $weight = $cart->items->sum(fn ($item): int => (int) ($item->product->weight_grams ?? 1000) * (int) $item->quantity);
 
         return max(1, (int) $weight);
     }
 
+    /** @return list<array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}> */
     public function rates(Store $store, Cart $cart, int $destinationId): array
     {
         $settings = $store->settings ?? [];
@@ -38,14 +40,13 @@ class ShippingQuoteService
         $couriers = (array) config('shipping.providers.rajaongkir.couriers', []);
         $cacheKey = 'shipping-rates:'.hash('sha256', implode('|', [$store->id, $originId, $destinationId, $weight, implode(',', $couriers)]));
 
-        return Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate(
-            $originId,
-            $destinationId,
-            $weight,
-            $couriers,
-        ));
+        /** @var list<array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}> $rates */
+        $rates = Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate($originId, $destinationId, $weight, $couriers));
+
+        return $rates;
     }
 
+    /** @return array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string} */
     public function selectedRate(Store $store, Cart $cart, int $destinationId, string $courier, string $service): array
     {
         $rate = collect($this->rates($store, $cart, $destinationId))->first(

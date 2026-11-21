@@ -62,7 +62,7 @@ class CartService
             $cart = $this->current($store, $sessionId);
             $cart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
             $item = $cart->items()->where('product_variant_id', $variant->id)->lockForUpdate()->first();
-            $newQuantity = ($item?->quantity ?? 0) + $quantity;
+            $newQuantity = ($item->quantity ?? 0) + $quantity;
 
             if ($newQuantity > 99) {
                 throw ValidationException::withMessages(['quantity' => 'Maksimal 99 item untuk satu varian.']);
@@ -101,6 +101,7 @@ class CartService
         $cart->items()->whereKey($itemId)->delete();
     }
 
+    /** @return HasMany<CartItem, Cart> */
     public function items(Cart $cart): HasMany
     {
         return $cart->items()->with(['product:id,name,slug,price', 'product.images:id,product_id,path,is_primary,sort_order', 'variant:id,product_id,name,options,price', 'variant.inventory']);
@@ -125,7 +126,7 @@ class CartService
         }
 
         $inventory = $variant->inventory()->lockForUpdate()->first();
-        $available = max(0, ($inventory?->quantity ?? 0) - ($inventory?->reserved_quantity ?? 0));
+        $available = max(0, ($inventory->quantity ?? 0) - ($inventory->reserved_quantity ?? 0));
 
         if ($quantity > $available) {
             throw ValidationException::withMessages([
