@@ -159,6 +159,7 @@ class CheckoutService
                     'status' => 'reserved',
                 ]);
             }
+
             $order->statusHistories()->create([
                 'store_id' => $store->id,
                 'from_status' => null,
