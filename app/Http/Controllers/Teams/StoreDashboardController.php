@@ -15,16 +15,20 @@ class StoreDashboardController extends Controller
 {
     public function __invoke(Team $team, Store $store): Response
     {
-        abort_unless($store->team_id === $team->id, 404);
+        abort_unless((int) $store->team_id === (int) $team->id, 404);
         Gate::authorize('update', $store);
 
         $orders = Order::query()->where('store_id', $store->id);
+
+        $paidRevenue = (string) ((clone $orders)->where('payment_status', 'paid')->sum('total') ?? '0');
+        [$revenueWhole, $revenueFraction] = array_pad(explode('.', $paidRevenue, 2), 2, '');
+        $paidRevenue = $revenueWhole.'.'.str_pad(substr($revenueFraction, 0, 2), 2, '0');
 
         $stats = [
             'total_orders' => (clone $orders)->count(),
             'pending_orders' => (clone $orders)->where('status', 'pending')->count(),
             'paid_orders' => (clone $orders)->where('payment_status', 'paid')->count(),
-            'paid_revenue' => (string) ((clone $orders)->where('payment_status', 'paid')->sum('total') ?? '0.00'),
+            'paid_revenue' => $paidRevenue,
             'active_products' => Product::query()
                 ->where('store_id', $store->id)
                 ->where('status', 'active')
