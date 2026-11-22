@@ -11,7 +11,6 @@ use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Services\Storefront\CheckoutService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -85,7 +84,7 @@ class CheckoutController extends Controller
         return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(Request $request, StoreContext $context): RedirectResponse
+    public function store(Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -105,12 +104,37 @@ class CheckoutController extends Controller
             'customer_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $cartSessionId = $this->cartSessions->id($request);
         $cart = Cart::query()
             ->where('store_id', $store->id)
-            ->where('session_id', $this->cartSessions->id($request))
+            ->where('session_id', $cartSessionId)
             ->where('status', 'active')
             ->with('items.product')
-            ->firstOrFail();
+            ->first();
+
+        if ($cart === null) {
+            $orderNumber = $request->session()->get($this->checkoutOrderSessionKey($store->id, $cartSessionId));
+            $existingOrder = is_string($orderNumber)
+                ? Order::query()->where('store_id', $store->id)->where('order_number', $orderNumber)->first()
+                : null;
+
+            if ($existingOrder !== null) {
+                try {
+                    $payment = $this->payments->start($existingOrder);
+
+                    return $this->cartSessions->attach(Inertia::location($payment->redirect_url), $request);
+                } catch (\Throwable $exception) {
+                    report($exception);
+
+                    return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
+                        'storeSubdomain' => $request->route('storeSubdomain'),
+                        'orderNumber' => $existingOrder->order_number,
+                    ])->with('error', 'Pesanan sudah dibuat. Silakan lanjutkan pembayaran dari halaman pesanan.'), $request);
+                }
+            }
+
+            abort(404);
+        }
 
         $destinationId = (int) $data['shipping_destination_id'];
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
@@ -125,10 +149,15 @@ class CheckoutController extends Controller
             $weight,
         );
 
+        $request->session()->put(
+            $this->checkoutOrderSessionKey($store->id, $cartSessionId),
+            $order->order_number,
+        );
+
         try {
             $payment = $this->payments->start($order);
 
-            return $this->cartSessions->attach(redirect()->away($payment->redirect_url), $request);
+            return $this->cartSessions->attach(Inertia::location($payment->redirect_url), $request);
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -137,6 +166,11 @@ class CheckoutController extends Controller
                 'orderNumber' => $order->order_number,
             ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
         }
+    }
+
+    private function checkoutOrderSessionKey(int $storeId, string $cartSessionId): string
+    {
+        return 'storefront.checkout.order.'.$storeId.'.'.hash('sha256', $cartSessionId);
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
