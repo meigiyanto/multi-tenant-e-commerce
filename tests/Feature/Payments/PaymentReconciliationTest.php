@@ -3,6 +3,7 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
+use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Store;
@@ -147,6 +148,11 @@ class PaymentReconciliationTest extends TestCase
     {
         [$transaction, $order] = $this->pendingPayment();
         $order->update(['status' => 'cancelled']);
+        InventoryReservation::query()->where('order_id', $order->id)->update([
+            'status' => 'released',
+            'released_at' => now(),
+        ]);
+        $order->items()->first()->variant->inventory()->update(['reserved_quantity' => 0]);
         Http::fake([
             'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
         ]);
@@ -160,6 +166,39 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('paid', $order->payment_status);
         $this->assertSame('cancelled', $order->status);
         $this->assertNotNull(data_get($transaction->metadata, 'inventory_review_required'));
+    }
+
+
+    public function test_it_releases_order_reservations_when_snap_session_creation_fails(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->delete();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'error_messages' => ['Invalid Snap request'],
+            ], 400),
+        ]);
+
+        try {
+            app(PaymentService::class)->start($order);
+            $this->fail('Payment session creation should fail.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('Midtrans gagal membuat sesi pembayaran', $exception->getMessage());
+        }
+
+        $inventory->refresh();
+        $order->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('failed', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
+        $this->assertNotNull($reservation->released_at);
+        $this->assertDatabaseHas('payment_transactions', [
+            'order_id' => $order->id,
+            'status' => 'failed',
+        ]);
     }
 
     private function pendingPayment(): array
@@ -236,6 +275,15 @@ class PaymentReconciliationTest extends TestCase
             'currency' => 'IDR',
             'status' => 'pending',
             'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/test-token',
+        ]);
+
+        InventoryReservation::query()->create([
+            'store_id' => $store->id,
+            'order_id' => $order->id,
+            'inventory_id' => $inventory->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+            'status' => 'reserved',
         ]);
 
         DB::table('payment_transactions')->where('id', $transaction->id)->update([
