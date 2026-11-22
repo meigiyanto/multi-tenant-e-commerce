@@ -68,4 +68,32 @@ class MidtransGatewayTest extends TestCase
         $this->assertSame('expired', $gateway->normalizeStatus(['transaction_status' => 'expire']));
         $this->assertSame('failed', $gateway->normalizeStatus(['transaction_status' => 'deny']));
     }
+
+    public function test_it_marks_capture_with_denied_fraud_status_as_failed(): void
+    {
+        $this->assertSame('failed', app(MidtransGateway::class)->normalizeStatus([
+            'transaction_status' => 'capture',
+            'fraud_status' => 'deny',
+        ]));
+    }
+
+    public function test_it_keeps_capture_with_challenge_fraud_status_pending(): void
+    {
+        $this->assertSame('pending', app(MidtransGateway::class)->normalizeStatus([
+            'transaction_status' => 'capture',
+            'fraud_status' => 'challenge',
+        ]));
+    }
+
+    public function test_it_rejects_capture_without_a_supported_fraud_status(): void
+    {
+        $this->expectException(\\RuntimeException::class);
+        app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'capture']);
+    }
+
+    public function test_it_rejects_unknown_transaction_statuses(): void
+    {
+        $this->expectException(\\RuntimeException::class);
+        app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'refunded']);
+    }
 }
