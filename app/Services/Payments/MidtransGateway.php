@@ -44,8 +44,13 @@ class MidtransGateway implements PaymentGateway
             : StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
 
         if ($domain) {
+            $scheme = rtrim((string) config('storefront.scheme', 'https'), ':/');
+            $port = parse_url((string) config('app.url'), PHP_URL_PORT);
+            $defaultPort = ($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80);
+            $host = $domain.($port && ! $defaultPort ? ':'.$port : '');
+
             $parameters['callbacks'] = [
-                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/').'://'.$domain.'/orders/'.rawurlencode($order->order_number),
+                'finish' => $scheme.'://'.$host.'/orders/'.rawurlencode($order->order_number),
             ];
         }
 
