@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature\\Storefront;
+namespace Tests\Feature\Storefront;
 
-use App\\Services\\Payments\\PaymentService;
+use App\Services\Payments\PaymentService;
 use Mockery;
 use RuntimeException;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class PaymentControllerTest extends TestCase
 {
