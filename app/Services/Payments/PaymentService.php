@@ -108,6 +108,11 @@ class PaymentService
             }
 
             $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
+
+            if ($order->status === 'cancelled' || ($order->payment_status === 'paid' && $status !== 'paid')) {
+                throw new RuntimeException('Status pesanan tidak mengizinkan perubahan pembayaran ini.');
+            }
+
             $this->applyInventoryTransition($order, $status);
 
             $transaction->update([
@@ -190,6 +195,7 @@ class PaymentService
 
         foreach ($quantities as $variantId => $quantity) {
             $inventory = \\App\\Models\\Inventory::query()
+                ->where('store_id', $order->store_id)
                 ->where('product_variant_id', $variantId)
                 ->lockForUpdate()
                 ->first();
