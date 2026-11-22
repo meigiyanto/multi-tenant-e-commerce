@@ -58,7 +58,7 @@ class MidtransGatewayTest extends TestCase
             'currency' => 'IDR',
         ]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         app(MidtransGateway::class)->createPayment($order, $transaction);
     }
 
