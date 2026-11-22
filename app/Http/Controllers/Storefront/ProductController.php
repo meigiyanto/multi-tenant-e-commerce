@@ -9,9 +9,9 @@ use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ProductController extends Controller
 {
@@ -91,7 +91,7 @@ class ProductController extends Controller
             'slug' => $product->slug,
             'price' => $product->price,
             'image_url' => $image ? Storage::disk('public')->url($image->path) : null,
-            'in_stock' => ! $product->track_inventory || $product->variants->contains(
+            'in_stock' => !$product->track_inventory || $product->variants->contains(
                 fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
             ),
         ];
