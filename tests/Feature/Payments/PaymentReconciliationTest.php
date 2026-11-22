@@ -3,7 +3,6 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
-use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Store;
