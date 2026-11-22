@@ -27,6 +27,6 @@ Schedule::call(function () {
 
 Schedule::call(fn () => app(PaymentService::class)->reconcilePendingTransactions('midtrans'))
     ->everyFiveMinutes()
-    ->withoutOverlapping()
     ->name('payments-midtrans-reconciliation')
+    ->withoutOverlapping()
     ->description('Reconcile pending Midtrans payments against the status API');
