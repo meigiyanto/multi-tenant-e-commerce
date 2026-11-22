@@ -2,10 +2,13 @@
 
 namespace App\Services\Payments;
 
+use App\Contracts\Payments\PaymentGateway;
+use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -91,7 +94,74 @@ class PaymentService
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
-        DB::transaction(function () use ($payload, $gateway, $gatewayName): void {
+        $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
+    }
+
+    public function reconcilePendingTransactions(string $gatewayName = 'midtrans'): int
+    {
+        $gateway = $this->gateways->driver($gatewayName, false);
+        $reconciled = 0;
+
+        PaymentTransaction::query()
+            ->where('gateway', $gatewayName)
+            ->where('status', 'pending')
+            ->whereNotNull('redirect_url')
+            ->where('updated_at', '<=', now()->subMinutes(5))
+            ->orderBy('id')
+            ->chunkById(50, function ($transactions) use ($gateway, $gatewayName, &$reconciled): void {
+                foreach ($transactions as $transaction) {
+                    try {
+                        $payload = $gateway->getStatus($transaction->gateway_order_id);
+
+                        if ($payload === null) {
+                            $this->recordReconciliationAttempt($transaction, 'not_found');
+                            continue;
+                        }
+
+                        if ((string) ($payload['order_id'] ?? '') !== $transaction->gateway_order_id) {
+                            throw new RuntimeException('Order ID dari Midtrans GET Status tidak cocok.');
+                        }
+
+                        if ((string) ($payload['status_code'] ?? '') !== '200') {
+                            throw new RuntimeException('Status code dari Midtrans GET Status tidak valid.');
+                        }
+
+                        $this->applyVerifiedStatus($payload, $gateway, $gatewayName, false);
+                        $transaction->refresh();
+
+                        $this->recordReconciliationAttempt($transaction, 'checked');
+
+                        if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
+                            $reconciled++;
+                            Log::info('Midtrans payment reconciled from status API', [
+                                'payment_transaction_id' => $transaction->id,
+                                'order_id' => $transaction->gateway_order_id,
+                                'status' => $transaction->status,
+                            ]);
+                        }
+                    } catch (Throwable $exception) {
+                        $this->recordReconciliationAttempt($transaction, 'error', $exception);
+                        Log::warning('Midtrans payment reconciliation failed', [
+                            'payment_transaction_id' => $transaction->id,
+                            'order_id' => $transaction->gateway_order_id,
+                            'exception' => $exception::class,
+                            'message' => $exception->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        return $reconciled;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function applyVerifiedStatus(
+        array $payload,
+        PaymentGateway $gateway,
+        string $gatewayName,
+        bool $isNotification,
+    ): void {
+        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification): void {
             $transaction = PaymentTransaction::query()
                 ->where('gateway', $gatewayName)
                 ->where('gateway_order_id', $payload['order_id'] ?? '')
@@ -116,12 +186,14 @@ class PaymentService
 
             $this->applyInventoryTransition($order, $status);
 
+            $metadata = array_merge((array) ($transaction->metadata ?? []), [
+                $isNotification ? 'last_notification' : 'last_status_response' => $this->safeNotificationMetadata($payload),
+            ]);
+
             $transaction->update([
                 'status' => $status,
                 'gateway_transaction_id' => $payload['transaction_id'] ?? $transaction->gateway_transaction_id,
-                'metadata' => array_merge((array) ($transaction->metadata ?? []), [
-                    'last_notification' => $this->safeNotificationMetadata($payload),
-                ]),
+                'metadata' => $metadata,
                 'paid_at' => $status === 'paid' ? now() : null,
             ]);
 
@@ -144,6 +216,29 @@ class PaymentService
                     'note' => 'Payment '.$status.'; inventory reservation released.',
                 ]);
             }
+        });
+    }
+
+    private function recordReconciliationAttempt(
+        PaymentTransaction $transaction,
+        string $result,
+        ?Throwable $exception = null,
+    ): void {
+        DB::transaction(function () use ($transaction, $result, $exception): void {
+            $locked = PaymentTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status !== 'pending') {
+                return;
+            }
+
+            $metadata = (array) ($locked->metadata ?? []);
+            $metadata['reconciliation'] = [
+                'checked_at' => now()->toISOString(),
+                'result' => $result,
+                'error' => $exception?->getMessage(),
+            ];
+
+            $locked->update(['metadata' => $metadata]);
         });
     }
 
@@ -195,7 +290,7 @@ class PaymentService
             ->map(fn ($items): int => (int) $items->sum('quantity'));
 
         foreach ($quantities as $variantId => $quantity) {
-            $inventory = \App\Models\Inventory::query()
+            $inventory = Inventory::query()
                 ->where('store_id', $order->store_id)
                 ->where('product_variant_id', $variantId)
                 ->lockForUpdate()
