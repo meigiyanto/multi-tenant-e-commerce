@@ -80,7 +80,7 @@ class CheckoutService
                     }
 
                     if ($inventory !== null) {
-                        $inventory->increment('reserved_quantity', $item->quantity);
+                        $reservationQuantities[$variant->id] = ($reservationQuantities[$variant->id] ?? 0) + (int) $item->quantity;
                     }
                 }
 
