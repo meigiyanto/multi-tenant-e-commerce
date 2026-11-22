@@ -87,13 +87,13 @@ class MidtransGatewayTest extends TestCase
 
     public function test_it_rejects_capture_without_a_supported_fraud_status(): void
     {
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'capture']);
     }
 
     public function test_it_rejects_unknown_transaction_statuses(): void
     {
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'refunded']);
     }
 }
