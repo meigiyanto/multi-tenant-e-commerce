@@ -95,15 +95,24 @@ class MidtransGateway implements PaymentGateway
         $status = (string) ($payload['transaction_status'] ?? '');
         $fraud = (string) ($payload['fraud_status'] ?? '');
 
-        if ($status === 'settlement' || ($status === 'capture' && $fraud === 'accept')) {
+        if ($status === 'settlement') {
             return 'paid';
+        }
+
+        if ($status === 'capture') {
+            return match ($fraud) {
+                'accept' => 'paid',
+                'deny' => 'failed',
+                'challenge' => 'pending',
+                default => throw new RuntimeException('Fraud status notifikasi Midtrans tidak didukung.'),
+            };
         }
 
         return match ($status) {
             'expire' => 'expired',
             'cancel', 'deny' => 'failed',
             'pending', 'authorize' => 'pending',
-            default => 'pending',
+            default => throw new RuntimeException('Status transaksi Midtrans tidak didukung: '.$status),
         };
     }
 }
