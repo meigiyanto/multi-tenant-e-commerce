@@ -43,7 +43,6 @@ class MidtransGatewayTest extends TestCase
             && $request['transaction_details']['gross_amount'] === 266000);
     }
 
-
     public function test_it_rejects_non_integer_idr_transaction_amounts(): void
     {
         config([
