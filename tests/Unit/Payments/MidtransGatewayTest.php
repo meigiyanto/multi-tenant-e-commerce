@@ -58,6 +58,44 @@ class MidtransGatewayTest extends TestCase
         $this->assertFalse(app(MidtransGateway::class)->verifyNotification($payload));
     }
 
+    public function test_it_fetches_transaction_status_from_the_correct_environment(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/ORDER-123/status' => Http::response([
+                'status_code' => '200',
+                'order_id' => 'ORDER-123',
+                'transaction_status' => 'settlement',
+                'gross_amount' => '100000.00',
+            ]),
+        ]);
+
+        $result = app(MidtransGateway::class)->getStatus('ORDER-123');
+
+        $this->assertSame('settlement', $result['transaction_status']);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.sandbox.midtrans.com/v2/ORDER-123/status'
+            && $request->hasHeader('Authorization'));
+    }
+
+    public function test_it_returns_null_when_midtrans_has_no_transaction_status(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/UNKNOWN-123/status' => Http::response([
+                'status_code' => '404',
+                'status_message' => 'The requested resource is not found',
+            ], 404),
+        ]);
+
+        $this->assertNull(app(MidtransGateway::class)->getStatus('UNKNOWN-123'));
+    }
+
     public function test_it_maps_midtrans_transaction_statuses(): void
     {
         $gateway = app(MidtransGateway::class);
@@ -67,6 +105,7 @@ class MidtransGatewayTest extends TestCase
         $this->assertSame('pending', $gateway->normalizeStatus(['transaction_status' => 'pending']));
         $this->assertSame('expired', $gateway->normalizeStatus(['transaction_status' => 'expire']));
         $this->assertSame('failed', $gateway->normalizeStatus(['transaction_status' => 'deny']));
+        $this->assertSame('failed', $gateway->normalizeStatus(['transaction_status' => 'failure']));
     }
 
     public function test_it_marks_capture_with_denied_fraud_status_as_failed(): void

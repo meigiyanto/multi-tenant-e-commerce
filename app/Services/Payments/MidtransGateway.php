@@ -110,9 +110,44 @@ class MidtransGateway implements PaymentGateway
 
         return match ($status) {
             'expire' => 'expired',
-            'cancel', 'deny' => 'failed',
+            'cancel', 'deny', 'failure' => 'failed',
             'pending', 'authorize' => 'pending',
             default => throw new RuntimeException('Status transaksi Midtrans tidak didukung: '.$status),
         };
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getStatus(string $gatewayOrderId): ?array
+    {
+        $serverKey = (string) config('payments.gateways.midtrans.server_key');
+
+        if ($serverKey === '') {
+            throw new RuntimeException('Midtrans Server Key belum dikonfigurasi.');
+        }
+
+        $baseUrl = config('payments.gateways.midtrans.production')
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+
+        $response = Http::acceptJson()
+            ->withBasicAuth($serverKey, '')
+            ->timeout(10)
+            ->get($baseUrl.'/v2/'.rawurlencode($gatewayOrderId).'/status');
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        if ($response->successful() === false) {
+            throw new RuntimeException('Midtrans GET Status gagal dengan HTTP '.$response->status().'.');
+        }
+
+        $payload = $response->json();
+
+        if (! is_array($payload)) {
+            throw new RuntimeException('Respons Midtrans GET Status tidak valid.');
+        }
+
+        return $payload;
     }
 }
