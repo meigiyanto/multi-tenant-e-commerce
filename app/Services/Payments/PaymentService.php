@@ -325,10 +325,9 @@ class PaymentService
             }
 
             $metadata = (array) ($locked->metadata ?? []);
-            $attempts = (int) data_get($metadata, 'reconciliation.not_found_attempts', 0);
-            if ($result === 'not_found') {
-                $attempts++;
-            }
+            $attempts = $result === 'not_found'
+                ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1
+                : 0;
             $metadata['reconciliation'] = [
                 'checked_at' => now()->toISOString(),
                 'result' => $result,
