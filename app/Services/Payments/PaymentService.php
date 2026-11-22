@@ -32,22 +32,22 @@ class PaymentService
 
         $gatewayName = (string) config('payments.default');
         $gateway = $this->gateways->driver($gatewayName);
-        $existing = $order->paymentTransactions()
-            ->where('gateway', $gatewayName)
-            ->where('status', 'pending')
-            ->whereNotNull('redirect_url')
-            ->latest()
-            ->first();
-
-        if ($existing !== null) {
-            return $existing;
-        }
-
         $transaction = DB::transaction(function () use ($order, $gatewayName): PaymentTransaction {
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedOrder->payment_status !== 'pending' || $lockedOrder->status !== 'pending') {
                 throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+            }
+
+            $existing = $lockedOrder->paymentTransactions()
+                ->where('gateway', $gatewayName)
+                ->where('status', 'pending')
+                ->whereNotNull('redirect_url')
+                ->latest()
+                ->first();
+
+            if ($existing !== null) {
+                return $existing;
             }
 
             $inProgress = $lockedOrder->paymentTransactions()
@@ -71,6 +71,10 @@ class PaymentService
                 'status' => 'pending',
             ]);
         });
+
+        if ($transaction->redirect_url !== null) {
+            return $transaction;
+        }
 
         try {
             $result = $gateway->createPayment($order, $transaction);
