@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Services\\Payments;
+namespace App\Services\Payments;
 
-use App\\Models\\Order;
-use App\\Models\\PaymentTransaction;
-use App\\Support\\Payments\\PaymentGatewayManager;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
+use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Support\Payments\PaymentGatewayManager;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class PaymentService
@@ -73,7 +73,7 @@ class PaymentService
                 'redirect_url' => $result['redirect_url'] ?? null,
                 'metadata' => ['gateway_response' => $result['response'] ?? []],
             ]);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             $transaction->update(['status' => 'failed', 'metadata' => ['error' => $exception->getMessage()]]);
             throw $exception;
         }
@@ -153,7 +153,7 @@ class PaymentService
         }
 
         $amount = (string) $amount;
-        if (! preg_match('/^\\d{1,13}(?:\\.\\d{1,2})?$/', $amount)) {
+        if (! preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount)) {
             throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
         }
 
@@ -194,7 +194,7 @@ class PaymentService
             ->map(fn ($items): int => (int) $items->sum('quantity'));
 
         foreach ($quantities as $variantId => $quantity) {
-            $inventory = \\App\\Models\\Inventory::query()
+            $inventory = \App\Models\Inventory::query()
                 ->where('store_id', $order->store_id)
                 ->where('product_variant_id', $variantId)
                 ->lockForUpdate()
