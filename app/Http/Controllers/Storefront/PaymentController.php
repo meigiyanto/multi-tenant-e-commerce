@@ -1,15 +1,15 @@
 <?php
 
-namespace App\\Http\\Controllers\\Storefront;
+namespace App\Http\Controllers\Storefront;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Order;
-use App\\Services\\Payments\\PaymentService;
-use App\\Support\\Stores\\StoreContext;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Log;
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Services\Payments\PaymentService;
+use App\Support\Stores\StoreContext;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
