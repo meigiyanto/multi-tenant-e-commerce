@@ -15,4 +15,7 @@ interface PaymentGateway
 
     /** @param array<string, mixed> $payload */
     public function normalizeStatus(array $payload): string;
+
+    /** @return array<string, mixed>|null */
+    public function getStatus(string $gatewayOrderId): ?array;
 }
