@@ -3,11 +3,13 @@
 namespace App\Services\Payments;
 
 use App\Contracts\Payments\PaymentGateway;
+use App\Exceptions\Payments\PaymentGatewayUnavailableException;
 use App\Models\Inventory;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Support\Payments\PaymentGatewayManager;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -52,7 +54,6 @@ class PaymentService
                 ->where('gateway', $gatewayName)
                 ->where('status', 'pending')
                 ->whereNull('redirect_url')
-                ->where('created_at', '>=', now()->subMinutes(5))
                 ->exists();
 
             if ($inProgress) {
@@ -78,6 +79,23 @@ class PaymentService
                 'redirect_url' => $result['redirect_url'] ?? null,
                 'metadata' => ['gateway_response' => $result['response'] ?? []],
             ]);
+        } catch (PaymentGatewayUnavailableException|ConnectionException $exception) {
+            DB::transaction(function () use ($transaction, $exception): void {
+                $lockedTransaction = PaymentTransaction::query()
+                    ->whereKey($transaction->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
+                    'session_creation_uncertain' => [
+                        'message' => $exception->getMessage(),
+                        'occurred_at' => now()->toISOString(),
+                    ],
+                ]);
+
+                $lockedTransaction->update(['metadata' => $metadata]);
+            });
+
+            throw $exception;
         } catch (Throwable $exception) {
             DB::transaction(function () use ($transaction, $exception): void {
                 $lockedTransaction = PaymentTransaction::query()
@@ -148,7 +166,6 @@ class PaymentService
         PaymentTransaction::query()
             ->where('gateway', $gatewayName)
             ->where('status', 'pending')
-            ->whereNotNull('redirect_url')
             ->where('updated_at', '<=', now()->subMinutes(5))
             ->orderBy('id')
             ->chunkById(50, function ($transactions) use ($gateway, $gatewayName, &$reconciled): void {
@@ -157,7 +174,10 @@ class PaymentService
                         $payload = $gateway->getStatus($transaction->gateway_order_id);
 
                         if ($payload === null) {
-                            $this->recordReconciliationAttempt($transaction, 'not_found');
+                            $attempts = $this->recordReconciliationAttempt($transaction, 'not_found');
+                            if ($transaction->redirect_url === null && $attempts >= 3) {
+                                $this->failUnconfirmedSession($transaction);
+                            }
                             continue;
                         }
 
@@ -296,22 +316,81 @@ class PaymentService
         PaymentTransaction $transaction,
         string $result,
         ?Throwable $exception = null,
-    ): void {
-        DB::transaction(function () use ($transaction, $result, $exception): void {
+    ): int {
+        return DB::transaction(function () use ($transaction, $result, $exception): int {
             $locked = PaymentTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
 
             if ($locked === null || $locked->status !== 'pending') {
-                return;
+                return 0;
             }
 
             $metadata = (array) ($locked->metadata ?? []);
+            $attempts = (int) data_get($metadata, 'reconciliation.not_found_attempts', 0);
+            if ($result === 'not_found') {
+                $attempts++;
+            }
             $metadata['reconciliation'] = [
                 'checked_at' => now()->toISOString(),
                 'result' => $result,
+                'not_found_attempts' => $attempts,
                 'error' => $exception?->getMessage(),
             ];
 
             $locked->update(['metadata' => $metadata]);
+
+            return $attempts;
+        });
+    }
+
+    private function failUnconfirmedSession(PaymentTransaction $transaction): void
+    {
+        DB::transaction(function () use ($transaction): void {
+            $lockedTransaction = PaymentTransaction::query()
+                ->whereKey($transaction->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $lockedTransaction === null
+                || $lockedTransaction->status !== 'pending'
+                || $lockedTransaction->redirect_url !== null
+                || (int) data_get($lockedTransaction->metadata, 'reconciliation.not_found_attempts', 0) < 3
+            ) {
+                return;
+            }
+
+            $order = Order::query()
+                ->whereKey($lockedTransaction->order_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $inventoryError = $this->applyInventoryTransition($order, 'failed');
+            $metadata = (array) ($lockedTransaction->metadata ?? []);
+            $metadata['session_creation_unconfirmed_at'] = now()->toISOString();
+
+            if ($inventoryError !== null) {
+                $metadata['inventory_review_required'] = $inventoryError;
+            }
+
+            $lockedTransaction->update(['status' => 'failed', 'metadata' => $metadata]);
+            $order->update(['payment_status' => 'failed']);
+
+            if ($order->status === 'pending') {
+                $order->update(['status' => 'cancelled']);
+                $order->statusHistories()->create([
+                    'store_id' => $order->store_id,
+                    'from_status' => 'pending',
+                    'to_status' => 'cancelled',
+                    'note' => 'Midtrans session was not found after repeated status checks; inventory release attempted.',
+                ]);
+            }
+
+            if ($inventoryError !== null) {
+                Log::critical('Unconfirmed payment session requires inventory review', [
+                    'payment_transaction_id' => $lockedTransaction->id,
+                    'order_id' => $order->order_number,
+                    'reason' => $inventoryError,
+                ]);
+            }
         });
     }
 
