@@ -39,6 +39,10 @@ class PaymentService
                 throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
             }
 
+            if ($lockedOrder->currency !== 'IDR') {
+                throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+            }
+
             $existing = $lockedOrder->paymentTransactions()
                 ->where('gateway', $gatewayName)
                 ->where('status', 'pending')
@@ -265,6 +269,8 @@ class PaymentService
                 if ($status === 'paid') {
                     $inventoryError = 'Pembayaran diterima setelah pesanan dibatalkan; perlu pemeriksaan manual.';
                 }
+            } elseif ($order->status !== 'pending') {
+                $inventoryError = 'Status pesanan tidak mengizinkan transisi pembayaran otomatis; perlu pemeriksaan manual.';
             } else {
                 $inventoryError = $this->applyInventoryTransition($order, $status);
             }
