@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Contracts\Payments\PaymentGateway;
+use App\Exceptions\Payments\PaymentGatewayUnavailableException;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\StoreDomain;
@@ -68,6 +69,10 @@ class MidtransGateway implements PaymentGateway
             ->withBasicAuth($serverKey, '')
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
+
+        if ($response->status() >= 500 || $response->status() === 429) {
+            throw new PaymentGatewayUnavailableException('Midtrans belum dapat memastikan hasil pembuatan sesi pembayaran.');
+        }
 
         if ($response->successful() === false || empty($response->json('token')) || empty($response->json('redirect_url'))) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
