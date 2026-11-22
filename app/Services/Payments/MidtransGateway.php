@@ -70,12 +70,16 @@ class MidtransGateway implements PaymentGateway
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
-        if ($response->status() >= 500 || $response->status() === 429) {
+        if ($response->status() >= 500 || in_array($response->status(), [408, 429], true)) {
             throw new PaymentGatewayUnavailableException('Midtrans belum dapat memastikan hasil pembuatan sesi pembayaran.');
         }
 
-        if ($response->successful() === false || empty($response->json('token')) || empty($response->json('redirect_url'))) {
+        if ($response->successful() === false) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
+        }
+
+        if (empty($response->json('token')) || empty($response->json('redirect_url'))) {
+            throw new PaymentGatewayUnavailableException('Respons pembuatan sesi Midtrans tidak lengkap; hasil transaksi perlu direkonsiliasi.');
         }
 
         return [
