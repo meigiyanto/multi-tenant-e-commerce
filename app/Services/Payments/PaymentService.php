@@ -215,6 +215,10 @@ class PaymentService
                 throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
 
+            if (! $isNotification && ! isset($payload['currency'])) {
+                throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
+            }
+
             if (isset($payload['currency']) && strtoupper((string) $payload['currency']) !== strtoupper($transaction->currency)) {
                 throw new RuntimeException('Mata uang notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
