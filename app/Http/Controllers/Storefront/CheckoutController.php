@@ -1,21 +1,21 @@
 <?php
 
-namespace App\\Http\\Controllers\\Storefront;
+namespace App\Http\Controllers\Storefront;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Cart;
-use App\\Models\\Order;
-use App\\Services\\Payments\\PaymentService;
-use App\\Services\\Shipping\\ShippingQuoteService;
-use App\\Services\\Storefront\\CartService;
-use App\\Services\\Storefront\\CartSessionService;
-use App\\Services\\Storefront\\CheckoutService;
-use App\\Support\\Stores\\StoreContext;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Storage;
-use Inertia\\Inertia;
-use Inertia\\Response;
-use Symfony\\Component\\HttpFoundation\\Response as SymfonyResponse;
+use App\Http\Controllers\Controller;
+use App\Models\Cart;
+use App\Models\Order;
+use App\Services\Payments\PaymentService;
+use App\Services\Shipping\ShippingQuoteService;
+use App\Services\Storefront\CartService;
+use App\Services\Storefront\CartSessionService;
+use App\Services\Storefront\CheckoutService;
+use App\Support\Stores\StoreContext;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CheckoutController extends Controller
 {
@@ -129,7 +129,7 @@ class CheckoutController extends Controller
             $response = Inertia::location($payment->redirect_url);
 
             return $this->cartSessions->attach($response, $request);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
 
             return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
