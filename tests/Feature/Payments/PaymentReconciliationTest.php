@@ -180,6 +180,24 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull(data_get($transaction->metadata, 'inventory_review_required'));
     }
 
+    public function test_it_returns_a_retryable_response_for_unknown_webhook_transactions(): void
+    {
+        $payload = [
+            'order_id' => 'MIDTRANS-UNKNOWN-ORDER',
+            'status_code' => '200',
+            'gross_amount' => '100000.00',
+            'transaction_status' => 'settlement',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertStatus(503)
+            ->assertJsonPath('success', false);
+    }
+
     public function test_it_releases_order_reservations_when_snap_session_creation_fails(): void
     {
         [$transaction, $order, $inventory] = $this->pendingPayment();
