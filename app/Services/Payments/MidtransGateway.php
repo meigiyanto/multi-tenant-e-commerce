@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Services\\Payments;
+namespace App\Services\Payments;
 
-use App\\Contracts\\Payments\\PaymentGateway;
-use App\\Models\\Order;
-use App\\Models\\PaymentTransaction;
-use App\\Models\\StoreDomain;
-use Illuminate\\Support\\Facades\\Http;
+use App\Contracts\Payments\PaymentGateway;
+use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Models\StoreDomain;
+use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class MidtransGateway implements PaymentGateway
