@@ -180,7 +180,6 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull(data_get($transaction->metadata, 'inventory_review_required'));
     }
 
-
     public function test_it_releases_order_reservations_when_snap_session_creation_fails(): void
     {
         [$transaction, $order, $inventory] = $this->pendingPayment();
