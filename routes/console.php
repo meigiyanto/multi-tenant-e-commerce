@@ -3,6 +3,7 @@
 use App\Enums\StoreDomainStatus;
 use App\Models\StoreDomain;
 use App\Models\TeamInvitation;
+use App\Services\Payments\PaymentService;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::call(function () {
@@ -23,3 +24,9 @@ Schedule::call(function () {
             'updated_at' => now(),
         ]);
 })->everyMinute()->description('Expire overdue custom domain verification challenges');
+
+Schedule::call(fn () => app(PaymentService::class)->reconcilePendingTransactions('midtrans'))
+    ->everyFiveMinutes()
+    ->name('payments-midtrans-reconciliation')
+    ->withoutOverlapping()
+    ->description('Reconcile pending Midtrans payments against the status API');

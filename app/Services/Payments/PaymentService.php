@@ -2,20 +2,29 @@
 
 namespace App\Services\Payments;
 
+use App\Contracts\Payments\PaymentGateway;
+use App\Exceptions\Payments\PaymentGatewayUnavailableException;
+use App\Models\Inventory;
+use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Support\Payments\PaymentGatewayManager;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways) {}
+    public function __construct(private readonly PaymentGatewayManager $gateways)
+    {
+    }
 
     public function start(Order $order): PaymentTransaction
     {
-        if ($order->payment_status === 'paid' || $order->status === 'cancelled') {
+        if ($order->payment_status !== 'pending' || $order->status !== 'pending') {
             throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
         }
 
@@ -25,29 +34,32 @@ class PaymentService
 
         $gatewayName = (string) config('payments.default');
         $gateway = $this->gateways->driver($gatewayName);
-        $existing = $order->paymentTransactions()
-            ->where('gateway', $gatewayName)
-            ->where('status', 'pending')
-            ->whereNotNull('redirect_url')
-            ->latest()
-            ->first();
-
-        if ($existing !== null) {
-            return $existing;
-        }
-
         $transaction = DB::transaction(function () use ($order, $gatewayName): PaymentTransaction {
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
-            if ($lockedOrder->payment_status === 'paid' || $lockedOrder->status === 'cancelled') {
+            if ($lockedOrder->payment_status !== 'pending' || $lockedOrder->status !== 'pending') {
                 throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+            }
+
+            if ($lockedOrder->currency !== 'IDR') {
+                throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+            }
+
+            $existing = $lockedOrder->paymentTransactions()
+                ->where('gateway', $gatewayName)
+                ->where('status', 'pending')
+                ->whereNotNull('redirect_url')
+                ->latest()
+                ->first();
+
+            if ($existing !== null) {
+                return $existing;
             }
 
             $inProgress = $lockedOrder->paymentTransactions()
                 ->where('gateway', $gatewayName)
                 ->where('status', 'pending')
                 ->whereNull('redirect_url')
-                ->where('created_at', '>=', now()->subMinutes(5))
                 ->exists();
 
             if ($inProgress) {
@@ -66,6 +78,10 @@ class PaymentService
             ]);
         });
 
+        if ($transaction->redirect_url !== null) {
+            return $transaction;
+        }
+
         try {
             $result = $gateway->createPayment($order, $transaction);
             $transaction->update([
@@ -73,8 +89,67 @@ class PaymentService
                 'redirect_url' => $result['redirect_url'] ?? null,
                 'metadata' => ['gateway_response' => $result['response'] ?? []],
             ]);
-        } catch (\Throwable $exception) {
-            $transaction->update(['status' => 'failed', 'metadata' => ['error' => $exception->getMessage()]]);
+        } catch (PaymentGatewayUnavailableException|ConnectionException $exception) {
+            DB::transaction(function () use ($transaction, $exception): void {
+                $lockedTransaction = PaymentTransaction::query()
+                    ->whereKey($transaction->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
+                    'session_creation_uncertain' => [
+                        'message' => $exception->getMessage(),
+                        'occurred_at' => now()->toISOString(),
+                    ],
+                ]);
+
+                $lockedTransaction->update(['metadata' => $metadata]);
+            });
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            DB::transaction(function () use ($transaction, $exception): void {
+                $lockedTransaction = PaymentTransaction::query()
+                    ->whereKey($transaction->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $order = Order::query()
+                    ->whereKey($lockedTransaction->order_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $inventoryError = $this->applyInventoryTransition($order, 'failed');
+                $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
+                    'session_creation_error' => [
+                        'message' => $exception->getMessage(),
+                        'occurred_at' => now()->toISOString(),
+                    ],
+                ]);
+
+                if ($inventoryError !== null) {
+                    $metadata['inventory_review_required'] = $inventoryError;
+                }
+
+                $lockedTransaction->update(['status' => 'failed', 'metadata' => $metadata]);
+                $order->update(['payment_status' => 'failed']);
+
+                if ($order->status === 'pending') {
+                    $order->update(['status' => 'cancelled']);
+                    $order->statusHistories()->create([
+                        'store_id' => $order->store_id,
+                        'from_status' => 'pending',
+                        'to_status' => 'cancelled',
+                        'note' => 'Payment session creation failed; inventory reservation release attempted.',
+                    ]);
+                }
+
+                if ($inventoryError !== null) {
+                    Log::critical('Payment session failed and inventory requires manual review', [
+                        'payment_transaction_id' => $lockedTransaction->id,
+                        'order_id' => $order->order_number,
+                        'reason' => $inventoryError,
+                    ]);
+                }
+            });
+
             throw $exception;
         }
 
@@ -90,54 +165,136 @@ class PaymentService
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
-        DB::transaction(function () use ($payload, $gateway, $gatewayName): void {
+        $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
+    }
+
+    public function reconcilePendingTransactions(string $gatewayName = 'midtrans'): int
+    {
+        $gateway = $this->gateways->driver($gatewayName, false);
+        $reconciled = 0;
+
+        PaymentTransaction::query()
+            ->where('gateway', $gatewayName)
+            ->where('status', 'pending')
+            ->where('updated_at', '<=', now()->subMinutes(5))
+            ->orderBy('id')
+            ->chunkById(50, function ($transactions) use ($gateway, $gatewayName, &$reconciled): void {
+                foreach ($transactions as $transaction) {
+                    try {
+                        $payload = $gateway->getStatus($transaction->gateway_order_id);
+
+                        if ($payload === null) {
+                            $attempts = $this->recordReconciliationAttempt($transaction, 'not_found');
+                            if ($transaction->redirect_url === null && $attempts >= 3) {
+                                $this->failUnconfirmedSession($transaction);
+                            }
+                            continue;
+                        }
+
+                        if ((string) ($payload['order_id'] ?? '') !== $transaction->gateway_order_id) {
+                            throw new RuntimeException('Order ID dari Midtrans GET Status tidak cocok.');
+                        }
+
+                        if ((string) ($payload['status_code'] ?? '') !== '200') {
+                            throw new RuntimeException('Status code dari Midtrans GET Status tidak valid.');
+                        }
+
+                        $this->applyVerifiedStatus($payload, $gateway, $gatewayName, false);
+                        $transaction->refresh();
+
+                        $this->recordReconciliationAttempt($transaction, 'checked');
+
+                        if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
+                            ++$reconciled;
+                            Log::info('Midtrans payment reconciled from status API', [
+                                'payment_transaction_id' => $transaction->id,
+                                'order_id' => $transaction->gateway_order_id,
+                                'status' => $transaction->status,
+                            ]);
+                        }
+                    } catch (Throwable $exception) {
+                        $this->recordReconciliationAttempt($transaction, 'error', $exception);
+                        Log::warning('Midtrans payment reconciliation failed', [
+                            'payment_transaction_id' => $transaction->id,
+                            'order_id' => $transaction->gateway_order_id,
+                            'exception' => $exception::class,
+                            'message' => $exception->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        return $reconciled;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function applyVerifiedStatus(
+        array $payload,
+        PaymentGateway $gateway,
+        string $gatewayName,
+        bool $isNotification,
+    ): void {
+        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification): void {
             $transaction = PaymentTransaction::query()
                 ->where('gateway', $gatewayName)
                 ->where('gateway_order_id', $payload['order_id'] ?? '')
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (number_format((float) ($payload['gross_amount'] ?? 0), 2, '.', '') !== number_format((float) $transaction->amount, 2, '.', '')) {
+            if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
                 throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
+
+            if (! $isNotification && ! isset($payload['currency'])) {
+                throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
+            }
+
+            if (isset($payload['currency']) && strtoupper((string) $payload['currency']) !== strtoupper($transaction->currency)) {
+                throw new RuntimeException('Mata uang notifikasi pembayaran tidak sesuai dengan transaksi.');
+            }
+
+            $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
                 return;
             }
 
-            $status = $gateway->normalizeStatus($payload);
+            $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
+
+            if ($order->payment_status === 'paid' && $status !== 'paid') {
+                throw new RuntimeException('Status pesanan tidak mengizinkan perubahan pembayaran ini.');
+            }
+
+            $inventoryError = null;
+
+            if ($order->status === 'cancelled') {
+                if ($status === 'paid') {
+                    $inventoryError = 'Pembayaran diterima setelah pesanan dibatalkan; perlu pemeriksaan manual.';
+                }
+            } elseif ($order->status !== 'pending') {
+                $inventoryError = 'Status pesanan tidak mengizinkan transisi pembayaran otomatis; perlu pemeriksaan manual.';
+            } else {
+                $inventoryError = $this->applyInventoryTransition($order, $status);
+            }
+
+            $metadata = array_merge((array) ($transaction->metadata ?? []), [
+                $isNotification ? 'last_notification' : 'last_status_response' => $this->safeNotificationMetadata($payload),
+            ]);
+
+            if ($inventoryError !== null) {
+                $metadata['inventory_review_required'] = $inventoryError;
+            }
+
             $transaction->update([
                 'status' => $status,
                 'gateway_transaction_id' => $payload['transaction_id'] ?? $transaction->gateway_transaction_id,
-                'metadata' => array_merge((array) ($transaction->metadata ?? []), ['last_notification' => $payload]),
+                'metadata' => $metadata,
                 'paid_at' => $status === 'paid' ? now() : null,
             ]);
 
-            $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
             $order->update(['payment_status' => $status]);
 
-            foreach ($order->items()->with('variant.inventory')->get() as $item) {
-                if (! $item->track_inventory) {
-                    continue;
-                }
-
-                $inventory = $item->variant?->inventory;
-                if ($inventory === null) {
-                    continue;
-                }
-
-                $reservedToRelease = min((int) $inventory->reserved_quantity, (int) $item->quantity);
-                if ($status === 'paid') {
-                    $inventory->decrement('quantity', $item->quantity);
-                    if ($reservedToRelease > 0) {
-                        $inventory->decrement('reserved_quantity', $reservedToRelease);
-                    }
-                } elseif (in_array($status, ['failed', 'expired'], true) && $reservedToRelease > 0) {
-                    $inventory->decrement('reserved_quantity', $reservedToRelease);
-                }
-            }
-
-            if ($status === 'paid' && $order->status === 'pending') {
+            if ($status === 'paid' && $order->status === 'pending' && $inventoryError === null) {
                 $order->update(['status' => 'processing']);
                 $order->statusHistories()->create([
                     'store_id' => $order->store_id,
@@ -154,6 +311,199 @@ class PaymentService
                     'note' => 'Payment '.$status.'; inventory reservation released.',
                 ]);
             }
+
+            if ($inventoryError !== null) {
+                Log::critical('Payment confirmed but inventory/order requires manual review', [
+                    'payment_transaction_id' => $transaction->id,
+                    'order_id' => $transaction->gateway_order_id,
+                    'order_status' => $order->status,
+                    'payment_status' => $status,
+                    'reason' => $inventoryError,
+                ]);
+            }
         });
+    }
+
+    private function recordReconciliationAttempt(
+        PaymentTransaction $transaction,
+        string $result,
+        ?Throwable $exception = null,
+    ): int {
+        return DB::transaction(function () use ($transaction, $result, $exception): int {
+            $locked = PaymentTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status !== 'pending') {
+                return 0;
+            }
+
+            $metadata = (array) ($locked->metadata ?? []);
+            $attempts = $result === 'not_found'
+                ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1
+                : 0;
+            $metadata['reconciliation'] = [
+                'checked_at' => now()->toISOString(),
+                'result' => $result,
+                'not_found_attempts' => $attempts,
+                'error' => $exception?->getMessage(),
+            ];
+
+            $locked->update(['metadata' => $metadata]);
+
+            return $attempts;
+        });
+    }
+
+    private function failUnconfirmedSession(PaymentTransaction $transaction): void
+    {
+        DB::transaction(function () use ($transaction): void {
+            $lockedTransaction = PaymentTransaction::query()
+                ->whereKey($transaction->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $lockedTransaction === null
+                || $lockedTransaction->status !== 'pending'
+                || $lockedTransaction->redirect_url !== null
+                || (int) data_get($lockedTransaction->metadata, 'reconciliation.not_found_attempts', 0) < 3
+            ) {
+                return;
+            }
+
+            $order = Order::query()
+                ->whereKey($lockedTransaction->order_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $inventoryError = $this->applyInventoryTransition($order, 'failed');
+            $metadata = (array) ($lockedTransaction->metadata ?? []);
+            $metadata['session_creation_unconfirmed_at'] = now()->toISOString();
+
+            if ($inventoryError !== null) {
+                $metadata['inventory_review_required'] = $inventoryError;
+            }
+
+            $lockedTransaction->update(['status' => 'failed', 'metadata' => $metadata]);
+            $order->update(['payment_status' => 'failed']);
+
+            if ($order->status === 'pending') {
+                $order->update(['status' => 'cancelled']);
+                $order->statusHistories()->create([
+                    'store_id' => $order->store_id,
+                    'from_status' => 'pending',
+                    'to_status' => 'cancelled',
+                    'note' => 'Midtrans session was not found after repeated status checks; inventory release attempted.',
+                ]);
+            }
+
+            if ($inventoryError !== null) {
+                Log::critical('Unconfirmed payment session requires inventory review', [
+                    'payment_transaction_id' => $lockedTransaction->id,
+                    'order_id' => $order->order_number,
+                    'reason' => $inventoryError,
+                ]);
+            }
+        });
+    }
+
+    private function normalizeAmount(mixed $amount): string
+    {
+        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
+            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        }
+
+        $amount = (string) $amount;
+        if (! preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount)) {
+            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        }
+
+        [$integer, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
+        $integer = ltrim($integer, '0') ?: '0';
+
+        return $integer.'.'.str_pad($fraction, 2, '0');
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, scalar|null>
+     */
+    private function safeNotificationMetadata(array $payload): array
+    {
+        $allowed = [
+            'order_id', 'transaction_id', 'transaction_status', 'fraud_status',
+            'status_code', 'gross_amount', 'currency', 'payment_type',
+            'transaction_time', 'settlement_time', 'bank', 'card_type',
+        ];
+
+        return array_filter(
+            array_intersect_key($payload, array_flip($allowed)),
+            static fn (mixed $value): bool => is_scalar($value) || $value === null,
+        );
+    }
+
+    private function applyInventoryTransition(Order $order, string $status): ?string
+    {
+        if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
+            return null;
+        }
+
+        $expected = $order->items()
+            ->where('track_inventory', true)
+            ->whereNotNull('product_variant_id')
+            ->get()
+            ->groupBy('product_variant_id')
+            ->map(fn ($items): int => (int) $items->sum('quantity'));
+
+        if ($expected->isEmpty()) {
+            return null;
+        }
+
+        $reservations = InventoryReservation::query()
+            ->where('store_id', $order->store_id)
+            ->where('order_id', $order->id)
+            ->where('status', 'reserved')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('product_variant_id');
+
+        if ($reservations->count() !== $expected->count()) {
+            return 'Ledger reservasi inventori tidak lengkap untuk pesanan ini.';
+        }
+
+        $transitions = [];
+        foreach ($expected as $variantId => $quantity) {
+            $reservation = $reservations->get($variantId);
+            if ($reservation === null || $reservation->quantity !== $quantity) {
+                return 'Jumlah reservasi inventori tidak sesuai dengan item pesanan.';
+            }
+
+            $inventory = Inventory::query()
+                ->where('store_id', $order->store_id)
+                ->whereKey($reservation->inventory_id)
+                ->where('product_variant_id', $variantId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($inventory === null || $inventory->reserved_quantity < $quantity) {
+                return 'Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.';
+            }
+
+            if ($status === 'paid' && $inventory->quantity < $quantity) {
+                return 'Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.';
+            }
+
+            $transitions[] = [$reservation, $inventory, $quantity];
+        }
+
+        foreach ($transitions as [$reservation, $inventory, $quantity]) {
+            if ($status === 'paid') {
+                $inventory->decrement('quantity', $quantity);
+                $reservation->update(['status' => 'consumed', 'consumed_at' => now()]);
+            } else {
+                $reservation->update(['status' => 'released', 'released_at' => now()]);
+            }
+
+            $inventory->decrement('reserved_quantity', $quantity);
+        }
+
+        return null;
     }
 }

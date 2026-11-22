@@ -9,9 +9,7 @@ use RuntimeException;
 
 /**
  * @phpstan-type CourierPayload array<string, mixed>
- *
  * @phpstan-type ServicePayload array<string, mixed>
- *
  * @phpstan-type NormalizedRate array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
  */
 class RajaOngkirShippingProvider implements ShippingProvider
@@ -99,7 +97,6 @@ class RajaOngkirShippingProvider implements ShippingProvider
     /**
      * @param CourierPayload $courier
      * @param ServicePayload $service
-     *
      * @return NormalizedRate
      */
     private function normalizeRate(array $courier, array $service): array

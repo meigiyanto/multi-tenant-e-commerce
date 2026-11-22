@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Contracts\Payments\PaymentGateway;
+use App\Exceptions\Payments\PaymentGatewayUnavailableException;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\StoreDomain;
@@ -28,10 +29,19 @@ class MidtransGateway implements PaymentGateway
             ? 'https://app.midtrans.com'
             : 'https://app.sandbox.midtrans.com';
 
+        if ($transaction->currency !== 'IDR' || $transaction->currency !== $order->currency) {
+            throw new RuntimeException('Mata uang transaksi tidak sesuai dengan pesanan.');
+        }
+
+        $amount = (string) $transaction->amount;
+        if (! preg_match('/^\\d+(?:\\.00)?$/', $amount) || (int) explode('.', $amount)[0] < 1) {
+            throw new RuntimeException('Nominal transaksi Midtrans harus berupa bilangan bulat IDR yang valid.');
+        }
+
         $parameters = [
             'transaction_details' => [
                 'order_id' => $transaction->gateway_order_id,
-                'gross_amount' => (int) round((float) $order->total),
+                'gross_amount' => (int) explode('.', $amount)[0],
             ],
             'customer_details' => [
                 'first_name' => $order->customer_name,
@@ -44,8 +54,13 @@ class MidtransGateway implements PaymentGateway
             : StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
 
         if ($domain) {
+            $scheme = rtrim((string) config('storefront.scheme', 'https'), ':/');
+            $port = parse_url((string) config('app.url'), PHP_URL_PORT);
+            $defaultPort = ($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80);
+            $host = $domain.($port && ! $defaultPort ? ':'.$port : '');
+
             $parameters['callbacks'] = [
-                'finish' => rtrim((string) config('storefront.scheme', 'https'), ':/').'://'.$domain.'/orders/'.rawurlencode($order->order_number),
+                'finish' => $scheme.'://'.$host.'/orders/'.rawurlencode($order->order_number),
             ];
         }
 
@@ -55,8 +70,16 @@ class MidtransGateway implements PaymentGateway
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
-        if ($response->successful() === false || empty($response->json('token')) || empty($response->json('redirect_url'))) {
+        if ($response->status() >= 500 || in_array($response->status(), [408, 429], true)) {
+            throw new PaymentGatewayUnavailableException('Midtrans belum dapat memastikan hasil pembuatan sesi pembayaran.');
+        }
+
+        if ($response->successful() === false) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
+        }
+
+        if (empty($response->json('token')) || empty($response->json('redirect_url'))) {
+            throw new PaymentGatewayUnavailableException('Respons pembuatan sesi Midtrans tidak lengkap; hasil transaksi perlu direkonsiliasi.');
         }
 
         return [
@@ -90,15 +113,59 @@ class MidtransGateway implements PaymentGateway
         $status = (string) ($payload['transaction_status'] ?? '');
         $fraud = (string) ($payload['fraud_status'] ?? '');
 
-        if ($status === 'settlement' || ($status === 'capture' && $fraud === 'accept')) {
+        if ($status === 'settlement') {
             return 'paid';
+        }
+
+        if ($status === 'capture') {
+            return match ($fraud) {
+                'accept' => 'paid',
+                'deny' => 'failed',
+                'challenge' => 'pending',
+                default => throw new RuntimeException('Fraud status notifikasi Midtrans tidak didukung.'),
+            };
         }
 
         return match ($status) {
             'expire' => 'expired',
-            'cancel', 'deny' => 'failed',
+            'cancel', 'deny', 'failure' => 'failed',
             'pending', 'authorize' => 'pending',
-            default => 'pending',
+            default => throw new RuntimeException('Status transaksi Midtrans tidak didukung: '.$status),
         };
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getStatus(string $gatewayOrderId): ?array
+    {
+        $serverKey = (string) config('payments.gateways.midtrans.server_key');
+
+        if ($serverKey === '') {
+            throw new RuntimeException('Midtrans Server Key belum dikonfigurasi.');
+        }
+
+        $baseUrl = config('payments.gateways.midtrans.production')
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+
+        $response = Http::acceptJson()
+            ->withBasicAuth($serverKey, '')
+            ->timeout(10)
+            ->get($baseUrl.'/v2/'.rawurlencode($gatewayOrderId).'/status');
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        if ($response->successful() === false) {
+            throw new RuntimeException('Midtrans GET Status gagal dengan HTTP '.$response->status().'.');
+        }
+
+        $payload = $response->json();
+
+        if (! is_array($payload)) {
+            throw new RuntimeException('Respons Midtrans GET Status tidak valid.');
+        }
+
+        return $payload;
     }
 }

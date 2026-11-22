@@ -3,6 +3,8 @@
 namespace App\Services\Storefront;
 
 use App\Models\Cart;
+use App\Models\Inventory;
+use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -41,6 +43,7 @@ class CheckoutService
             $subtotal = 0;
             $actualWeightGrams = 0;
             $validatedItems = [];
+            $reservationQuantities = [];
 
             foreach ($items as $item) {
                 $product = Product::query()
@@ -77,7 +80,7 @@ class CheckoutService
                     }
 
                     if ($inventory !== null) {
-                        $inventory->increment('reserved_quantity', $item->quantity);
+                        $reservationQuantities[$variant->id] = ($reservationQuantities[$variant->id] ?? 0) + (int) $item->quantity;
                     }
                 }
 
@@ -131,6 +134,32 @@ class CheckoutService
             ]);
 
             $order->items()->createMany($validatedItems);
+
+            foreach ($reservationQuantities as $variantId => $quantity) {
+                $inventory = Inventory::query()
+                    ->where('store_id', $store->id)
+                    ->where('product_variant_id', $variantId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $available = max(0, $inventory->quantity - $inventory->reserved_quantity);
+                if ($quantity > $available) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Stok berubah selama checkout. Silakan periksa kembali keranjang.',
+                    ]);
+                }
+
+                $inventory->increment('reserved_quantity', $quantity);
+                InventoryReservation::query()->create([
+                    'store_id' => $store->id,
+                    'order_id' => $order->id,
+                    'inventory_id' => $inventory->id,
+                    'product_variant_id' => $variantId,
+                    'quantity' => $quantity,
+                    'status' => 'reserved',
+                ]);
+            }
+
             $order->statusHistories()->create([
                 'store_id' => $store->id,
                 'from_status' => null,

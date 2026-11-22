@@ -11,7 +11,6 @@ use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Services\Storefront\CheckoutService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -85,7 +84,7 @@ class CheckoutController extends Controller
         return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(Request $request, StoreContext $context): RedirectResponse
+    public function store(Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -127,8 +126,9 @@ class CheckoutController extends Controller
 
         try {
             $payment = $this->payments->start($order);
+            $response = Inertia::location($payment->redirect_url);
 
-            return $this->cartSessions->attach(redirect()->away($payment->redirect_url), $request);
+            return $this->cartSessions->attach($response, $request);
         } catch (\Throwable $exception) {
             report($exception);
 

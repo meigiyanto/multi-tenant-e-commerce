@@ -31,7 +31,7 @@ class MidtransGatewayTest extends TestCase
             'customer_email' => 'customer@example.com',
             'customer_phone' => '+628123456789',
         ]);
-        $transaction = new PaymentTransaction(['gateway_order_id' => 'ORD-20261121-ABC12345-XYZ12345']);
+        $transaction = new PaymentTransaction(['gateway_order_id' => 'ORD-20261121-ABC12345-XYZ12345', 'amount' => '266000.00', 'currency' => 'IDR']);
 
         $result = app(MidtransGateway::class)->createPayment($order, $transaction);
 
@@ -40,7 +40,25 @@ class MidtransGatewayTest extends TestCase
         Http::assertSent(fn ($request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
             && $request->hasHeader('Authorization')
             && $request['transaction_details']['order_id'] === 'ORD-20261121-ABC12345-XYZ12345'
-            && $request['transaction_details']['gross_amount'] === 265000);
+            && $request['transaction_details']['gross_amount'] === 266000);
+    }
+
+    public function test_it_rejects_non_integer_idr_transaction_amounts(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+
+        $order = new Order(['total' => '265000.00', 'currency' => 'IDR']);
+        $transaction = new PaymentTransaction([
+            'gateway_order_id' => 'ORDER-DECIMAL',
+            'amount' => '265000.50',
+            'currency' => 'IDR',
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        app(MidtransGateway::class)->createPayment($order, $transaction);
     }
 
     public function test_it_verifies_notification_with_signature_secret_key(): void
@@ -58,6 +76,44 @@ class MidtransGatewayTest extends TestCase
         $this->assertFalse(app(MidtransGateway::class)->verifyNotification($payload));
     }
 
+    public function test_it_fetches_transaction_status_from_the_correct_environment(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/ORDER-123/status' => Http::response([
+                'status_code' => '200',
+                'order_id' => 'ORDER-123',
+                'transaction_status' => 'settlement',
+                'gross_amount' => '100000.00',
+            ]),
+        ]);
+
+        $result = app(MidtransGateway::class)->getStatus('ORDER-123');
+
+        $this->assertSame('settlement', $result['transaction_status']);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.sandbox.midtrans.com/v2/ORDER-123/status'
+            && $request->hasHeader('Authorization'));
+    }
+
+    public function test_it_returns_null_when_midtrans_has_no_transaction_status(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/UNKNOWN-123/status' => Http::response([
+                'status_code' => '404',
+                'status_message' => 'The requested resource is not found',
+            ], 404),
+        ]);
+
+        $this->assertNull(app(MidtransGateway::class)->getStatus('UNKNOWN-123'));
+    }
+
     public function test_it_maps_midtrans_transaction_statuses(): void
     {
         $gateway = app(MidtransGateway::class);
@@ -67,5 +123,34 @@ class MidtransGatewayTest extends TestCase
         $this->assertSame('pending', $gateway->normalizeStatus(['transaction_status' => 'pending']));
         $this->assertSame('expired', $gateway->normalizeStatus(['transaction_status' => 'expire']));
         $this->assertSame('failed', $gateway->normalizeStatus(['transaction_status' => 'deny']));
+        $this->assertSame('failed', $gateway->normalizeStatus(['transaction_status' => 'failure']));
+    }
+
+    public function test_it_marks_capture_with_denied_fraud_status_as_failed(): void
+    {
+        $this->assertSame('failed', app(MidtransGateway::class)->normalizeStatus([
+            'transaction_status' => 'capture',
+            'fraud_status' => 'deny',
+        ]));
+    }
+
+    public function test_it_keeps_capture_with_challenge_fraud_status_pending(): void
+    {
+        $this->assertSame('pending', app(MidtransGateway::class)->normalizeStatus([
+            'transaction_status' => 'capture',
+            'fraud_status' => 'challenge',
+        ]));
+    }
+
+    public function test_it_rejects_capture_without_a_supported_fraud_status(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'capture']);
+    }
+
+    public function test_it_rejects_unknown_transaction_statuses(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        app(MidtransGateway::class)->normalizeStatus(['transaction_status' => 'refunded']);
     }
 }
