@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Contracts\Payments\PaymentGateway;
+use App\Exceptions\Payments\PaymentGatewayUnavailableException;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\StoreDomain;
@@ -28,10 +29,19 @@ class MidtransGateway implements PaymentGateway
             ? 'https://app.midtrans.com'
             : 'https://app.sandbox.midtrans.com';
 
+        if ($transaction->currency !== 'IDR' || $transaction->currency !== $order->currency) {
+            throw new RuntimeException('Mata uang transaksi tidak sesuai dengan pesanan.');
+        }
+
+        $amount = (string) $transaction->amount;
+        if (! preg_match('/^\\d+(?:\\.00)?$/', $amount) || (int) explode('.', $amount)[0] < 1) {
+            throw new RuntimeException('Nominal transaksi Midtrans harus berupa bilangan bulat IDR yang valid.');
+        }
+
         $parameters = [
             'transaction_details' => [
                 'order_id' => $transaction->gateway_order_id,
-                'gross_amount' => (int) round((float) $order->total),
+                'gross_amount' => (int) explode('.', $amount)[0],
             ],
             'customer_details' => [
                 'first_name' => $order->customer_name,
@@ -60,8 +70,16 @@ class MidtransGateway implements PaymentGateway
             ->timeout(20)
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
-        if ($response->successful() === false || empty($response->json('token')) || empty($response->json('redirect_url'))) {
+        if ($response->status() >= 500 || in_array($response->status(), [408, 429], true)) {
+            throw new PaymentGatewayUnavailableException('Midtrans belum dapat memastikan hasil pembuatan sesi pembayaran.');
+        }
+
+        if ($response->successful() === false) {
             throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
+        }
+
+        if (empty($response->json('token')) || empty($response->json('redirect_url'))) {
+            throw new PaymentGatewayUnavailableException('Respons pembuatan sesi Midtrans tidak lengkap; hasil transaksi perlu direkonsiliasi.');
         }
 
         return [

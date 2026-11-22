@@ -31,7 +31,7 @@ class MidtransGatewayTest extends TestCase
             'customer_email' => 'customer@example.com',
             'customer_phone' => '+628123456789',
         ]);
-        $transaction = new PaymentTransaction(['gateway_order_id' => 'ORD-20261121-ABC12345-XYZ12345']);
+        $transaction = new PaymentTransaction(['gateway_order_id' => 'ORD-20261121-ABC12345-XYZ12345', 'amount' => '266000.00', 'currency' => 'IDR']);
 
         $result = app(MidtransGateway::class)->createPayment($order, $transaction);
 
@@ -40,7 +40,25 @@ class MidtransGatewayTest extends TestCase
         Http::assertSent(fn ($request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
             && $request->hasHeader('Authorization')
             && $request['transaction_details']['order_id'] === 'ORD-20261121-ABC12345-XYZ12345'
-            && $request['transaction_details']['gross_amount'] === 265000);
+            && $request['transaction_details']['gross_amount'] === 266000);
+    }
+
+    public function test_it_rejects_non_integer_idr_transaction_amounts(): void
+    {
+        config([
+            'payments.gateways.midtrans.server_key' => 'SB-server-key',
+            'payments.gateways.midtrans.production' => false,
+        ]);
+
+        $order = new Order(['total' => '265000.00', 'currency' => 'IDR']);
+        $transaction = new PaymentTransaction([
+            'gateway_order_id' => 'ORDER-DECIMAL',
+            'amount' => '265000.50',
+            'currency' => 'IDR',
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        app(MidtransGateway::class)->createPayment($order, $transaction);
     }
 
     public function test_it_verifies_notification_with_signature_secret_key(): void

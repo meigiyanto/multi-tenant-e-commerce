@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Payments\PaymentService;
 use App\Support\Stores\StoreContext;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +48,16 @@ class PaymentController extends Controller
 
         try {
             $this->payments->handleNotification($request->all(), 'midtrans');
+        } catch (ModelNotFoundException $exception) {
+            Log::warning('Midtrans notification references an unknown payment transaction', [
+                ...$context,
+                'exception' => $exception::class,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi pembayaran belum ditemukan. Midtrans dapat mencoba kembali.',
+            ], 503);
         } catch (RuntimeException $exception) {
             Log::warning('Midtrans notification rejected', [
                 ...$context,

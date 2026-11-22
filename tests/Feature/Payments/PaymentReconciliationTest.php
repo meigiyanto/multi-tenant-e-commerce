@@ -3,6 +3,7 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
+use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Store;
@@ -10,6 +11,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Payments\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -24,6 +26,7 @@ class PaymentReconciliationTest extends TestCase
 
         config([
             'payments.enabled' => ['midtrans'],
+            'payments.default' => 'midtrans',
             'payments.gateways.midtrans.server_key' => 'SB-server-key',
             'payments.gateways.midtrans.production' => false,
             'payments.gateways.midtrans.signature_secret_key' => 'test-signature-secret',
@@ -46,6 +49,11 @@ class PaymentReconciliationTest extends TestCase
             'id' => $inventory->id,
             'quantity' => 3,
             'reserved_quantity' => 0,
+        ]);
+        $this->assertDatabaseHas('inventory_reservations', [
+            'order_id' => $order->id,
+            'status' => 'consumed',
+            'quantity' => 2,
         ]);
 
         $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
@@ -86,6 +94,11 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame(3, $inventory->quantity);
         $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertDatabaseHas('inventory_reservations', [
+            'order_id' => $order->id,
+            'status' => 'consumed',
+            'quantity' => 2,
+        ]);
         $this->assertSame(1, $order->statusHistories()->count());
     }
 
@@ -147,6 +160,11 @@ class PaymentReconciliationTest extends TestCase
     {
         [$transaction, $order] = $this->pendingPayment();
         $order->update(['status' => 'cancelled']);
+        InventoryReservation::query()->where('order_id', $order->id)->update([
+            'status' => 'released',
+            'released_at' => now(),
+        ]);
+        $order->items()->first()->variant->inventory()->update(['reserved_quantity' => 0]);
         Http::fake([
             'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
         ]);
@@ -160,6 +178,160 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('paid', $order->payment_status);
         $this->assertSame('cancelled', $order->status);
         $this->assertNotNull(data_get($transaction->metadata, 'inventory_review_required'));
+    }
+
+    public function test_it_returns_a_retryable_response_for_unknown_webhook_transactions(): void
+    {
+        $payload = [
+            'order_id' => 'MIDTRANS-UNKNOWN-ORDER',
+            'status_code' => '200',
+            'gross_amount' => '100000.00',
+            'transaction_status' => 'settlement',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertStatus(503)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_it_releases_order_reservations_when_snap_session_creation_fails(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->delete();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'error_messages' => ['Invalid Snap request'],
+            ], 400),
+        ]);
+
+        try {
+            app(PaymentService::class)->start($order);
+            $this->fail('Payment session creation should fail.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Midtrans gagal membuat sesi pembayaran', $exception->getMessage());
+        }
+
+        $inventory->refresh();
+        $order->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('failed', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
+        $this->assertNotNull($reservation->released_at);
+        $this->assertDatabaseHas('payment_transactions', [
+            'order_id' => $order->id,
+            'status' => 'failed',
+        ]);
+    }
+
+    public function test_it_keeps_reservations_when_snap_creation_result_is_uncertain(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->delete();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => fn () => throw new ConnectionException('Connection timed out'),
+        ]);
+
+        try {
+            app(PaymentService::class)->start($order);
+            $this->fail('The simulated connection failure should be rethrown.');
+        } catch (ConnectionException) {
+            $this->assertTrue(true);
+        }
+
+        $order->refresh();
+        $inventory->refresh();
+        $createdTransaction = PaymentTransaction::query()->where('order_id', $order->id)->firstOrFail();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('pending', $createdTransaction->status);
+        $this->assertNotNull(data_get($createdTransaction->metadata, 'session_creation_uncertain'));
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertSame('pending', $order->status);
+        $this->assertSame(2, $inventory->reserved_quantity);
+        $this->assertSame('reserved', $reservation->status);
+    }
+
+    public function test_it_releases_reservations_after_three_not_found_checks_for_an_unconfirmed_session(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->update(['redirect_url' => null]);
+        DB::table('payment_transactions')->where('id', $transaction->id)->update([
+            'updated_at' => now()->subMinutes(10),
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response([
+                'status_code' => '404',
+                'status_message' => 'The requested resource is not found',
+            ], 404),
+        ]);
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
+            if ($attempt < 3) {
+                DB::table('payment_transactions')->where('id', $transaction->id)->update([
+                    'updated_at' => now()->subMinutes(10),
+                ]);
+            }
+        }
+
+        $transaction->refresh();
+        $order->refresh();
+        $inventory->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('failed', $transaction->status);
+        $this->assertSame(3, data_get($transaction->metadata, 'reconciliation.not_found_attempts'));
+        $this->assertSame('failed', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
+    }
+
+    public function test_it_rejects_a_status_response_with_a_different_currency(): void
+    {
+        [$transaction, $order] = $this->pendingPayment();
+        $payload = $this->statusPayload($transaction, 'settlement');
+        $payload['currency'] = 'USD';
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($payload),
+        ]);
+
+        $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $transaction->refresh();
+        $this->assertSame('pending', $transaction->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame('error', data_get($transaction->metadata, 'reconciliation.result'));
+    }
+
+    public function test_it_releases_reservations_when_midtrans_reports_expired(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'expire')),
+        ]);
+
+        $this->assertSame(1, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $transaction->refresh();
+        $order->refresh();
+        $inventory->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('expired', $transaction->status);
+        $this->assertSame('expired', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(5, $inventory->quantity);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
+        $this->assertNotNull($reservation->released_at);
     }
 
     private function pendingPayment(): array
@@ -236,6 +408,15 @@ class PaymentReconciliationTest extends TestCase
             'currency' => 'IDR',
             'status' => 'pending',
             'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/test-token',
+        ]);
+
+        InventoryReservation::query()->create([
+            'store_id' => $store->id,
+            'order_id' => $order->id,
+            'inventory_id' => $inventory->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+            'status' => 'reserved',
         ]);
 
         DB::table('payment_transactions')->where('id', $transaction->id)->update([

@@ -4,6 +4,7 @@ namespace Tests\Feature\Storefront;
 
 use App\Enums\TeamRole;
 use App\Models\Cart;
+use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\Team;
@@ -43,6 +44,13 @@ class CheckoutServiceTest extends TestCase
             'product_variant_id' => $variant->id,
             'quantity' => 5,
             'reserved_quantity' => 3,
+        ]);
+        $this->assertDatabaseHas('inventory_reservations', [
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+            'status' => 'reserved',
         ]);
         $this->assertDatabaseHas('carts', ['id' => $cart->id, 'status' => 'converted']);
         $this->assertDatabaseHas('order_status_histories', [
