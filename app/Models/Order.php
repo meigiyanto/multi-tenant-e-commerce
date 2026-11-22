@@ -54,6 +54,12 @@ class Order extends Model
         return $this->hasMany(OrderStatusHistory::class);
     }
 
+    /** @return HasMany<InventoryReservation, $this> */
+    public function inventoryReservations(): HasMany
+    {
+        return $this->hasMany(InventoryReservation::class);
+    }
+
     /** @return HasMany<PaymentTransaction, $this> */
     public function paymentTransactions(): HasMany
     {
