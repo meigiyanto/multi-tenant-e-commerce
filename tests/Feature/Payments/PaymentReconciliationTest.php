@@ -182,7 +182,7 @@ class PaymentReconciliationTest extends TestCase
         try {
             app(PaymentService::class)->start($order);
             $this->fail('Payment session creation should fail.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('Midtrans gagal membuat sesi pembayaran', $exception->getMessage());
         }
 
