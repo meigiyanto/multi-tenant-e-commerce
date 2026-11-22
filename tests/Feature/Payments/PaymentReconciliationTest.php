@@ -11,6 +11,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Payments\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -25,6 +26,7 @@ class PaymentReconciliationTest extends TestCase
 
         config([
             'payments.enabled' => ['midtrans'],
+            'payments.default' => 'midtrans',
             'payments.gateways.midtrans.server_key' => 'SB-server-key',
             'payments.gateways.midtrans.production' => false,
             'payments.gateways.midtrans.signature_secret_key' => 'test-signature-secret',
@@ -199,6 +201,70 @@ class PaymentReconciliationTest extends TestCase
             'order_id' => $order->id,
             'status' => 'failed',
         ]);
+    }
+
+    public function test_it_keeps_reservations_when_snap_creation_result_is_uncertain(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->delete();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => fn () => throw new ConnectionException('Connection timed out'),
+        ]);
+
+        try {
+            app(PaymentService::class)->start($order);
+            $this->fail('The simulated connection failure should be rethrown.');
+        } catch (ConnectionException) {
+            $this->assertTrue(true);
+        }
+
+        $order->refresh();
+        $inventory->refresh();
+        $createdTransaction = PaymentTransaction::query()->where('order_id', $order->id)->firstOrFail();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('pending', $createdTransaction->status);
+        $this->assertNotNull(data_get($createdTransaction->metadata, 'session_creation_uncertain'));
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertSame('pending', $order->status);
+        $this->assertSame(2, $inventory->reserved_quantity);
+        $this->assertSame('reserved', $reservation->status);
+    }
+
+    public function test_it_releases_reservations_after_three_not_found_checks_for_an_unconfirmed_session(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $transaction->update(['redirect_url' => null]);
+        DB::table('payment_transactions')->where('id', $transaction->id)->update([
+            'updated_at' => now()->subMinutes(10),
+        ]);
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response([
+                'status_code' => '404',
+                'status_message' => 'The requested resource is not found',
+            ], 404),
+        ]);
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
+            if ($attempt < 3) {
+                DB::table('payment_transactions')->where('id', $transaction->id)->update([
+                    'updated_at' => now()->subMinutes(10),
+                ]);
+            }
+        }
+
+        $transaction->refresh();
+        $order->refresh();
+        $inventory->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('failed', $transaction->status);
+        $this->assertSame(3, data_get($transaction->metadata, 'reconciliation.not_found_attempts'));
+        $this->assertSame('failed', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
     }
 
     private function pendingPayment(): array
