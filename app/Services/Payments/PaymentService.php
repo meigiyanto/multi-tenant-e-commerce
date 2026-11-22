@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services\Payments;
+namespace App\\Services\\Payments;
 
-use App\Models\Order;
-use App\Models\PaymentTransaction;
-use App\Support\Payments\PaymentGatewayManager;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\\Models\\Order;
+use App\\Models\\PaymentTransaction;
+use App\\Support\\Payments\\PaymentGatewayManager;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Support\\Str;
 use RuntimeException;
 
 class PaymentService
@@ -73,7 +73,7 @@ class PaymentService
                 'redirect_url' => $result['redirect_url'] ?? null,
                 'metadata' => ['gateway_response' => $result['response'] ?? []],
             ]);
-        } catch (\Throwable $exception) {
+        } catch (\\Throwable $exception) {
             $transaction->update(['status' => 'failed', 'metadata' => ['error' => $exception->getMessage()]]);
             throw $exception;
         }
@@ -97,45 +97,29 @@ class PaymentService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (number_format((float) ($payload['gross_amount'] ?? 0), 2, '.', '') !== number_format((float) $transaction->amount, 2, '.', '')) {
+            if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
                 throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
+
+            $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
                 return;
             }
 
-            $status = $gateway->normalizeStatus($payload);
+            $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
+            $this->applyInventoryTransition($order, $status);
+
             $transaction->update([
                 'status' => $status,
                 'gateway_transaction_id' => $payload['transaction_id'] ?? $transaction->gateway_transaction_id,
-                'metadata' => array_merge((array) ($transaction->metadata ?? []), ['last_notification' => $payload]),
+                'metadata' => array_merge((array) ($transaction->metadata ?? []), [
+                    'last_notification' => $this->safeNotificationMetadata($payload),
+                ]),
                 'paid_at' => $status === 'paid' ? now() : null,
             ]);
 
-            $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
             $order->update(['payment_status' => $status]);
-
-            foreach ($order->items()->with('variant.inventory')->get() as $item) {
-                if (! $item->track_inventory) {
-                    continue;
-                }
-
-                $inventory = $item->variant?->inventory;
-                if ($inventory === null) {
-                    continue;
-                }
-
-                $reservedToRelease = min((int) $inventory->reserved_quantity, (int) $item->quantity);
-                if ($status === 'paid') {
-                    $inventory->decrement('quantity', $item->quantity);
-                    if ($reservedToRelease > 0) {
-                        $inventory->decrement('reserved_quantity', $reservedToRelease);
-                    }
-                } elseif (in_array($status, ['failed', 'expired'], true) && $reservedToRelease > 0) {
-                    $inventory->decrement('reserved_quantity', $reservedToRelease);
-                }
-            }
 
             if ($status === 'paid' && $order->status === 'pending') {
                 $order->update(['status' => 'processing']);
@@ -155,5 +139,74 @@ class PaymentService
                 ]);
             }
         });
+    }
+
+    private function normalizeAmount(mixed $amount): string
+    {
+        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
+            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        }
+
+        $amount = (string) $amount;
+        if (! preg_match('/^\\d{1,13}(?:\\.\\d{1,2})?$/', $amount)) {
+            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        }
+
+        [$integer, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
+        $integer = ltrim($integer, '0') ?: '0';
+
+        return $integer.'.'.str_pad($fraction, 2, '0');
+    }
+
+    /** @param array<string, mixed> $payload
+     *  @return array<string, scalar|null>
+     */
+    private function safeNotificationMetadata(array $payload): array
+    {
+        $allowed = [
+            'order_id', 'transaction_id', 'transaction_status', 'fraud_status',
+            'status_code', 'gross_amount', 'currency', 'payment_type',
+            'transaction_time', 'settlement_time', 'bank', 'card_type',
+        ];
+
+        return array_filter(
+            array_intersect_key($payload, array_flip($allowed)),
+            static fn (mixed $value): bool => is_scalar($value) || $value === null,
+        );
+    }
+
+    private function applyInventoryTransition(Order $order, string $status): void
+    {
+        if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
+            return;
+        }
+
+        $quantities = $order->items()
+            ->where('track_inventory', true)
+            ->whereNotNull('product_variant_id')
+            ->get()
+            ->groupBy('product_variant_id')
+            ->map(fn ($items): int => (int) $items->sum('quantity'));
+
+        foreach ($quantities as $variantId => $quantity) {
+            $inventory = \\App\\Models\\Inventory::query()
+                ->where('product_variant_id', $variantId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($inventory === null || $inventory->reserved_quantity < $quantity) {
+                throw new RuntimeException('Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.');
+            }
+
+            if ($status === 'paid' && $inventory->quantity < $quantity) {
+                throw new RuntimeException('Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.');
+            }
+
+            if ($status === 'paid') {
+                $inventory->decrement('quantity', $quantity);
+            }
+
+            $inventory->decrement('reserved_quantity', $quantity);
+        }
     }
 }
