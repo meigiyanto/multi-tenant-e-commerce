@@ -1,22 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace App\\Http\\Controllers\\Storefront;
 
-use App\Http\Controllers\Controller;
-use App\Models\Cart;
-use App\Models\Order;
-use App\Services\Payments\PaymentService;
-use App\Services\Shipping\ShippingQuoteService;
-use App\Services\Storefront\CartService;
-use App\Services\Storefront\CartSessionService;
-use App\Services\Storefront\CheckoutService;
-use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
-use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use App\\Http\\Controllers\\Controller;
+use App\\Models\\Cart;
+use App\\Models\\Order;
+use App\\Services\\Payments\\PaymentService;
+use App\\Services\\Shipping\\ShippingQuoteService;
+use App\\Services\\Storefront\\CartService;
+use App\\Services\\Storefront\\CartSessionService;
+use App\\Services\\Storefront\\CheckoutService;
+use App\\Support\\Stores\\StoreContext;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Storage;
+use Inertia\\Inertia;
+use Inertia\\Response;
+use Symfony\\Component\\HttpFoundation\\Response as SymfonyResponse;
 
 class CheckoutController extends Controller
 {
@@ -85,7 +84,7 @@ class CheckoutController extends Controller
         return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(Request $request, StoreContext $context): RedirectResponse
+    public function store(Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -127,9 +126,10 @@ class CheckoutController extends Controller
 
         try {
             $payment = $this->payments->start($order);
+            $response = Inertia::location($payment->redirect_url);
 
-            return $this->cartSessions->attach(redirect()->away($payment->redirect_url), $request);
-        } catch (\Throwable $exception) {
+            return $this->cartSessions->attach($response, $request);
+        } catch (\\Throwable $exception) {
             report($exception);
 
             return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
