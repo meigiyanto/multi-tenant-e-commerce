@@ -8,6 +8,7 @@ use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class PaymentService
 {
@@ -73,7 +74,7 @@ class PaymentService
                 'redirect_url' => $result['redirect_url'] ?? null,
                 'metadata' => ['gateway_response' => $result['response'] ?? []],
             ]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             $transaction->update(['status' => 'failed', 'metadata' => ['error' => $exception->getMessage()]]);
             throw $exception;
         }
@@ -164,7 +165,7 @@ class PaymentService
     }
 
     /** @param array<string, mixed> $payload
-     *  @return array<string, scalar|null>
+     * @return array<string, scalar|null>
      */
     private function safeNotificationMetadata(array $payload): array
     {
