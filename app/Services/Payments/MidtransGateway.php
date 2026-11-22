@@ -28,10 +28,19 @@ class MidtransGateway implements PaymentGateway
             ? 'https://app.midtrans.com'
             : 'https://app.sandbox.midtrans.com';
 
+        if ($transaction->currency !== 'IDR' || $transaction->currency !== $order->currency) {
+            throw new RuntimeException('Mata uang transaksi tidak sesuai dengan pesanan.');
+        }
+
+        $amount = (string) $transaction->amount;
+        if (! preg_match('/^\\d+(?:\\.00)?$/', $amount) || (int) explode('.', $amount)[0] < 1) {
+            throw new RuntimeException('Nominal transaksi Midtrans harus berupa bilangan bulat IDR yang valid.');
+        }
+
         $parameters = [
             'transaction_details' => [
                 'order_id' => $transaction->gateway_order_id,
-                'gross_amount' => (int) round((float) $order->total),
+                'gross_amount' => (int) explode('.', $amount)[0],
             ],
             'customer_details' => [
                 'first_name' => $order->customer_name,
