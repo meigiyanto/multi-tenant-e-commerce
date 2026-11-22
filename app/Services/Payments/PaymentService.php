@@ -180,15 +180,27 @@ class PaymentService
 
             $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
 
-            if ($order->status === 'cancelled' || ($order->payment_status === 'paid' && $status !== 'paid')) {
+            if ($order->payment_status === 'paid' && $status !== 'paid') {
                 throw new RuntimeException('Status pesanan tidak mengizinkan perubahan pembayaran ini.');
             }
 
-            $this->applyInventoryTransition($order, $status);
+            $inventoryError = null;
+
+            if ($order->status === 'cancelled') {
+                if ($status === 'paid') {
+                    $inventoryError = 'Pembayaran diterima setelah pesanan dibatalkan; perlu pemeriksaan manual.';
+                }
+            } else {
+                $inventoryError = $this->applyInventoryTransition($order, $status);
+            }
 
             $metadata = array_merge((array) ($transaction->metadata ?? []), [
                 $isNotification ? 'last_notification' : 'last_status_response' => $this->safeNotificationMetadata($payload),
             ]);
+
+            if ($inventoryError !== null) {
+                $metadata['inventory_review_required'] = $inventoryError;
+            }
 
             $transaction->update([
                 'status' => $status,
@@ -199,7 +211,7 @@ class PaymentService
 
             $order->update(['payment_status' => $status]);
 
-            if ($status === 'paid' && $order->status === 'pending') {
+            if ($status === 'paid' && $order->status === 'pending' && $inventoryError === null) {
                 $order->update(['status' => 'processing']);
                 $order->statusHistories()->create([
                     'store_id' => $order->store_id,
@@ -214,6 +226,16 @@ class PaymentService
                     'from_status' => 'pending',
                     'to_status' => 'cancelled',
                     'note' => 'Payment '.$status.'; inventory reservation released.',
+                ]);
+            }
+
+            if ($inventoryError !== null) {
+                Log::critical('Payment confirmed but inventory/order requires manual review', [
+                    'payment_transaction_id' => $transaction->id,
+                    'order_id' => $transaction->gateway_order_id,
+                    'order_status' => $order->status,
+                    'payment_status' => $status,
+                    'reason' => $inventoryError,
                 ]);
             }
         });
@@ -276,10 +298,10 @@ class PaymentService
         );
     }
 
-    private function applyInventoryTransition(Order $order, string $status): void
+    private function applyInventoryTransition(Order $order, string $status): ?string
     {
         if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
-            return;
+            return null;
         }
 
         $quantities = $order->items()
@@ -289,6 +311,8 @@ class PaymentService
             ->groupBy('product_variant_id')
             ->map(fn ($items): int => (int) $items->sum('quantity'));
 
+        $transitions = [];
+
         foreach ($quantities as $variantId => $quantity) {
             $inventory = Inventory::query()
                 ->where('store_id', $order->store_id)
@@ -297,18 +321,24 @@ class PaymentService
                 ->first();
 
             if ($inventory === null || $inventory->reserved_quantity < $quantity) {
-                throw new RuntimeException('Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.');
+                return 'Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.';
             }
 
             if ($status === 'paid' && $inventory->quantity < $quantity) {
-                throw new RuntimeException('Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.');
+                return 'Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.';
             }
 
+            $transitions[] = [$inventory, $quantity];
+        }
+
+        foreach ($transitions as [$inventory, $quantity]) {
             if ($status === 'paid') {
                 $inventory->decrement('quantity', $quantity);
             }
 
             $inventory->decrement('reserved_quantity', $quantity);
         }
+
+        return null;
     }
 }
