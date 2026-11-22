@@ -50,6 +50,11 @@ class PaymentReconciliationTest extends TestCase
             'quantity' => 3,
             'reserved_quantity' => 0,
         ]);
+        $this->assertDatabaseHas('inventory_reservations', [
+            'order_id' => $order->id,
+            'status' => 'consumed',
+            'quantity' => 2,
+        ]);
 
         $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
         Http::assertSentCount(1);
@@ -89,6 +94,11 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame(3, $inventory->quantity);
         $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertDatabaseHas('inventory_reservations', [
+            'order_id' => $order->id,
+            'status' => 'consumed',
+            'quantity' => 2,
+        ]);
         $this->assertSame(1, $order->statusHistories()->count());
     }
 
@@ -265,6 +275,46 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('cancelled', $order->status);
         $this->assertSame(0, $inventory->reserved_quantity);
         $this->assertSame('released', $reservation->status);
+    }
+
+    public function test_it_rejects_a_status_response_with_a_different_currency(): void
+    {
+        [$transaction, $order] = $this->pendingPayment();
+        $payload = $this->statusPayload($transaction, 'settlement');
+        $payload['currency'] = 'USD';
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($payload),
+        ]);
+
+        $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $transaction->refresh();
+        $this->assertSame('pending', $transaction->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame('error', data_get($transaction->metadata, 'reconciliation.result'));
+    }
+
+    public function test_it_releases_reservations_when_midtrans_reports_expired(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'expire')),
+        ]);
+
+        $this->assertSame(1, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $transaction->refresh();
+        $order->refresh();
+        $inventory->refresh();
+        $reservation = InventoryReservation::query()->where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame('expired', $transaction->status);
+        $this->assertSame('expired', $order->payment_status);
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame(5, $inventory->quantity);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame('released', $reservation->status);
+        $this->assertNotNull($reservation->released_at);
     }
 
     private function pendingPayment(): array
