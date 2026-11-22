@@ -27,6 +27,7 @@ class PaymentReconciliationTest extends TestCase
             'payments.enabled' => ['midtrans'],
             'payments.gateways.midtrans.server_key' => 'SB-server-key',
             'payments.gateways.midtrans.production' => false,
+            'payments.gateways.midtrans.signature_secret_key' => 'test-signature-secret',
         ]);
     }
 
@@ -50,6 +51,43 @@ class PaymentReconciliationTest extends TestCase
 
         $this->assertSame(0, app(PaymentService::class)->reconcilePendingTransactions());
         Http::assertSentCount(1);
+    }
+
+    public function test_it_processes_duplicate_successful_webhooks_without_consuming_inventory_twice(): void
+    {
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-webhook-transaction-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertOk()
+            ->assertExactJson(['success' => true]);
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertOk()
+            ->assertExactJson(['success' => true]);
+
+        $transaction->refresh();
+        $order->refresh();
+        $inventory->refresh();
+
+        $this->assertSame('paid', $transaction->status);
+        $this->assertSame('paid', $order->payment_status);
+        $this->assertSame('processing', $order->status);
+        $this->assertSame(3, $inventory->quantity);
+        $this->assertSame(0, $inventory->reserved_quantity);
+        $this->assertSame(1, $order->statusHistories()->count());
     }
 
     public function test_it_keeps_a_transaction_pending_when_midtrans_still_reports_pending(): void
