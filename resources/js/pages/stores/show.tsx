@@ -1,6 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Globe2, LayoutDashboard, Settings, Package, Store as StoreIcon } from 'lucide-react';
+import { ArrowLeft, Globe2, LayoutDashboard, Package, Settings, Store as StoreIcon } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +79,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store details for ' + team.name + '.'} />
                         <div className="flex flex-wrap gap-2">
-                            <Button asChild><Link href={base + '/dashboard'}><LayoutDashboard /> Dashboard</Link></Button>
+                            {canManageStore ? <Button asChild><Link href={base + '/dashboard'}><LayoutDashboard /> Dashboard</Link></Button> : null}
                             <Button asChild variant="outline">
                                 <Link href={base + '/catalog'}>
                                     <Package /> Product catalog
