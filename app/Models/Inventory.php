@@ -25,6 +25,12 @@ class Inventory extends Model
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 
+    /** @return HasMany<InventoryReservation, $this> */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(InventoryReservation::class);
+    }
+
     /** @return HasMany<InventoryMovement, $this> */
     public function movements(): HasMany
     {
