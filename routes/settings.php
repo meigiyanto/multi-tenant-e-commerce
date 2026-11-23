@@ -5,6 +5,7 @@ use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Teams\StoreCatalogController;
 use App\Http\Controllers\Teams\StoreController;
 use App\Http\Controllers\Teams\StoreDashboardController;
+use App\Http\Controllers\Teams\StoreOrderController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('settings/teams/{team}/stores', [StoreController::class, 'store'])->name('teams.stores.store');
         Route::get('settings/teams/{team}/stores/{store}', [StoreController::class, 'show'])->name('teams.stores.show');
         Route::get('settings/teams/{team}/stores/{store}/dashboard', StoreDashboardController::class)->name('teams.stores.dashboard');
+        Route::get('settings/teams/{team}/stores/{store}/orders', [StoreOrderController::class, 'index'])->name('teams.stores.orders.index');
+        Route::get('settings/teams/{team}/stores/{store}/orders/{order}', [StoreOrderController::class, 'show'])->name('teams.stores.orders.show');
+        Route::patch('settings/teams/{team}/stores/{store}/orders/{order}/status', [StoreOrderController::class, 'updateStatus'])->name('teams.stores.orders.status');
         Route::get('settings/teams/{team}/stores/{store}/settings', [StoreController::class, 'edit'])->name('teams.stores.edit');
         Route::patch('settings/teams/{team}/stores/{store}', [StoreController::class, 'update'])->name('teams.stores.update');
         Route::patch('settings/teams/{team}/stores/{store}/status', [StoreController::class, 'updateStatus'])->name('teams.stores.status');
