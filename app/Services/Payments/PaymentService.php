@@ -233,7 +233,9 @@ class PaymentService
         string $gatewayName,
         bool $isNotification,
     ): void {
-        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification): void {
+        $paidOrderId = null;
+
+        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification, &$paidOrderId): void {
             $transaction = PaymentTransaction::query()
                 ->where('gateway', $gatewayName)
                 ->where('gateway_order_id', $payload['order_id'] ?? '')
@@ -293,6 +295,10 @@ class PaymentService
 
             $order->update(['payment_status' => $status]);
 
+            if ($status === 'paid') {
+                $paidOrderId = $order->id;
+            }
+
             if ($status === 'paid' && $order->status === 'pending' && $inventoryError === null) {
                 $order->update(['status' => 'processing']);
                 $order->statusHistories()->create([
@@ -321,6 +327,11 @@ class PaymentService
                 ]);
             }
         });
+
+        if ($paidOrderId !== null) {
+            app(\App\Services\Notifications\OrderNotificationService::class)
+                ->queuePaymentConfirmed($paidOrderId);
+        }
     }
 
     private function recordReconciliationAttempt(

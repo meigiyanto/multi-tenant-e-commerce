@@ -65,4 +65,10 @@ class Order extends Model
     {
         return $this->hasMany(PaymentTransaction::class);
     }
+
+    /** @return HasMany<NotificationDelivery, $this> */
+    public function notificationDeliveries(): HasMany
+    {
+        return $this->hasMany(NotificationDelivery::class);
+    }
 }

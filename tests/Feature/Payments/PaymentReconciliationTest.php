@@ -3,6 +3,7 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
+use App\Jobs\SendOrderPaidEmail;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PaymentReconciliationTest extends TestCase
@@ -34,6 +36,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_reconciles_a_successful_payment_and_consumes_inventory_once(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         Http::fake([
             'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
@@ -42,6 +45,7 @@ class PaymentReconciliationTest extends TestCase
         $reconciled = app(PaymentService::class)->reconcilePendingTransactions();
 
         $this->assertSame(1, $reconciled);
+        Queue::assertPushed(SendOrderPaidEmail::class, 1);
         $this->assertDatabaseHas('payment_transactions', ['id' => $transaction->id, 'status' => 'paid']);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'payment_status' => 'paid', 'status' => 'processing']);
         $this->assertDatabaseHas('inventories', [
@@ -61,6 +65,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_processes_duplicate_successful_webhooks_without_consuming_inventory_twice(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         $payload = [
             'order_id' => $transaction->gateway_order_id,
@@ -99,6 +104,7 @@ class PaymentReconciliationTest extends TestCase
             'quantity' => 2,
         ]);
         $this->assertSame(1, $order->statusHistories()->count());
+        Queue::assertPushed(SendOrderPaidEmail::class, 1);
     }
 
     public function test_it_keeps_a_transaction_pending_when_midtrans_still_reports_pending(): void
