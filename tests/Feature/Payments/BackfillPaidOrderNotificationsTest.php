@@ -1,17 +1,17 @@
 <?php
 
-namespace Tests\\Feature\\Payments;
+namespace Tests\Feature\Payments;
 
-use App\\Enums\\TeamRole;
-use App\\Jobs\\SendOrderPaidEmail;
-use App\\Jobs\\SendOrderPaidWhatsApp;
-use App\\Models\\Order;
-use App\\Models\\PaymentTransaction;
-use App\\Models\\Team;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Queue;
-use Tests\\TestCase;
+use App\Enums\TeamRole;
+use App\Jobs\SendOrderPaidEmail;
+use App\Jobs\SendOrderPaidWhatsApp;
+use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Models\Team;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 class BackfillPaidOrderNotificationsTest extends TestCase
 {
