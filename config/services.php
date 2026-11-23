@@ -28,6 +28,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'fonnte' => [
+        'token' => env('FONNTE_TOKEN'),
+        'webhook_secret' => env('FONNTE_WEBHOOK_SECRET'),
+    ],
+
     'notification_delivery_webhook' => [
         'secret' => env('NOTIFICATION_DELIVERY_WEBHOOK_SECRET'),
     ],
