@@ -37,6 +37,9 @@ if ($storefrontRootDomain !== '') {
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
     ->name('payments.midtrans.notification');
 
+Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)
+    ->name('webhooks.fonnte');
+
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)
     ->name('webhooks.notification-deliveries');
 
