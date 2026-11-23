@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Jobs\SendOrderPaidEmail;
+use App\Jobs\SendOrderPaidWhatsApp;
 use App\Models\NotificationDelivery;
 use App\Models\Order;
 use Illuminate\Support\Str;
