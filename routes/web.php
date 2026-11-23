@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\PaymentController;
@@ -35,6 +36,9 @@ if ($storefrontRootDomain !== '') {
 
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
     ->name('payments.midtrans.notification');
+
+Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)
+    ->name('webhooks.notification-deliveries');
 
 // Register the storefront host route before the application root route.
 Route::inertia('/', 'welcome')->name('home');
