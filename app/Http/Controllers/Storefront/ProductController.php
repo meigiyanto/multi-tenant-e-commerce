@@ -91,7 +91,7 @@ class ProductController extends Controller
             'slug' => $product->slug,
             'price' => $product->price,
             'image_url' => $image ? Storage::disk('public')->url($image->path) : null,
-            'in_stock' => !$product->track_inventory || $product->variants->contains(
+            'in_stock' => ! $product->track_inventory || $product->variants->contains(
                 fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
             ),
         ];
