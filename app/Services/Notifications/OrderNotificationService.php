@@ -18,20 +18,20 @@ class OrderNotificationService
 
         if (filter_var($order->customer_email, FILTER_VALIDATE_EMAIL)) {
             $emailDelivery = NotificationDelivery::query()->firstOrCreate(
-            [
-                'order_id' => $order->id,
-                'event' => 'payment_confirmed',
-                'channel' => 'mail',
-            ],
-            [
-                'uuid' => (string) Str::uuid(),
-                'store_id' => $order->store_id,
-                'recipient' => $order->customer_email,
-                'status' => 'queued',
-                'provider' => config('mail.default'),
-                'queued_at' => now(),
-            ],
-        );
+                [
+                    'order_id' => $order->id,
+                    'event' => 'payment_confirmed',
+                    'channel' => 'mail',
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'store_id' => $order->store_id,
+                    'recipient' => $order->customer_email,
+                    'status' => 'queued',
+                    'provider' => config('mail.default'),
+                    'queued_at' => now(),
+                ],
+            );
 
             if ($emailDelivery->wasRecentlyCreated) {
                 SendOrderPaidEmail::dispatch($emailDelivery->id);
