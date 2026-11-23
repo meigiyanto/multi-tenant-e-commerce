@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'payments/midtrans/notification',
             'webhooks/notification-deliveries/*',
+            'webhooks/fonnte/*',
         ]);
 
         $middleware->alias([
