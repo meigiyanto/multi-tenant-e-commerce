@@ -43,7 +43,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
     }
 
     /**
-     * @param list<string> $couriers
+     * @param  list<string>  $couriers
      * @return list<array<string, mixed>>
      */
     public function calculate(int $originId, int $destinationId, int $weightGrams, array $couriers): array
@@ -95,9 +95,8 @@ class RajaOngkirShippingProvider implements ShippingProvider
     }
 
     /**
-     * @param CourierPayload $courier
-     * @param ServicePayload $service
-     *
+     * @param  CourierPayload  $courier
+     * @param  ServicePayload  $service
      * @return NormalizedRate
      */
     private function normalizeRate(array $courier, array $service): array

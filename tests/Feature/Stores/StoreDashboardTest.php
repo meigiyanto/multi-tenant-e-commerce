@@ -22,7 +22,7 @@ class StoreDashboardTest extends TestCase
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
         $store = $team->stores()->create(['name' => 'Main Store', 'slug' => 'main-store', 'currency' => 'IDR']);
         $otherTeam = Team::factory()->create();
-        $otherStore = $otherTeam->stores()->create(['name' => 'Other Store', 'slug' => 'other-store']);
+        $otherStore = $otherTeam->stores()->create(['name' => 'Other Store', 'slug' => 'other-store', 'currency' => 'IDR']);
 
         $this->createOrder($store, 'ORD-MAIN-PAID', 'paid', 'paid', '125000.00');
         $this->createOrder($store, 'ORD-MAIN-PENDING', 'pending', 'pending', '50000.00');
@@ -84,7 +84,7 @@ class StoreDashboardTest extends TestCase
             'shipping_city' => 'Jakarta',
             'shipping_province' => 'DKI Jakarta',
             'shipping_postal_code' => '10110',
-            'currency' => $store->currency,
+            'currency' => $store->currency ?? 'IDR',
             'subtotal' => $total,
             'shipping_amount' => '0.00',
             'discount_amount' => '0.00',

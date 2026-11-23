@@ -4,7 +4,6 @@ namespace Tests\Feature\Storefront;
 
 use App\Enums\TeamRole;
 use App\Models\Cart;
-use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\Team;

@@ -186,6 +186,7 @@ class PaymentService
                             if ($transaction->redirect_url === null && $attempts >= 3) {
                                 $this->failUnconfirmedSession($transaction);
                             }
+
                             continue;
                         }
 
