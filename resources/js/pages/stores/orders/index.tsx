@@ -119,7 +119,7 @@ export default function StoreOrdersIndex({ team, store, orders, filters, statuse
                         <nav aria-label="Order pagination" className="flex flex-wrap justify-center gap-2">
                             {orders.links.map((link, index) => (
                                 <Button key={index} asChild size="sm" variant={link.active ? 'default' : 'outline'} disabled={!link.url}>
-                                    <Link href={link.url ?? '#'} preserveScroll dangerouslySetInnerHTML={{ __html: link.label }} />
+                                    <Link href={link.url ?? '#'} preserveScroll {link.label.replace(/&laquo;|&raquo;/g, '').trim()} />
                                 </Button>
                             ))}
                         </nav>
