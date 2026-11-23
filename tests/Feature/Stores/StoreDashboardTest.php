@@ -84,7 +84,7 @@ class StoreDashboardTest extends TestCase
             'shipping_city' => 'Jakarta',
             'shipping_province' => 'DKI Jakarta',
             'shipping_postal_code' => '10110',
-            'currency' => $store->currency,
+            'currency' => $store->currency ?? 'IDR',
             'subtotal' => $total,
             'shipping_amount' => '0.00',
             'discount_amount' => '0.00',
