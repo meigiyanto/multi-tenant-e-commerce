@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Models\\Order;
-use App\\Services\\Notifications\\OrderNotificationService;
-use Illuminate\\Console\\Command;
+use App\Models\Order;
+use App\Services\Notifications\OrderNotificationService;
+use Illuminate\Console\Command;
 
 class BackfillPaidOrderNotifications extends Command
 {
@@ -56,7 +56,7 @@ class BackfillPaidOrderNotifications extends Command
                     }
                 }
 
-                $phone = preg_replace('/\\D+/', '', (string) $order->customer_phone);
+                $phone = preg_replace('/\D+/', '', (string) $order->customer_phone);
                 if ($phone !== '') {
                     if ($existing->has('whatsapp')) {
                         $alreadyRecorded++;
