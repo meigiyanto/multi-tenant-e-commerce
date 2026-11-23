@@ -49,4 +49,30 @@ $order->notificationDeliveries->map->only([
 ]);
 ```
 
-WhatsApp is intentionally not sent until a provider (for example, Meta WhatsApp Cloud API or another BSP) and its credentials are selected. The existing delivery table and signed callback contract support adding that channel without treating an API acceptance as delivery.
+## Fonnte WhatsApp
+
+The payment confirmation event also queues one WhatsApp delivery when the order has a customer phone number. Configure these values in the application environment:
+
+```dotenv
+FONNTE_TOKEN=your_device_token
+FONNTE_WEBHOOK_SECRET=use-a-long-random-secret
+```
+
+Never commit either value. The queued job calls Fonnte's `POST https://api.fonnte.com/send` endpoint using the token in the Authorization header. Fonnte's successful API response is recorded as `sent`; it is not proof of delivery or that the customer read the message.
+
+For delivery updates, configure Fonnte's **Webhook Update Message Status** URL to:
+
+```
+https://your-public-domain.example/webhooks/fonnte/YOUR_FONNTE_WEBHOOK_SECRET
+```
+
+Use the same secret as `FONNTE_WEBHOOK_SECRET`. The webhook stores the raw Fonnte status/state payload and maps recognizable delivered/read/failed states to the delivery timeline. Fonnte must be able to reach this public HTTPS URL. Do not use localhost.
+
+After changing environment values, run:
+
+```bash
+php artisan config:clear
+php artisan queue:work --tries=3
+```
+
+The WhatsApp channel is independently deduplicated by `order_id + event + channel`. Only test with a number you control before enabling customer notifications.
