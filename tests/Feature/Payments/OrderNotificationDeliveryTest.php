@@ -4,12 +4,14 @@ namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
 use App\Jobs\SendOrderPaidEmail;
+use App\Jobs\SendOrderPaidWhatsApp;
 use App\Models\NotificationDelivery;
 use App\Models\Order;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Notifications\OrderNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -30,6 +32,40 @@ class OrderNotificationDeliveryTest extends TestCase
         $this->assertSame($first->id, $second?->id);
         $this->assertDatabaseCount('notification_deliveries', 1);
         Queue::assertPushed(SendOrderPaidEmail::class, 1);
+        Queue::assertPushed(SendOrderPaidWhatsApp::class, 1);
+    }
+
+    public function test_it_sends_payment_confirmation_through_fonnte_and_stores_message_id(): void
+    {
+        $order = $this->order();
+        $delivery = NotificationDelivery::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'store_id' => $order->store_id,
+            'order_id' => $order->id,
+            'event' => 'payment_confirmed',
+            'channel' => 'whatsapp',
+            'recipient' => '628123456789',
+            'status' => 'queued',
+            'provider' => 'fonnte',
+            'queued_at' => now(),
+        ]);
+        config(['services.fonnte.token' => 'test-fonnte-token']);
+        Http::fake([
+            'api.fonnte.com/send' => Http::response([
+                'status' => true,
+                'id' => ['fonnte-message-123'],
+                'process' => 'pending',
+            ]),
+        ]);
+
+        (new SendOrderPaidWhatsApp($delivery->id))->handle();
+
+        $this->assertSame('sent', $delivery->fresh()->status);
+        $this->assertSame('fonnte', $delivery->fresh()->provider);
+        $this->assertSame('fonnte-message-123', $delivery->fresh()->provider_message_id);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.fonnte.com/send'
+            && $request->hasHeader('Authorization', 'test-fonnte-token')
+            && $request['target'] === '628123456789');
     }
 
     public function test_it_marks_email_sent_after_mail_transport_accepts_it(): void
