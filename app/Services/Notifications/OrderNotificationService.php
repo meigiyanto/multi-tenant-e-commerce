@@ -13,11 +13,10 @@ class OrderNotificationService
     {
         $order = Order::query()->with('store')->findOrFail($orderId);
 
-        if (! filter_var($order->customer_email, FILTER_VALIDATE_EMAIL)) {
-            return null;
-        }
+        $emailDelivery = null;
 
-        $delivery = NotificationDelivery::query()->firstOrCreate(
+        if (filter_var($order->customer_email, FILTER_VALIDATE_EMAIL)) {
+            $emailDelivery = NotificationDelivery::query()->firstOrCreate(
             [
                 'order_id' => $order->id,
                 'event' => 'payment_confirmed',
@@ -33,10 +32,34 @@ class OrderNotificationService
             ],
         );
 
-        if ($delivery->wasRecentlyCreated) {
-            SendOrderPaidEmail::dispatch($delivery->id);
+            if ($emailDelivery->wasRecentlyCreated) {
+                SendOrderPaidEmail::dispatch($emailDelivery->id);
+            }
         }
 
-        return $delivery;
+        $phone = preg_replace('/\\D+/', '', (string) $order->customer_phone);
+        if ($phone !== '') {
+            $whatsAppDelivery = NotificationDelivery::query()->firstOrCreate(
+                [
+                    'order_id' => $order->id,
+                    'event' => 'payment_confirmed',
+                    'channel' => 'whatsapp',
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'store_id' => $order->store_id,
+                    'recipient' => $phone,
+                    'status' => 'queued',
+                    'provider' => 'fonnte',
+                    'queued_at' => now(),
+                ],
+            );
+
+            if ($whatsAppDelivery->wasRecentlyCreated) {
+                SendOrderPaidWhatsApp::dispatch($whatsAppDelivery->id);
+            }
+        }
+
+        return $emailDelivery ?? $whatsAppDelivery ?? null;
     }
 }
