@@ -18,9 +18,7 @@ use Throwable;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways)
-    {
-    }
+    public function __construct(private readonly PaymentGatewayManager $gateways) {}
 
     public function start(Order $order): PaymentTransaction
     {
@@ -188,6 +186,7 @@ class PaymentService
                             if ($transaction->redirect_url === null && $attempts >= 3) {
                                 $this->failUnconfirmedSession($transaction);
                             }
+
                             continue;
                         }
 
