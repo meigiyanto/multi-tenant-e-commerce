@@ -57,7 +57,7 @@ export default function StoreDashboard({ team, store, stats, recentOrders }: Pro
                     </Button>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store dashboard for ' + team.name + '.'} />
-                        <Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button>
+                        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/orders'}><ShoppingBag /> Manage orders</Link></Button><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button></div>
                     </div>
                 </div>
 
