@@ -37,6 +37,29 @@ Allowed status callbacks are `delivered`, `read`, and `failed`. The webhook is a
 
 The generic callback contract does not automatically configure a provider. Actual delivered/read events require a mail provider that offers delivery webhooks and a small provider-specific adapter that maps its event format to this contract.
 
+## Backfill notifications for historical paid orders
+
+Orders paid before notification tracking was deployed are not automatically replayed by Midtrans. Inspect eligible historical orders first; the command is a dry run unless `--dispatch` is explicitly supplied:
+
+```bash
+php artisan notifications:backfill-paid-orders
+```
+
+To limit the inspection or processing to one order ID:
+
+```bash
+php artisan notifications:backfill-paid-orders --order=123
+```
+
+After reviewing the dry-run output, use `--dispatch` to create missing delivery records and queue the email/WhatsApp jobs:
+
+```bash
+php artisan notifications:backfill-paid-orders --dispatch
+php artisan notifications:backfill-paid-orders --dispatch --order=123
+```
+
+The command only selects orders whose order payment status and at least one payment transaction are both `paid`. It skips channels that already have a `payment_confirmed` delivery record, so repeated runs do not enqueue duplicates. Configure an asynchronous queue connection (for example `QUEUE_CONNECTION=database`) and run a queue worker before dispatching; with the `sync` queue driver, jobs may execute immediately inside the command. Review recipients and test delivery before processing all historical orders.
+
 ## Inspect deliveries
 
 Use Tinker:
