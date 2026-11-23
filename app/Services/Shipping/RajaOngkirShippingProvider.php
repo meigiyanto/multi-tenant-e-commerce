@@ -9,7 +9,9 @@ use RuntimeException;
 
 /**
  * @phpstan-type CourierPayload array<string, mixed>
+ *
  * @phpstan-type ServicePayload array<string, mixed>
+ *
  * @phpstan-type NormalizedRate array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}
  */
 class RajaOngkirShippingProvider implements ShippingProvider
