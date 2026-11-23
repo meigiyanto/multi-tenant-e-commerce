@@ -89,7 +89,7 @@ class SendOrderPaidWhatsApp implements ShouldQueue
                     ],
                 ]),
             ]);
-        } catch (ConnectionException|Throwable $exception) {
+        } catch (Throwable $exception) {
             $delivery->update([
                 'status' => 'queued',
                 'provider' => 'fonnte',
