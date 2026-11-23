@@ -18,7 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-        $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);
+        $middleware->validateCsrfTokens(except: [
+            'payments/midtrans/notification',
+            'webhooks/notification-deliveries/*',
+        ]);
 
         $middleware->alias([
             'store.domain' => ResolveStoreFromDomain::class,
