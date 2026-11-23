@@ -34,7 +34,7 @@ class OrderNotificationService
         );
 
         if ($delivery->wasRecentlyCreated) {
-            SendOrderPaidEmail::dispatch($delivery->id)->afterCommit();
+            SendOrderPaidEmail::dispatch($delivery->id);
         }
 
         return $delivery;
