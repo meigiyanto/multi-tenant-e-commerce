@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NotificationDelivery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class NotificationDeliveryWebhookController extends Controller
@@ -47,7 +48,7 @@ class NotificationDeliveryWebhookController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid delivery status transition.'], 409);
         }
 
-        $occurredAt = isset($validated['occurred_at']) ? now()->parse($validated['occurred_at']) : now();
+        $occurredAt = isset($validated['occurred_at']) ? Carbon::parse($validated['occurred_at']) : now();
         $updates = [
             'status' => $status,
             'provider_message_id' => $validated['provider_message_id'] ?? $delivery->provider_message_id,
