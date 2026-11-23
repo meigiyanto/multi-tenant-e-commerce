@@ -20,7 +20,7 @@ class OrderNotificationDeliveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_queues_only_one_payment_confirmation_email_per_order(): void
+    public function test_it_queues_only_one_payment_confirmation_per_channel_and_order(): void
     {
         Queue::fake();
         $order = $this->order();
@@ -30,7 +30,7 @@ class OrderNotificationDeliveryTest extends TestCase
 
         $this->assertNotNull($first);
         $this->assertSame($first->id, $second?->id);
-        $this->assertDatabaseCount('notification_deliveries', 1);
+        $this->assertDatabaseCount('notification_deliveries', 2);
         Queue::assertPushed(SendOrderPaidEmail::class, 1);
         Queue::assertPushed(SendOrderPaidWhatsApp::class, 1);
     }
