@@ -75,8 +75,8 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
-                'name' => auth()->user()?->name ?? '',
-                'email' => auth()->user()?->email ?? '',
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email,
                 'phone' => '',
             ],
         ])->toResponse($request);
