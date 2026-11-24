@@ -11,10 +11,10 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Notifications\OrderNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class OrderNotificationDeliveryTest extends TestCase
