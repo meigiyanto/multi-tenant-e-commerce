@@ -72,7 +72,7 @@ class ProductController extends Controller
                     'options' => $variant->options ?? [],
                     'price' => $variant->price ?? $product->price,
                     'stock' => $product->track_inventory
-                        ? max(0, ($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0))
+                        ? max(0, ($variant->inventory->quantity ?? 0) - ($variant->inventory->reserved_quantity ?? 0))
                         : null,
                 ])->values(),
             ],
@@ -95,7 +95,7 @@ class ProductController extends Controller
             'price' => $product->price,
             'image_url' => $image ? Storage::disk('public')->url($image->path) : null,
             'in_stock' => ! $product->track_inventory || $product->variants->contains(
-                fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
+                fn (ProductVariant $variant): bool => (($variant->inventory->quantity ?? 0) - ($variant->inventory->reserved_quantity ?? 0)) > 0,
             ),
         ];
     }
