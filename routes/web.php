@@ -12,6 +12,7 @@ use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
+use App\Http\Middleware\ResolveStoreFromOrderNumber;
 use Illuminate\Support\Facades\Route;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
@@ -34,6 +35,10 @@ if ($storefrontRootDomain !== '') {
             Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->name('storefront.orders.payment');
         });
 }
+
+Route::get('/orders/{orderNumber}', [CheckoutController::class, 'finish'])
+    ->middleware(ResolveStoreFromOrderNumber::class)
+    ->name('storefront.orders.finish');
 
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
     ->name('payments.midtrans.notification');
