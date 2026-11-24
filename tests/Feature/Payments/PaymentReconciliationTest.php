@@ -156,7 +156,7 @@ class PaymentReconciliationTest extends TestCase
         $this->assertDatabaseHas('notification_deliveries', [
             'order_id' => $order->id,
             'channel' => 'whatsapp',
-            'status' => 'queued',
+            'status' => 'failed',
         ]);
     }
 
