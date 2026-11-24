@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * @property \\Illuminate\\Support\\Carbon|null $placed_at
+ * @property \Illuminate\Support\Carbon|null $placed_at
  * @property int $items_count
  */
 #[Fillable([
