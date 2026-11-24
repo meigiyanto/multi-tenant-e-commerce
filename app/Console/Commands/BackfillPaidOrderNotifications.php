@@ -92,7 +92,7 @@ class BackfillPaidOrderNotifications extends Command
             ],
         );
 
-        if (! $dispatch) {
+        if (!$dispatch) {
             $this->warn('DRY RUN: no delivery records were created and no messages were queued.');
             $this->line('Run with --dispatch to create missing records and queue email/WhatsApp messages.');
 
