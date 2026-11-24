@@ -49,11 +49,15 @@ class MidtransGateway implements PaymentGateway
                 'phone' => $order->customer_phone,
             ],
         ];
-        $domain = StoreDomain::query()
-            ->where('store_id', $order->store_id)
-            ->where('is_primary', true)
-            ->where('status', 'active')
-            ->value('domain');
+        $domain = null;
+
+        if ($order->exists) {
+            $domain = StoreDomain::query()
+                ->where('store_id', $order->store_id)
+                ->where('is_primary', true)
+                ->where('status', 'active')
+                ->value('domain');
+        }
 
         if ($domain) {
             $scheme = rtrim((string) config('storefront.scheme', 'https'), ':/');
