@@ -153,6 +153,11 @@ class PaymentReconciliationTest extends TestCase
         $order->refresh();
         $inventory->refresh();
 
+        $this->assertDatabaseHas('notification_deliveries', [
+            'order_id' => $order->id,
+            'channel' => 'whatsapp',
+            'status' => 'failed',
+        ]);
         $this->assertSame('paid', $transaction->status);
         $this->assertSame('paid', $order->payment_status);
         $this->assertSame('pending', $order->status);
