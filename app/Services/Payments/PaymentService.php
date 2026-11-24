@@ -420,7 +420,7 @@ class PaymentService
 
     private function normalizeAmount(mixed $amount): string
     {
-        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
+        if (is_string($amount) === false && is_int($amount) === false && is_float($amount) === false) {
             throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
         }
 
