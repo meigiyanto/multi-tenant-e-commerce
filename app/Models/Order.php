@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
- * @property \Illuminate\Support\Carbon|null $placed_at
+ * @property Carbon|null $placed_at
  * @property int $items_count
  */
 #[Fillable([
