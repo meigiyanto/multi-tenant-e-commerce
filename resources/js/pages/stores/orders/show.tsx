@@ -151,7 +151,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                     <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium capitalize">{delivery.channel} · {delivery.provider ?? 'No provider'}</p><Badge variant={delivery.status === 'failed' ? 'destructive' : delivery.status === 'queued' || delivery.status === 'sending' ? 'secondary' : 'default'}>{title(delivery.status)}</Badge></div>
                                     <p className="break-all text-sm text-muted-foreground">To: {delivery.recipient}</p>
                                     <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('id-ID') : '—'}</dd></div>)}
+                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('en-US') : '—'}</dd></div>)}
                                     </dl>
                                     {delivery.provider_message_id ? <p className="break-all text-xs text-muted-foreground">Provider ID: {delivery.provider_message_id}</p> : null}
                                     {delivery.last_error ? <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{delivery.last_error}</p> : null}
@@ -165,7 +165,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                 <div key={payment.id} className="border-t pt-3 first:border-0 first:pt-0">
                                     <p className="font-medium">{payment.gateway} · {title(payment.status)}</p>
                                     <p className="text-sm text-muted-foreground">{money(payment.amount, payment.currency)}</p>
-                                    <p className="text-xs text-muted-foreground">{payment.created_at ? new Date(payment.created_at).toLocaleString('id-ID') : '—'}</p>
+                                    <p className="text-xs text-muted-foreground">{payment.created_at ? new Date(payment.created_at).toLocaleString('en-US') : '—'}</p>
                                 </div>
                             ))}</div> : <p className="text-sm text-muted-foreground">No payment transaction recorded.</p>}
                         </section>
