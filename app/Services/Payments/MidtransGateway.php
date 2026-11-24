@@ -60,9 +60,10 @@ class MidtransGateway implements PaymentGateway
             throw new RuntimeException('APP_KEY wajib tersedia untuk mengamankan URL Finish Midtrans.');
         }
 
-        $finishKey = hash_hmac('sha256', $order->order_number, $appKey);
+        $expires = now()->addDays(7)->timestamp;
+        $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
         $parameters['callbacks'] = [
-            'finish' => $appUrl.'/orders/'.rawurlencode($order->order_number).'?key='.$finishKey,
+            'finish' => $appUrl.'/orders/'.rawurlencode($order->order_number).'?expires='.$expires.'&key='.$finishKey,
         ];
 
         $response = Http::acceptJson()
