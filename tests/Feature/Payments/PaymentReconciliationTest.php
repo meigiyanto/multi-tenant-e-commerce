@@ -183,8 +183,8 @@ class PaymentReconciliationTest extends TestCase
             ->where('order_id', $transaction->order_id)
             ->where('channel', 'whatsapp')
             ->firstOrFail();
-        $this->assertSame('queued', $whatsAppDelivery->status);
-        $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'dispatch_error'));
+        $this->assertSame('failed', $whatsAppDelivery->status);
+        $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'job_failure'));
 
         config(['services.fonnte.token' => 'test-fonnte-token']);
         \Illuminate\Support\Facades\Http::fake([
