@@ -10,6 +10,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property Carbon|null $placed_at
+ * @property Carbon|null $shipped_at
+ * @property Carbon|null $delivered_at
  * @property int $items_count
  */
 #[Fillable([
@@ -17,7 +19,8 @@ use Illuminate\Support\Carbon;
     'customer_email', 'customer_phone', 'shipping_address', 'shipping_city',
     'shipping_province', 'shipping_postal_code', 'shipping_destination_id',
     'shipping_destination_label', 'shipping_provider', 'shipping_courier',
-    'shipping_service', 'shipping_weight_grams', 'customer_note', 'currency',
+    'shipping_service', 'shipping_weight_grams', 'shipping_tracking_number',
+    'shipping_tracking_url', 'shipped_at', 'delivered_at', 'customer_note', 'currency',
     'subtotal', 'shipping_amount', 'discount_amount', 'total', 'placed_at',
 ])]
 class Order extends Model
@@ -32,6 +35,8 @@ class Order extends Model
             'shipping_destination_id' => 'integer',
             'shipping_weight_grams' => 'integer',
             'placed_at' => 'datetime',
+            'shipped_at' => 'datetime',
+            'delivered_at' => 'datetime',
         ];
     }
 
