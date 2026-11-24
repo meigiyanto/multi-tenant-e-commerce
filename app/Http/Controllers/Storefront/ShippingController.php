@@ -10,6 +10,7 @@ use App\Support\Stores\StoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ShippingController extends Controller
 {
