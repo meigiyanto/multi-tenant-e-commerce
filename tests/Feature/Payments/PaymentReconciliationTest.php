@@ -594,7 +594,7 @@ class PaymentReconciliationTest extends TestCase
     private function statusPayload(PaymentTransaction $transaction, string $status): array
     {
         return [
-            'status_code' => '200',
+            'status_code' => in_array($status, ['settlement', 'capture'], true) ? '200' : (in_array($status, ['pending', 'authorize'], true) ? '201' : '202'),
             'order_id' => $transaction->gateway_order_id,
             'transaction_id' => 'midtrans-transaction-'.$transaction->id,
             'transaction_status' => $status,
