@@ -178,7 +178,7 @@ class StoreOrderController extends Controller
             'status' => ['required', 'string', Rule::in(['shipped', 'delivered'])],
             'note' => ['required_if:status,delivered', 'nullable', 'string', 'max:1000'],
             'tracking_number' => ['required_if:status,shipped', 'nullable', 'string', 'max:100'],
-            'tracking_url' => ['nullable', 'url', 'max:2048'],
+            'tracking_url' => ['nullable', 'url', 'regex:/^https?:\/\//i', 'max:2048'],
         ]);
 
         $statusService->transition(
