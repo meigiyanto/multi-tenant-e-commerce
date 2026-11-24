@@ -460,6 +460,43 @@ class PaymentReconciliationTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_out_of_order_pending_notification_cannot_downgrade_a_paid_transaction(): void
+    {
+        Queue::fake();
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-ordering-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $payload['transaction_status'] = 'pending';
+        $payload['status_code'] = '201';
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $this->assertSame('paid', $transaction->fresh()->status);
+        $this->assertSame('paid', $order->fresh()->payment_status);
+        $this->assertSame('processing', $order->fresh()->status);
+        $this->assertSame(3, $inventory->fresh()->quantity);
+        $this->assertSame(0, $inventory->fresh()->reserved_quantity);
+        $this->assertSame(1, $order->statusHistories()->count());
+    }
+
     private function pendingPayment(): array
     {
         $user = User::factory()->create();
