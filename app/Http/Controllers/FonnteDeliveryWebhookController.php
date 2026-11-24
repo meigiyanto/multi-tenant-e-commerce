@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotificationDelivery;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -100,7 +101,7 @@ class FonnteDeliveryWebhookController extends Controller
         return null;
     }
 
-    private function occurredAt(mixed $timestamp): Carbon
+    private function occurredAt(mixed $timestamp): CarbonInterface
     {
         if ($timestamp === null || (is_string($timestamp) && trim($timestamp) === '')) {
             return now();
