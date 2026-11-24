@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -50,10 +49,6 @@ class OrderTrackingController extends Controller
                 ]),
             ],
         ]);
-
-        $response = $response->toResponse($request);
-        $response->headers->set('Cache-Control', 'no-store, private');
-        $response->headers->set('Referrer-Policy', 'no-referrer');
 
         $response = $response->toResponse($request);
         $response->headers->set('Cache-Control', 'no-store, private');
