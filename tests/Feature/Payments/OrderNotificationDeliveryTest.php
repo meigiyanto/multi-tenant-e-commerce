@@ -158,7 +158,7 @@ class OrderNotificationDeliveryTest extends TestCase
         $this->assertSame('read', $delivery->fresh()->status);
     }
 
-    public function test_fonnte_sent_status_and_zero_state_do_not_claim_delivery(): void
+    public function test_fonnte_zero_state_is_recorded_as_failed_not_delivered(): void
     {
         $delivery = $this->whatsappDelivery('fonnte-message-state-zero');
         config(['services.fonnte.webhook_secret' => 'fonnte-test-secret']);
@@ -167,10 +167,12 @@ class OrderNotificationDeliveryTest extends TestCase
             'id' => 'fonnte-message-state-zero',
             'status' => 'Sent',
             'state' => '0',
-        ])->assertOk()->assertJson(['success' => true, 'updated' => false]);
+            'timestamp' => 1795406400,
+        ])->assertOk()->assertJson(['success' => true, 'updated' => true]);
 
-        $this->assertSame('sent', $delivery->fresh()->status);
+        $this->assertSame('failed', $delivery->fresh()->status);
         $this->assertNull($delivery->fresh()->delivered_at);
+        $this->assertNotNull($delivery->fresh()->failed_at);
         $this->assertSame('0', $delivery->fresh()->metadata['fonnte_webhook']['state']);
     }
 
