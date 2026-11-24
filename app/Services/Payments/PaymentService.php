@@ -28,7 +28,7 @@ class PaymentService
         }
 
         if ($order->currency !== 'IDR') {
-            throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+            throw new RuntimeException('The Midtrans gateway only accepts IDR transactions.');
         }
 
         $gatewayName = (string) config('payments.default');
@@ -41,7 +41,7 @@ class PaymentService
             }
 
             if ($lockedOrder->currency !== 'IDR') {
-                throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+                throw new RuntimeException('The Midtrans gateway only accepts IDR transactions.');
             }
 
             $existing = $lockedOrder->paymentTransactions()
@@ -252,15 +252,15 @@ class PaymentService
                 ->firstOrFail();
 
             if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
-                throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
+                throw new RuntimeException('The payment notification amount does not match the transaction.');
             }
 
             if ($isNotification === false && isset($payload['currency']) === false) {
-                throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
+                throw new RuntimeException('The Midtrans status response does not include a currency.');
             }
 
             if (isset($payload['currency']) && strtoupper((string) $payload['currency']) !== strtoupper($transaction->currency)) {
-                throw new RuntimeException('Mata uang notifikasi pembayaran tidak sesuai dengan transaksi.');
+                throw new RuntimeException('The payment notification currency does not match the transaction.');
             }
 
             $status = $gateway->normalizeStatus($payload);
@@ -276,17 +276,17 @@ class PaymentService
             $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
 
             if ($order->payment_status === 'paid' && $status !== 'paid') {
-                throw new RuntimeException('Status pesanan tidak mengizinkan perubahan pembayaran ini.');
+                throw new RuntimeException('The order status does not allow this payment update.');
             }
 
             $inventoryError = null;
 
             if ($order->status === 'cancelled') {
                 if ($status === 'paid') {
-                    $inventoryError = 'Pembayaran diterima setelah pesanan dibatalkan; perlu pemeriksaan manual.';
+                    $inventoryError = 'Payment was received after the order was cancelled; manual review is required.';
                 }
             } elseif ($order->status !== 'pending') {
-                $inventoryError = 'Status pesanan tidak mengizinkan transisi pembayaran otomatis; perlu pemeriksaan manual.';
+                $inventoryError = 'The order status does not allow an automatic payment transition; manual review is required.';
             } else {
                 $inventoryError = $this->applyInventoryTransition($order, $status);
             }
