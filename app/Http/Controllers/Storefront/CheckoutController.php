@@ -50,6 +50,7 @@ class CheckoutController extends Controller
 
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
+        $user = $request->user();
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
             $product = $item->product;
@@ -77,8 +78,8 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
-                'name' => auth()->user()->name,
-                'email' => auth()->user()->email,
+                'name' => $user?->name ?? '',
+                'email' => $user?->email ?? '',
                 'phone' => '',
             ],
         ])->toResponse($request);
