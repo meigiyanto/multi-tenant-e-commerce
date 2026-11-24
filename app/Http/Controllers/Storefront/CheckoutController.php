@@ -144,6 +144,16 @@ class CheckoutController extends Controller
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
     {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    public function finish(string $orderNumber, StoreContext $context): Response
+    {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    private function renderOrder(string $orderNumber, StoreContext $context): Response
+    {
         $store = $context->store();
         abort_if($store === null, 404);
 
