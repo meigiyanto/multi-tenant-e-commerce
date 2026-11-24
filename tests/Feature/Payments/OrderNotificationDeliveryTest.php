@@ -124,6 +124,117 @@ class OrderNotificationDeliveryTest extends TestCase
             ->assertUnauthorized();
     }
 
+
+    public function test_fonnte_webhook_records_delivered_then_read_without_downgrading_status(): void
+    {
+        $delivery = $this->whatsappDelivery('fonnte-message-delivered');
+        config(['services.fonnte.webhook_secret' => 'fonnte-test-secret']);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-delivered',
+            'status' => 'Sent',
+            'state' => 'delivered',
+            'timestamp' => '2026-11-23T12:00:00+07:00',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => true]);
+
+        $this->assertSame('delivered', $delivery->fresh()->status);
+        $this->assertNotNull($delivery->fresh()->delivered_at);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-delivered',
+            'status' => 'Sent',
+            'state' => 'read',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => true]);
+
+        $this->assertSame('read', $delivery->fresh()->status);
+        $this->assertNotNull($delivery->fresh()->read_at);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-delivered',
+            'status' => 'Sent',
+            'state' => 'delivered',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => false]);
+
+        $this->assertSame('read', $delivery->fresh()->status);
+    }
+
+    public function test_fonnte_sent_status_and_zero_state_do_not_claim_delivery(): void
+    {
+        $delivery = $this->whatsappDelivery('fonnte-message-state-zero');
+        config(['services.fonnte.webhook_secret' => 'fonnte-test-secret']);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-state-zero',
+            'status' => 'Sent',
+            'state' => '0',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => false]);
+
+        $this->assertSame('sent', $delivery->fresh()->status);
+        $this->assertNull($delivery->fresh()->delivered_at);
+        $this->assertSame('0', $delivery->fresh()->metadata['fonnte_webhook']['state']);
+    }
+
+    public function test_fonnte_failed_status_is_recorded_and_is_terminal(): void
+    {
+        $delivery = $this->whatsappDelivery('fonnte-message-failed');
+        config(['services.fonnte.webhook_secret' => 'fonnte-test-secret']);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-failed',
+            'status' => 'Failed',
+            'state' => '0',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => true]);
+
+        $this->assertSame('failed', $delivery->fresh()->status);
+        $this->assertNotNull($delivery->fresh()->failed_at);
+        $this->assertNotNull($delivery->fresh()->last_error);
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-failed',
+            'status' => 'Sent',
+            'state' => 'delivered',
+        ])->assertOk()->assertJson(['success' => true, 'updated' => false]);
+
+        $this->assertSame('failed', $delivery->fresh()->status);
+    }
+
+    public function test_fonnte_webhook_ignores_unknown_message_id_and_rejects_wrong_secret(): void
+    {
+        $this->whatsappDelivery('fonnte-message-known');
+        config(['services.fonnte.webhook_secret' => 'fonnte-test-secret']);
+
+        $this->postJson('/webhooks/fonnte/wrong-secret', [
+            'id' => 'fonnte-message-known',
+            'status' => 'Sent',
+            'state' => 'read',
+        ])->assertUnauthorized();
+
+        $this->postJson('/webhooks/fonnte/fonnte-test-secret', [
+            'id' => 'fonnte-message-unknown',
+            'status' => 'Sent',
+            'state' => 'read',
+        ])->assertOk()->assertJson(['success' => true, 'ignored' => true]);
+    }
+
+    private function whatsappDelivery(string $messageId): NotificationDelivery
+    {
+        $order = $this->order();
+
+        return NotificationDelivery::query()->create([
+            'uuid' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'store_id' => $order->store_id,
+            'order_id' => $order->id,
+            'event' => 'payment_confirmed',
+            'channel' => 'whatsapp',
+            'recipient' => '628123456789',
+            'status' => 'sent',
+            'provider' => 'fonnte',
+            'provider_message_id' => $messageId,
+            'queued_at' => now(),
+            'sent_at' => now(),
+        ]);
+    }
+
     private function order(): Order
     {
         $user = User::factory()->create();
