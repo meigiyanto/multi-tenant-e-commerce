@@ -31,13 +31,13 @@ class CheckoutService
                 ->first();
 
             if ($cart === null) {
-                throw ValidationException::withMessages(['cart' => 'Keranjang belanja kosong.']);
+                throw ValidationException::withMessages(['cart' => 'The shopping cart is empty.']);
             }
 
             $items = $cart->items()->with(['product', 'variant'])->lockForUpdate()->get();
 
             if ($items->isEmpty()) {
-                throw ValidationException::withMessages(['cart' => 'Keranjang belanja kosong.']);
+                throw ValidationException::withMessages(['cart' => 'The shopping cart is empty.']);
             }
 
             $subtotal = 0;
@@ -62,7 +62,7 @@ class CheckoutService
                     ->first();
 
                 if ($product === null || $variant === null) {
-                    throw ValidationException::withMessages(['cart' => 'Salah satu produk di keranjang sudah tidak tersedia.']);
+                    throw ValidationException::withMessages(['cart' => 'A product in your cart is no longer available.']);
                 }
 
                 $actualWeightGrams += (int) ($product->weight_grams ?? 1000) * (int) $item->quantity;
@@ -75,7 +75,7 @@ class CheckoutService
 
                     if ($item->quantity > $available) {
                         throw ValidationException::withMessages([
-                            'cart' => 'Stok '.$product->name.' tidak mencukupi. Tersedia: '.$available.'.',
+                            'cart' => 'Stock for '.$product->name.' is insufficient. Available: '.$available.'.',
                         ]);
                     }
 
@@ -101,7 +101,7 @@ class CheckoutService
             }
 
             if (max(1, $actualWeightGrams) !== $weightGrams) {
-                throw ValidationException::withMessages(['shipping_service' => 'Berat keranjang berubah. Silakan hitung ulang ongkos kirim.']);
+                throw ValidationException::withMessages(['shipping_service' => 'The cart weight has changed. Please recalculate the shipping rate.']);
             }
 
             $shippingAmount = (int) $shippingRate['amount'];
@@ -145,7 +145,7 @@ class CheckoutService
                 $available = max(0, $inventory->quantity - $inventory->reserved_quantity);
                 if ($quantity > $available) {
                     throw ValidationException::withMessages([
-                        'cart' => 'Stok berubah selama checkout. Silakan periksa kembali keranjang.',
+                        'cart' => 'Stock for berubah selama checkout. Silakan periksa kembali keranjang.',
                     ]);
                 }
 
