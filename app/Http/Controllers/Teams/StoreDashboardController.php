@@ -20,7 +20,7 @@ class StoreDashboardController extends Controller
 
         $orders = Order::query()->where('store_id', $store->id);
 
-        $paidRevenue = (string) ((clone $orders)->where('payment_status', 'paid')->sum('total') ?? '0');
+        $paidRevenue = (string) ((clone $orders)->where('payment_status', 'paid')->sum('total'));
         [$revenueWhole, $revenueFraction] = array_pad(explode('.', $paidRevenue, 2), 2, '');
         $paidRevenue = $revenueWhole.'.'.str_pad(substr($revenueFraction, 0, 2), 2, '0');
 
