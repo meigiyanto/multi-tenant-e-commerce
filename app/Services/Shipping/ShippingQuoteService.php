@@ -33,7 +33,7 @@ class ShippingQuoteService
         $originId = (int) data_get($settings, 'shipping.origin_destination_id', 0);
 
         if ($originId < 1) {
-            throw ValidationException::withMessages(['shipping' => 'Alamat asal pengiriman toko belum dikonfigurasi oleh pemilik toko.']);
+            throw ValidationException::withMessages(['shipping' => 'The store owner has not configured the shipping origin address.']);
         }
 
         $weight = $this->weight($cart);
@@ -67,7 +67,7 @@ class ShippingQuoteService
         );
 
         if ($rate === null) {
-            throw ValidationException::withMessages(['shipping_service' => 'Layanan pengiriman tidak valid atau tarif sudah berubah. Silakan hitung ulang ongkir.']);
+            throw ValidationException::withMessages(['shipping_service' => 'The selected shipping service is invalid or the rate has changed. Please recalculate shipping.']);
         }
 
         return $rate;
