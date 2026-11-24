@@ -95,7 +95,7 @@ class SendOrderPaidEmail implements ShouldQueue
             ]);
 
             $metadata = (array) $delivery->fresh()->metadata;
-            unset($metadata['job_failure']);
+            $metadata = array_diff_key($metadata, ['job_failure' => true]);
             $delivery->update(['metadata' => $metadata]);
         } catch (Throwable $exception) {
             $metadata = (array) $delivery->metadata;
