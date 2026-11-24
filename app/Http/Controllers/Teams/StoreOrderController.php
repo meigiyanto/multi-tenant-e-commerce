@@ -170,6 +170,7 @@ class StoreOrderController extends Controller
         Store $store,
         Order $order,
         StoreOrderStatusService $statusService,
+        OrderNotificationService $notificationService,
     ): RedirectResponse {
         $this->authorizeOrder($team, $store, $order);
 
@@ -189,6 +190,7 @@ class StoreOrderController extends Controller
             $validated['tracking_number'] ?? null,
             $validated['tracking_url'] ?? null,
         );
+        $notificationService->queueOrderStatusUpdated((int) $order->id, $validated['status']);
 
         return to_route('teams.stores.orders.show', [
             'team' => $team->slug,
