@@ -145,7 +145,7 @@ class CheckoutService
                 $available = max(0, $inventory->quantity - $inventory->reserved_quantity);
                 if ($quantity > $available) {
                     throw ValidationException::withMessages([
-                        'cart' => 'Stock for berubah selama checkout. Silakan periksa kembali keranjang.',
+                        'cart' => 'Stock changed during checkout. Please review your cart.',
                     ]);
                 }
 
