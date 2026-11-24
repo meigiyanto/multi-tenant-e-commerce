@@ -230,22 +230,18 @@ class OrderNotificationDeliveryTest extends TestCase
         $this->assertSame('sending', $delivery->fresh()->status);
     }
 
-    public function test_it_retries_fonnte_acceptance_without_message_id_instead_of_marking_sent(): void
+    public function test_it_records_fonnte_acceptance_without_message_id_as_sent_but_untrackable(): void
     {
         $delivery = $this->whatsappDelivery('fonnte-message-missing-id');
         $delivery->update(['status' => 'queued', 'provider_message_id' => null]);
         config(['services.fonnte.token' => 'test-fonnte-token']);
         Http::fake(['api.fonnte.com/send' => Http::response(['status' => true, 'process' => 'pending'])]);
 
-        try {
-            (new SendOrderPaidWhatsApp($delivery->id))->handle();
-            $this->fail('Expected missing provider message ID to be treated as an uncertain send.');
-        } catch (\\RuntimeException $exception) {
-            $this->assertStringContainsString('tidak mengembalikan ID pesan', $exception->getMessage());
-        }
+        (new SendOrderPaidWhatsApp($delivery->id))->handle();
 
-        $this->assertSame('queued', $delivery->fresh()->status);
-        $this->assertNull($delivery->fresh()->sent_at);
+        $this->assertSame('sent', $delivery->fresh()->status);
+        $this->assertNull($delivery->fresh()->provider_message_id);
+        $this->assertTrue(data_get($delivery->fresh()->metadata, 'fonnte.tracking_unavailable'));
     }
 
     public function test_generic_delivery_webhook_reports_duplicate_callback_idempotently(): void
