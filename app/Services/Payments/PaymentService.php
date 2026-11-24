@@ -9,6 +9,7 @@ use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Support\Payments\PaymentGatewayManager;
+use App\Services\Notifications\OrderNotificationService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -329,7 +330,7 @@ class PaymentService
         });
 
         if ($paidOrderId !== null) {
-            app(\App\Services\Notifications\OrderNotificationService::class)
+            app(OrderNotificationService::class)
                 ->queuePaymentConfirmed($paidOrderId);
         }
     }
