@@ -218,6 +218,63 @@ class OrderNotificationDeliveryTest extends TestCase
         ])->assertOk()->assertJson(['success' => true, 'ignored' => true]);
     }
 
+    public function test_it_does_not_send_a_whatsapp_delivery_already_claimed_by_another_worker(): void
+    {
+        $delivery = $this->whatsappDelivery('fonnte-message-in-progress');
+        $delivery->update(['status' => 'sending', 'updated_at' => now()]);
+        Http::fake();
+
+        (new SendOrderPaidWhatsApp($delivery->id))->handle();
+
+        Http::assertNothingSent();
+        $this->assertSame('sending', $delivery->fresh()->status);
+    }
+
+    public function test_it_retries_fonnte_acceptance_without_message_id_instead_of_marking_sent(): void
+    {
+        $delivery = $this->whatsappDelivery('fonnte-message-missing-id');
+        $delivery->update(['status' => 'queued', 'provider_message_id' => null]);
+        config(['services.fonnte.token' => 'test-fonnte-token']);
+        Http::fake(['api.fonnte.com/send' => Http::response(['status' => true, 'process' => 'pending'])]);
+
+        try {
+            (new SendOrderPaidWhatsApp($delivery->id))->handle();
+            $this->fail('Expected missing provider message ID to be treated as an uncertain send.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('tidak mengembalikan ID pesan', $exception->getMessage());
+        }
+
+        $this->assertSame('queued', $delivery->fresh()->status);
+        $this->assertNull($delivery->fresh()->sent_at);
+    }
+
+    public function test_generic_delivery_webhook_reports_duplicate_callback_idempotently(): void
+    {
+        $delivery = NotificationDelivery::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'store_id' => $this->order()->store_id,
+            'order_id' => Order::query()->firstOrFail()->id,
+            'event' => 'payment_confirmed',
+            'channel' => 'mail',
+            'recipient' => 'customer@example.com',
+            'status' => 'sent',
+            'sent_at' => now(),
+        ]);
+        config(['services.notification_delivery_webhook.secret' => 'delivery-test-secret']);
+        $payload = ['status' => 'delivered'];
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $body, 'delivery-test-secret');
+
+        $send = fn () => $this->call('POST', '/webhooks/notification-deliveries/'.$delivery->uuid, [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_DELIVERY_SIGNATURE' => $signature,
+        ], $body);
+
+        $send()->assertOk()->assertJson(['success' => true, 'duplicate' => false]);
+        $send()->assertOk()->assertJson(['success' => true, 'duplicate' => true]);
+        $this->assertSame('delivered', $delivery->fresh()->status);
+    }
+
     private function whatsappDelivery(string $messageId): NotificationDelivery
     {
         $order = $this->order();
