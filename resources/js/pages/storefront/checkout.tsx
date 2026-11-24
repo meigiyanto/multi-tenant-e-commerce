@@ -52,10 +52,10 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                     headers: { Accept: 'application/json' },
                 });
                 const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || 'Gagal mencari kota tujuan.');
+                if (!response.ok) throw new Error(payload.message || 'Failed to search destinations.');
                 setDestinations(payload.data || []);
             } catch (error) {
-                setShippingError(error instanceof Error ? error.message : 'Gagal mencari kota tujuan.');
+                setShippingError(error instanceof Error ? error.message : 'Failed to search destinations.');
             } finally {
                 setLoadingDestinations(false);
             }
@@ -76,13 +76,13 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                     headers: { Accept: 'application/json' },
                 });
                 const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || payload.errors?.shipping?.[0] || 'Gagal menghitung ongkir.');
+                if (!response.ok) throw new Error(payload.message || payload.errors?.shipping?.[0] || 'Failed to calculate shipping rates.');
                 setRates(payload.rates || []);
                 setData('shipping_courier', '');
                 setData('shipping_service', '');
                 if (!payload.rates?.length) setShippingError('Tidak ada layanan pengiriman yang tersedia untuk tujuan ini.');
             } catch (error) {
-                setShippingError(error instanceof Error ? error.message : 'Gagal menghitung ongkir.');
+                setShippingError(error instanceof Error ? error.message : 'Failed to calculate shipping rates.');
             } finally {
                 setLoadingRates(false);
             }
