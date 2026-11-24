@@ -67,6 +67,45 @@ class OrderNotificationService
         return $emailDelivery ?? $whatsAppDelivery ?? null;
     }
 
+    public function queueOrderStatusUpdated(int $orderId, string $status): void
+    {
+        if (! in_array($status, ['shipped', 'delivered'], true)) {
+            return;
+        }
+
+        $order = Order::query()->findOrFail($orderId);
+        $event = $status === 'shipped' ? 'order_shipped' : 'order_delivered';
+        $recipients = [
+            ['channel' => 'mail', 'recipient' => $order->customer_email, 'provider' => config('mail.default')],
+            ['channel' => 'whatsapp', 'recipient' => preg_replace('/\D+/', '', (string) $order->customer_phone), 'provider' => 'fonnte'],
+        ];
+
+        foreach ($recipients as $recipient) {
+            if ($recipient['recipient'] === '' || ($recipient['channel'] === 'mail' && ! filter_var($recipient['recipient'], FILTER_VALIDATE_EMAIL))) {
+                continue;
+            }
+
+            $delivery = NotificationDelivery::query()->firstOrCreate(
+                ['order_id' => $order->id, 'event' => $event, 'channel' => $recipient['channel']],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'store_id' => $order->store_id,
+                    'recipient' => $recipient['recipient'],
+                    'status' => 'queued',
+                    'provider' => $recipient['provider'],
+                    'queued_at' => now(),
+                ],
+            );
+
+            if ($delivery->wasRecentlyCreated) {
+                $job = $recipient['channel'] === 'mail'
+                    ? new SendOrderPaidEmail($delivery->id)
+                    : new SendOrderPaidWhatsApp($delivery->id);
+                $this->dispatchNotification($job, $delivery);
+            }
+        }
+    }
+
     private function dispatchNotification(object $job, NotificationDelivery $delivery): void
     {
         try {
