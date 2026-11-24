@@ -48,6 +48,9 @@ class SendOrderPaidEmail implements ShouldQueue
                     ->orWhere(function ($stale): void {
                         $stale->where('status', 'sending')
                             ->where('updated_at', '<=', now()->subMinutes(10));
+                    })
+                    ->orWhere(function ($retryable): void {
+                        $retryable->where('status', 'failed')->whereNotNull('metadata->job_failure');
                     });
             })
             ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
