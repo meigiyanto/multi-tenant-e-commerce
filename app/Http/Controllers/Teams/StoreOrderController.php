@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\Team;
+use App\Services\Notifications\OrderNotificationService;
 use App\Services\Stores\StoreOrderStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -127,6 +128,7 @@ class StoreOrderController extends Controller
                     'provider' => $delivery->provider,
                     'provider_message_id' => $delivery->provider_message_id,
                     'last_error' => $delivery->last_error,
+                    'retryable' => data_get($delivery->metadata, 'dispatch_error') !== null || data_get($delivery->metadata, 'job_failure') !== null,
                     'queued_at' => $delivery->queued_at?->toISOString(),
                     'sent_at' => $delivery->sent_at?->toISOString(),
                     'delivered_at' => $delivery->delivered_at?->toISOString(),
@@ -185,6 +187,30 @@ class StoreOrderController extends Controller
             'store' => $store->id,
             'order' => $order->id,
         ])->with('success', __('Order status updated.'));
+    }
+
+    public function retryNotifications(Team $team, Store $store, Order $order, OrderNotificationService $notificationService): RedirectResponse
+    {
+        $this->authorizeOrder($team, $store, $order);
+
+        abort_unless($order->payment_status === 'paid', 422, 'Only paid orders can retry payment notifications.');
+
+        $hasRetryableDelivery = $order->notificationDeliveries()
+            ->where(function ($query): void {
+                $query->whereNotNull('metadata->dispatch_error')
+                    ->orWhereNotNull('metadata->job_failure');
+            })
+            ->exists();
+
+        abort_unless($hasRetryableDelivery, 409, 'No retryable notification failures were found.');
+
+        $notificationService->queuePaymentConfirmed((int) $order->id);
+
+        return to_route('teams.stores.orders.show', [
+            'team' => $team->slug,
+            'store' => $store->id,
+            'order' => $order->id,
+        ])->with('success', __('Retry queued for failed payment notifications.'));
     }
 
     private function authorizeStore(Team $team, Store $store): void
