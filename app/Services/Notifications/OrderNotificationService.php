@@ -72,7 +72,7 @@ class OrderNotificationService
         try {
             dispatch($job);
         } catch (Throwable $exception) {
-            $metadata = (array) $delivery->metadata;
+            $metadata = (array) $delivery->fresh()->metadata;
             $metadata['dispatch_error'] = [
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
