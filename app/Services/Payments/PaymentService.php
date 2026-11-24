@@ -162,7 +162,7 @@ class PaymentService
     {
         $gateway = $this->gateways->driver($gatewayName, false);
 
-        if (! $gateway->verifyNotification($payload)) {
+        if ($gateway->verifyNotification($payload) === false) {
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
@@ -249,7 +249,7 @@ class PaymentService
                 throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
 
-            if (! $isNotification && ! isset($payload['currency'])) {
+            if ($isNotification === false && isset($payload['currency']) === false) {
                 throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
             }
 
@@ -425,7 +425,7 @@ class PaymentService
         }
 
         $amount = (string) $amount;
-        if (! preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount)) {
+        if (preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount) === 0) {
             throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
         }
 
@@ -454,7 +454,7 @@ class PaymentService
 
     private function applyInventoryTransition(Order $order, string $status): ?string
     {
-        if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
+        if (in_array($status, ['paid', 'failed', 'expired'], true) === false) {
             return null;
         }
 
