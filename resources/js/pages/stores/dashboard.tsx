@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import OrderNumberCopy from '@/components/order-number-copy';
 import { ArrowLeft, ClipboardList, CreditCard, Package, ShoppingBag } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -110,7 +111,7 @@ export default function StoreDashboard({ team, store, stats, recentOrders }: Pro
                                     {recentOrders.map((order) => (
                                         <tr key={order.id}>
                                             <td className="px-4 py-3">
-                                                <p className="font-medium">{order.order_number}</p>
+                                                <div className="flex flex-wrap items-center gap-2"><p className="font-medium">{order.order_number}</p><OrderNumberCopy value={order.order_number} /></div>
                                                 <p className="text-xs text-muted-foreground">{order.placed_at ? new Date(order.placed_at).toLocaleString('id-ID') : '—'}</p>
                                             </td>
                                             <td className="px-4 py-3">{order.customer_name}</td>
