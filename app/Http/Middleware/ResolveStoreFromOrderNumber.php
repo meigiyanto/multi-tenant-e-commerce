@@ -29,7 +29,7 @@ class ResolveStoreFromOrderNumber
         $appKey = (string) config('app.key');
 
         if ($orderNumber === '' || $providedKey === '' || $appKey === ''
-            || ! is_string($expires) && ! is_int($expires)
+            || ! is_string($expires)
             || filter_var($expires, FILTER_VALIDATE_INT) === false
             || (int) $expires < now()->timestamp) {
             abort(404);
@@ -51,7 +51,7 @@ class ResolveStoreFromOrderNumber
         }
 
         $domain = $this->domains->resolve($primaryDomain->domain);
-        if ($domain === null || $domain->store_id !== $order->store_id) {
+        if ($domain === null || (int) $domain->store_id !== (int) $order->store_id) {
             abort(404);
         }
 
