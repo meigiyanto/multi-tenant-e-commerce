@@ -104,6 +104,7 @@ class StoreOrderController extends Controller
                     'courier' => $order->shipping_courier,
                     'service' => $order->shipping_service,
                     'tracking_number' => $order->shipping_tracking_number,
+                    'customer_tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                     'tracking_url' => $order->shipping_tracking_url,
                     'shipped_at' => $order->shipped_at?->toISOString(),
                     'delivered_at' => $order->delivered_at?->toISOString(),
