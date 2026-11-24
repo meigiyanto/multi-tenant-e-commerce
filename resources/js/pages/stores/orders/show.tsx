@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Bell, Package, Truck } from 'lucide-react';
+import { ArrowLeft, Bell, Package, RefreshCw, Truck } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ type Props = {
         total: string;
         placed_at: string | null;
         items: { id: number; product_name: string; variant_name: string; sku: string; quantity: number; unit_price: string; line_total: string }[];
-        notifications: { id: number; channel: string; recipient: string; status: string; provider: string | null; provider_message_id: string | null; last_error: string | null; queued_at: string | null; sent_at: string | null; delivered_at: string | null; read_at: string | null; failed_at: string | null }[];
+        notifications: { id: number; channel: string; recipient: string; status: string; provider: string | null; provider_message_id: string | null; last_error: string | null; retryable: boolean; queued_at: string | null; sent_at: string | null; delivered_at: string | null; read_at: string | null; failed_at: string | null }[];
         payments: { id: number; gateway: string; status: string; amount: string; currency: string; created_at: string | null }[];
         history: { id: number; from_status: string | null; to_status: string; note: string | null; actor: string | null; created_at: string | null }[];
         next_status: string | null;
