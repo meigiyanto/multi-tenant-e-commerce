@@ -71,12 +71,6 @@ class OrderNotificationService
     {
         try {
             dispatch($job);
-
-            $metadata = (array) $delivery->fresh()->metadata;
-            if (array_key_exists('dispatch_error', $metadata)) {
-                unset($metadata['dispatch_error']);
-                $delivery->update(['metadata' => $metadata]);
-            }
         } catch (Throwable $exception) {
             $metadata = (array) $delivery->metadata;
             $metadata['dispatch_error'] = [
@@ -99,6 +93,14 @@ class OrderNotificationService
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);
+
+            return;
+        }
+
+        $metadata = (array) $delivery->fresh()->metadata;
+        if (array_key_exists('dispatch_error', $metadata)) {
+            unset($metadata['dispatch_error']);
+            $delivery->update(['metadata' => $metadata]);
         }
     }
 }
