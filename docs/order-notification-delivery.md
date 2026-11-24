@@ -60,6 +60,12 @@ php artisan notifications:backfill-paid-orders --dispatch --order=123
 
 The command only selects orders whose order payment status and at least one payment transaction are both `paid`. It skips channels that already have a `payment_confirmed` delivery record, so repeated runs do not enqueue duplicates. Configure an asynchronous queue connection (for example `QUEUE_CONNECTION=database`) and run a queue worker before dispatching; with the `sync` queue driver, jobs may execute immediately inside the command. Review recipients and test delivery before processing all historical orders.
 
+## Store dashboard visibility and retry
+
+Store members with permission to update the store can inspect the notification timeline on the order detail page. It shows the channel, recipient, provider, current status, provider message ID, timestamps for queued/sent/delivered/read/failed, and the last recorded error.
+
+The **Retry failed jobs** action is shown only when a delivery contains an application dispatch or exhausted-job failure marker. It is available only for paid orders. It does not retry provider-reported delivery failures, and the action is scoped to the order's store. Retrying calls the same idempotent notification scheduler, which only dispatches deliveries marked with `metadata.dispatch_error` or `metadata.job_failure`; already successful or provider-terminal deliveries are left untouched.
+
 ## Inspect deliveries
 
 Use Tinker:
