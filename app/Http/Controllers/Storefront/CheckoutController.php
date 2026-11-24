@@ -182,6 +182,7 @@ class CheckoutController extends Controller
                 'total' => $order->total,
                 'currency' => $order->currency,
                 'payment_url' => $order->paymentTransactions->first()?->redirect_url,
+                'tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
                     'variant_name' => $item->variant_name,
