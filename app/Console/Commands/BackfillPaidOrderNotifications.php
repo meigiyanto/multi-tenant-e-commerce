@@ -77,6 +77,7 @@ class BackfillPaidOrderNotifications extends Command
                 if ($dispatch) {
                     $notifications->queuePaymentConfirmed($order->id);
                     $processed++;
+
                     continue;
                 }
 

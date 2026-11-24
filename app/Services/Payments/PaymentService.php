@@ -236,7 +236,7 @@ class PaymentService
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function applyVerifiedStatus(
         array $payload,
@@ -441,8 +441,8 @@ class PaymentService
     }
 
     /**
-     * @param array<string, mixed> $payload
-     * @return  array<string, scalar|null>
+     * @param  array<string, mixed>  $payload
+     * @return array<string, scalar|null>
      */
     private function safeNotificationMetadata(array $payload): array
     {
