@@ -15,7 +15,7 @@ class BackfillPaidOrderNotifications extends Command
     public function handle(OrderNotificationService $notifications): int
     {
         $dispatch = (bool) $this->option('dispatch');
-        
+
         $query = Order::query()
             ->where('payment_status', 'paid')
             ->whereHas('paymentTransactions', fn ($query) => $query->where('status', 'paid'))
@@ -43,11 +43,11 @@ class BackfillPaidOrderNotifications extends Command
         ): void {
             foreach ($orders as $order) {
                 $ordersChecked++;
-                
+
                 $existing = $order->notificationDeliveries
                     ->where('event', 'payment_confirmed')
                     ->keyBy('channel');
-                
+
                 $channels = [];
 
                 if (filter_var($order->customer_email, FILTER_VALIDATE_EMAIL)) {
@@ -60,7 +60,7 @@ class BackfillPaidOrderNotifications extends Command
                 }
 
                 $phone = preg_replace('/\D+/', '', (string) $order->customer_phone);
-                
+
                 if ($phone !== '') {
                     if ($existing->has('whatsapp')) {
                         $alreadyRecorded++;
