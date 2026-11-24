@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Notifications\OrderNotificationService;
+use Illuminate\Support\Str;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -39,7 +40,7 @@ class OrderNotificationDeliveryTest extends TestCase
     {
         $order = $this->order();
         $delivery = NotificationDelivery::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'store_id' => $order->store_id,
             'order_id' => $order->id,
             'event' => 'payment_confirmed',
