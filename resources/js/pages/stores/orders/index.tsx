@@ -33,7 +33,7 @@ type Props = {
 };
 
 function money(amount: string, currency: string): string {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency }).format(Number(amount));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
 }
 
 function variant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
