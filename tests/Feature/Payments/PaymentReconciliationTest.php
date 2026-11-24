@@ -179,7 +179,7 @@ class PaymentReconciliationTest extends TestCase
         );
 
         $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
-        $whatsAppDelivery = \\App\\Models\\NotificationDelivery::query()
+        $whatsAppDelivery = \App\Models\NotificationDelivery::query()
             ->where('order_id', $transaction->order_id)
             ->where('channel', 'whatsapp')
             ->firstOrFail();
@@ -187,8 +187,8 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'dispatch_error'));
 
         config(['services.fonnte.token' => 'test-fonnte-token']);
-        \\Illuminate\\Support\\Facades\\Http::fake([
-            'api.fonnte.com/send' => \\Illuminate\\Support\\Facades\\Http::response([
+        \Illuminate\Support\Facades\Http::fake([
+            'api.fonnte.com/send' => \Illuminate\Support\Facades\Http::response([
                 'status' => true,
                 'id' => ['retry-message-id'],
                 'process' => 'pending',
