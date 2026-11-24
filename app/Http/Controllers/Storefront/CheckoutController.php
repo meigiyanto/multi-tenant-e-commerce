@@ -61,8 +61,8 @@ class CheckoutController extends Controller
 
             return [
                 'id' => $item->id,
-                'name' => $product?->name ?? 'Produk tidak tersedia',
-                'variant_name' => $variant?->name ?? 'Varian tidak tersedia',
+                'name' => $product?->name ?? 'Product unavailable',
+                'variant_name' => $variant?->name ?? 'Variant unavailable',
                 'quantity' => $item->quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
@@ -141,7 +141,7 @@ class CheckoutController extends Controller
             $finishUrl = rtrim((string) config('app.url'), '/').'/orders/'.rawurlencode($order->order_number)
                 .'?expires='.$expires.'&key='.$finishKey;
 
-            return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
+            return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
     }
 
