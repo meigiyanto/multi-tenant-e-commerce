@@ -24,7 +24,7 @@ class PaymentService
     public function start(Order $order): PaymentTransaction
     {
         if ($order->payment_status !== 'pending' || $order->status !== 'pending') {
-            throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+            throw new RuntimeException('This order cannot be paid.');
         }
 
         if ($order->currency !== 'IDR') {
@@ -37,7 +37,7 @@ class PaymentService
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedOrder->payment_status !== 'pending' || $lockedOrder->status !== 'pending') {
-                throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+                throw new RuntimeException('This order cannot be paid.');
             }
 
             if ($lockedOrder->currency !== 'IDR') {
@@ -62,7 +62,7 @@ class PaymentService
                 ->exists();
 
             if ($inProgress) {
-                throw new RuntimeException('Sesi pembayaran sedang dibuat. Silakan coba kembali beberapa saat lagi.');
+                throw new RuntimeException('A payment session is being created. Please try again in a few moments.');
             }
 
             $lockedOrder->update(['payment_status' => 'pending']);
@@ -169,7 +169,7 @@ class PaymentService
         $gateway = $this->gateways->driver($gatewayName, false);
 
         if ($gateway->verifyNotification($payload) === false) {
-            throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
+            throw new RuntimeException('The payment notification signature is invalid.');
         }
 
         $this->assertValidStatusCode($payload);
@@ -357,13 +357,13 @@ class PaymentService
             (is_string($statusCode) === false && is_int($statusCode) === false)
             || preg_match('/^\\d{3}$/', (string) $statusCode) !== 1
         ) {
-            throw new RuntimeException('Status code Midtrans tidak valid.');
+            throw new RuntimeException('The Midtrans status code is invalid.');
         }
 
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
 
         if (in_array($transactionStatus, ['settlement', 'capture'], true) && (string) $statusCode !== '200') {
-            throw new RuntimeException('Status code transaksi sukses Midtrans harus bernilai 200.');
+            throw new RuntimeException('Successful Midtrans transactions must use status code 200.');
         }
     }
 
@@ -449,12 +449,12 @@ class PaymentService
     private function normalizeAmount(mixed $amount): string
     {
         if (is_string($amount) === false && is_int($amount) === false && is_float($amount) === false) {
-            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+            throw new RuntimeException('The payment notification amount is invalid.');
         }
 
         $amount = (string) $amount;
         if (preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount) === 0) {
-            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+            throw new RuntimeException('The payment notification amount is invalid.');
         }
 
         [$integer, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
@@ -507,14 +507,14 @@ class PaymentService
             ->keyBy('product_variant_id');
 
         if ($reservations->count() !== $expected->count()) {
-            return 'Ledger reservasi inventori tidak lengkap untuk pesanan ini.';
+            return 'The inventory reservation ledger is incomplete for this order.';
         }
 
         $transitions = [];
         foreach ($expected as $variantId => $quantity) {
             $reservation = $reservations->get($variantId);
             if ($reservation === null || $reservation->quantity !== $quantity) {
-                return 'Jumlah reservasi inventori tidak sesuai dengan item pesanan.';
+                return 'The inventory reservation quantity does not match the order items.';
             }
 
             $inventory = Inventory::query()
@@ -525,11 +525,11 @@ class PaymentService
                 ->first();
 
             if ($inventory === null || $inventory->reserved_quantity < $quantity) {
-                return 'Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.';
+                return 'The inventory reservation is missing or inconsistent for this order.';
             }
 
             if ($status === 'paid' && $inventory->quantity < $quantity) {
-                return 'Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.';
+                return 'Insufficient inventory to complete the payment.';
             }
 
             $transitions[] = [$reservation, $inventory, $quantity];
