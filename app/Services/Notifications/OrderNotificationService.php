@@ -98,9 +98,7 @@ class OrderNotificationService
         }
 
         $metadata = (array) $delivery->fresh()->metadata;
-        if (array_key_exists('dispatch_error', $metadata)) {
-            unset($metadata['dispatch_error']);
-            $delivery->update(['metadata' => $metadata]);
-        }
+        unset($metadata['dispatch_error']);
+        $delivery->update(['metadata' => $metadata]);
     }
 }
