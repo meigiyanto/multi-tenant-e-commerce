@@ -89,6 +89,12 @@ class SendOrderPaidEmail implements ShouldQueue
                 'failed_at' => null,
                 'last_error' => null,
             ]);
+
+            $metadata = (array) $delivery->fresh()->metadata;
+            if (array_key_exists('job_failure', $metadata)) {
+                unset($metadata['job_failure']);
+                $delivery->update(['metadata' => $metadata]);
+            }
         } catch (Throwable $exception) {
             $delivery->update([
                 'status' => 'queued',
@@ -101,6 +107,18 @@ class SendOrderPaidEmail implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
+        $delivery = NotificationDelivery::query()->find($this->deliveryId);
+        if ($delivery === null) {
+            return;
+        }
+
+        $metadata = (array) $delivery->metadata;
+        $metadata['job_failure'] = [
+            'exception' => $exception === null ? null : $exception::class,
+            'message' => $exception?->getMessage(),
+            'occurred_at' => now()->toISOString(),
+        ];
+
         NotificationDelivery::query()
             ->whereKey($this->deliveryId)
             ->whereNotIn('status', ['sent', 'delivered', 'read'])
@@ -108,6 +126,7 @@ class SendOrderPaidEmail implements ShouldQueue
                 'status' => 'failed',
                 'failed_at' => now(),
                 'last_error' => $exception?->getMessage(),
+                'metadata' => $metadata,
             ]);
     }
 }
