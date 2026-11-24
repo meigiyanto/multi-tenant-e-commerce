@@ -22,7 +22,7 @@ class FonnteDeliveryWebhookController extends Controller
             'state' => ['nullable', 'string', 'max:100'],
             'stateid' => ['nullable', 'string', 'max:255'],
             'device' => ['nullable', 'string', 'max:255'],
-            'timestamp' => ['nullable', 'string', 'max:100'],
+            'timestamp' => ['nullable'],
         ]);
 
         $result = DB::transaction(function () use ($validated): array {
@@ -91,7 +91,7 @@ class FonnteDeliveryWebhookController extends Controller
 
         $failureStatuses = ['failed', 'failure', 'invalid', 'expired', 'url unreachable', 'error'];
 
-        if (in_array($state, $failureStatuses, true) || in_array($status, $failureStatuses, true)) {
+        if (in_array($state, [...$failureStatuses, '0'], true) || in_array($status, $failureStatuses, true)) {
             return 'failed';
         }
 
@@ -100,16 +100,16 @@ class FonnteDeliveryWebhookController extends Controller
         return null;
     }
 
-    private function occurredAt(?string $timestamp): Carbon
+    private function occurredAt(mixed $timestamp): Carbon
     {
-        if ($timestamp === null || trim($timestamp) === '') {
+        if ($timestamp === null || (is_string($timestamp) && trim($timestamp) === '')) {
             return now();
         }
 
         try {
             return is_numeric($timestamp)
                 ? Carbon::createFromTimestamp((int) $timestamp)
-                : Carbon::parse($timestamp);
+                : (is_string($timestamp) ? Carbon::parse($timestamp) : now());
         } catch (Throwable) {
             return now();
         }
