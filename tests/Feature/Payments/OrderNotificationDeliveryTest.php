@@ -73,7 +73,7 @@ class OrderNotificationDeliveryTest extends TestCase
     {
         $order = $this->order();
         $delivery = NotificationDelivery::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'store_id' => $order->store_id,
             'order_id' => $order->id,
             'event' => 'payment_confirmed',
@@ -93,7 +93,7 @@ class OrderNotificationDeliveryTest extends TestCase
     public function test_it_accepts_signed_delivery_webhook_and_records_delivered_status(): void
     {
         $delivery = NotificationDelivery::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'store_id' => $this->order()->store_id,
             'order_id' => Order::query()->firstOrFail()->id,
             'event' => 'payment_confirmed',
@@ -223,7 +223,7 @@ class OrderNotificationDeliveryTest extends TestCase
         $order = $this->order();
 
         return NotificationDelivery::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'store_id' => $order->store_id,
             'order_id' => $order->id,
             'event' => 'payment_confirmed',
