@@ -66,7 +66,7 @@ class CartController extends Controller
 
         $this->carts->add($store, $this->cartSessions->id($request), $data['product_variant_id'], $data['quantity'] ?? 1);
 
-        return $this->cartSessions->attach(back()->with('success', 'Produk berhasil ditambahkan ke keranjang.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product added to cart.'), $request);
     }
 
     public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
@@ -77,7 +77,7 @@ class CartController extends Controller
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
         $this->carts->update($store, $this->cartSessions->id($request), $item, $data['quantity']);
 
-        return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product quantity updated.'), $request);
     }
 
     public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
@@ -87,6 +87,6 @@ class CartController extends Controller
 
         $this->carts->remove($store, $this->cartSessions->id($request), $item);
 
-        return $this->cartSessions->attach(back()->with('success', 'Produk dihapus dari keranjang.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product removed from cart.'), $request);
     }
 }
