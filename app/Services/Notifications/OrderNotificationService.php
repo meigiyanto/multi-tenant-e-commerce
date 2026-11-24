@@ -154,7 +154,7 @@ class OrderNotificationService
                 'metadata' => $metadata,
             ]);
 
-            Log::error('Order payment notification dispatch failed.', [
+            Log::error('Order notification dispatch failed.', [
                 'notification_delivery_id' => $delivery->id,
                 'order_id' => $delivery->order_id,
                 'channel' => $delivery->channel,
