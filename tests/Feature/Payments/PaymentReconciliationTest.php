@@ -139,8 +139,30 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('error', data_get($transaction->metadata, 'reconciliation.result'));
     }
 
+    public function test_notification_dispatch_failure_does_not_fail_payment_reconciliation(): void
+    {
+        config([
+            'queue.default' => 'sync',
+            'services.fonnte.token' => null,
+        ]);
+        [$transaction, $order] = $this->pendingPayment();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
+        ]);
+
+        $this->assertSame(1, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $this->assertSame('paid', $transaction->fresh()->status);
+        $this->assertDatabaseHas('notification_deliveries', [
+            'order_id' => $order->id,
+            'channel' => 'whatsapp',
+            'status' => 'failed',
+        ]);
+    }
+
     public function test_it_records_successful_payment_even_when_inventory_requires_manual_review(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         $inventory->update(['reserved_quantity' => 0]);
         Http::fake([
@@ -153,11 +175,6 @@ class PaymentReconciliationTest extends TestCase
         $order->refresh();
         $inventory->refresh();
 
-        $this->assertDatabaseHas('notification_deliveries', [
-            'order_id' => $order->id,
-            'channel' => 'whatsapp',
-            'status' => 'failed',
-        ]);
         $this->assertSame('paid', $transaction->status);
         $this->assertSame('paid', $order->payment_status);
         $this->assertSame('pending', $order->status);
@@ -168,6 +185,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_records_payment_after_order_cancellation_for_manual_review(): void
     {
+        Queue::fake();
         [$transaction, $order] = $this->pendingPayment();
         $order->update(['status' => 'cancelled']);
         InventoryReservation::query()->where('order_id', $order->id)->update([
