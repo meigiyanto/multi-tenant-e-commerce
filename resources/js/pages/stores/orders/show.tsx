@@ -1,5 +1,6 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Bell, Package, RefreshCw, Truck } from 'lucide-react';
+import { ArrowLeft, Bell, RefreshCw, Truck } from 'lucide-react';
+import OrderNumberCopy from '@/components/order-number-copy';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,10 @@ type Props = {
             provider: string | null;
             courier: string | null;
             service: string | null;
+            tracking_number: string | null;
+            tracking_url: string | null;
+            shipped_at: string | null;
+            delivered_at: string | null;
         };
         customer_note: string | null;
         currency: string;
@@ -57,7 +62,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                 <div className="m-2">
                     <Button asChild variant="ghost" size="sm" className="mb-2"><Link href={base + '/orders'}><ArrowLeft /> Back to orders</Link></Button>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                        <Heading variant="small" title={order.order_number} description={order.placed_at ? 'Placed ' + new Date(order.placed_at).toLocaleString('id-ID') : 'Order details'} />
+                        <div><Heading variant="small" title={order.order_number} description={order.placed_at ? 'Placed ' + new Date(order.placed_at).toLocaleString('en-US') : 'Order details'} /><OrderNumberCopy value={order.order_number} className="mt-2" /></div>
                         <div className="flex gap-2">
                             <Badge>{title(order.status)}</Badge>
                             <Badge variant="secondary">Payment: {title(order.payment_status)}</Badge>
@@ -112,6 +117,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                 <p className="mb-3 text-sm text-muted-foreground">Payment is confirmed. Update the order when this fulfillment step is complete.</p>
                                 <Form action={base + '/orders/' + order.id + '/status'} method="patch" className="space-y-3">
                                     <input type="hidden" name="status" value={order.next_status} />
+                                    {order.next_status === 'shipped' ? <><label className="block text-sm font-medium" htmlFor="tracking-number">Tracking number</label><input id="tracking-number" name="tracking_number" required maxLength={100} defaultValue={order.shipping.tracking_number ?? ''} placeholder="Enter the courier tracking number" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /><label className="block text-sm font-medium" htmlFor="tracking-url">Courier tracking URL (optional)</label><input id="tracking-url" name="tracking_url" type="url" maxLength={2048} defaultValue={order.shipping.tracking_url ?? ''} placeholder="https://courier.example/track" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /></> : null}
                                     <label className="block text-sm font-medium" htmlFor="status-note">Note (optional)</label>
                                     <textarea id="status-note" name="note" rows={3} maxLength={1000} placeholder="Add fulfillment or delivery details" className="w-full rounded-md border bg-background p-3 text-sm" />
                                     <Button type="submit" className="w-full">Mark as {title(order.next_status)}</Button>
@@ -132,6 +138,9 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                             <p className="text-sm">{address}</p>
                             {order.shipping.destination_label ? <p className="mt-1 text-sm text-muted-foreground">{order.shipping.destination_label}</p> : null}
                             <p className="mt-2 text-sm text-muted-foreground">{[order.shipping.provider, order.shipping.courier, order.shipping.service].filter(Boolean).join(' · ') || 'Shipping service not recorded'}</p>
+                            <p className="mt-3 text-sm">Tracking number: <span className="font-medium">{order.shipping.tracking_number ?? 'Not assigned'}</span></p>
+                            {order.shipping.tracking_url ? <a href={order.shipping.tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open courier tracking</a> : null}
+                            <p className="mt-2 text-xs text-muted-foreground">Shipped: {order.shipping.shipped_at ? new Date(order.shipping.shipped_at).toLocaleString('en-US') : '—'} · Delivered: {order.shipping.delivered_at ? new Date(order.shipping.delivered_at).toLocaleString('en-US') : '—'}</p>
                         </section>
 
                         <section className="rounded-xl border p-4">
