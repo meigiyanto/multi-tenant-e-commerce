@@ -34,7 +34,8 @@ class SendOrderPaidWhatsApp implements ShouldQueue
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
-        if (in_array($delivery->status, ['sent', 'delivered', 'read', 'failed'], true)) {
+        if (in_array($delivery->status, ['sent', 'delivered', 'read'], true)
+            || ($delivery->status === 'failed' && data_get($delivery->metadata, 'job_failure') === null)) {
             return;
         }
 
