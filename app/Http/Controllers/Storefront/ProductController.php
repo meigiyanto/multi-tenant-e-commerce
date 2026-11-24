@@ -31,6 +31,8 @@ class ProductController extends Controller
             ])
             ->firstOrFail();
 
+        $storefrontSettings = $store->storefrontSettings();
+
         $relatedProducts = $store->products()
             ->where('status', 'active')
             ->whereKeyNot($product->id)
@@ -48,8 +50,8 @@ class ProductController extends Controller
             'store' => [
                 'name' => $store->name,
                 'currency' => $store->currency,
-                'primary_color' => $store->settings['storefront']['primary_color'] ?? '#2563eb',
-                'accent_color' => $store->settings['storefront']['accent_color'] ?? '#0f172a',
+                'primary_color' => $storefrontSettings['primary_color'] ?? '#2563eb',
+                'accent_color' => $storefrontSettings['accent_color'] ?? '#0f172a',
             ],
             'product' => [
                 'id' => $product->id,
@@ -81,6 +83,7 @@ class ProductController extends Controller
         return $cartSessions->attach($response, $request);
     }
 
+    /** @return array<string, mixed> */
     private function productCard(Product $product): array
     {
         $image = $product->images->firstWhere('is_primary', true) ?? $product->images->first();
