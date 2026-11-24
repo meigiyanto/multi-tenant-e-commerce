@@ -50,20 +50,23 @@ class CheckoutController extends Controller
 
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
+        $user = $request->user();
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
-            $unitPrice = $item->variant->price ?? $item->product->price;
+            $product = $item->product;
+            $variant = $item->variant;
+            $unitPrice = $variant?->price ?? $product?->price ?? $item->unit_price;
+            $images = $product?->images ?? collect();
+            $image = $images->firstWhere('is_primary', true) ?? $images->first();
 
             return [
                 'id' => $item->id,
-                'name' => $item->product->name,
-                'variant_name' => $item->variant->name,
+                'name' => $product?->name ?? 'Produk tidak tersedia',
+                'variant_name' => $variant?->name ?? 'Varian tidak tersedia',
                 'quantity' => $item->quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
-                'image_url' => ($image = $item->product->images->firstWhere('is_primary', true) ?? $item->product->images->first())
-                    ? Storage::disk('public')->url($image->path)
-                    : null,
+                'image_url' => $image ? Storage::disk('public')->url($image->path) : null,
             ];
         });
         $subtotal = number_format((float) $items->sum(fn (array $item): float => (float) $item['line_total']), 2, '.', '');
@@ -75,8 +78,8 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
-                'name' => auth()->user()->name,
-                'email' => auth()->user()->email,
+                'name' => $user?->name ?? '',
+                'email' => $user?->email ?? '',
                 'phone' => '',
             ],
         ])->toResponse($request);

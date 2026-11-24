@@ -172,6 +172,7 @@ class PaymentService
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
+        $this->assertValidStatusCode($payload);
         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
     }
 
@@ -203,10 +204,7 @@ class PaymentService
                             throw new RuntimeException('Order ID dari Midtrans GET Status tidak cocok.');
                         }
 
-                        if ((string) ($payload['status_code'] ?? '') !== '200') {
-                            throw new RuntimeException('Status code dari Midtrans GET Status tidak valid.');
-                        }
-
+                        $this->assertValidStatusCode($payload);
                         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, false);
                         $transaction->refresh();
 
@@ -345,6 +343,27 @@ class PaymentService
 
         if ($paidOrderId !== null) {
             app(OrderNotificationService::class)->queuePaymentConfirmed($paidOrderId);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertValidStatusCode(array $payload): void
+    {
+        $statusCode = $payload['status_code'] ?? null;
+
+        if (
+            (is_string($statusCode) === false && is_int($statusCode) === false)
+            || preg_match('/^\\d{3}$/', (string) $statusCode) !== 1
+        ) {
+            throw new RuntimeException('Status code Midtrans tidak valid.');
+        }
+
+        $transactionStatus = (string) ($payload['transaction_status'] ?? '');
+
+        if (in_array($transactionStatus, ['settlement', 'capture'], true) && (string) $statusCode !== '200') {
+            throw new RuntimeException('Status code transaksi sukses Midtrans harus bernilai 200.');
         }
     }
 
