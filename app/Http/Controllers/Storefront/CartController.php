@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -14,7 +13,10 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $carts, private readonly CartSessionService $cartSessions) {}
+    public function __construct(
+        private readonly CartService $carts,
+        private readonly CartSessionService $cartSessions,
+    ) {}
 
     public function show(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
