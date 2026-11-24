@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
+ * @property array<string, mixed>|null $settings
  * @property int $id
  * @property int $team_id
  * @property string $name
@@ -59,6 +60,15 @@ class Store extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /** @return array<string, mixed> */
+    public function storefrontSettings(): array
+    {
+        $settings = $this->settings ?? [];
+        $storefront = $settings['storefront'] ?? [];
+
+        return is_array($storefront) ? $storefront : [];
     }
 
     protected function casts(): array
