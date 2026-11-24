@@ -52,7 +52,7 @@ class CartController extends Controller
         return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(string $storeSubdomain, Request $request, StoreContext $context): RedirectResponse
+    public function store(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -67,7 +67,7 @@ class CartController extends Controller
         return $this->cartSessions->attach(back()->with('success', 'Produk berhasil ditambahkan ke keranjang.'), $request);
     }
 
-    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
+    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -78,7 +78,7 @@ class CartController extends Controller
         return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
     }
 
-    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
+    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
