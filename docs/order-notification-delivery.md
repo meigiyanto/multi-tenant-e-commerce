@@ -66,6 +66,16 @@ Store members with permission to update the store can inspect the notification t
 
 The **Retry failed jobs** action is shown only when a delivery contains an application dispatch or exhausted-job failure marker. It is available only for paid orders. It does not retry provider-reported delivery failures, and the action is scoped to the order's store. Retrying calls the same idempotent notification scheduler, which only dispatches deliveries marked with `metadata.dispatch_error` or `metadata.job_failure`; already successful or provider-terminal deliveries are left untouched.
 
+## Customer order tracking and fulfillment
+
+Each order has a customer tracking URL protected by an HMAC token derived from the application key and order number. The URL is shown after checkout and can be shared with the customer. The public tracking page exposes order/payment status, fulfillment history, courier, service, tracking number, courier URL, and destination label. It sends private, non-cacheable responses and refreshes the order data every 30 seconds.
+
+Store members with permission to update the Store can move a paid order from `processing` to `shipped` only after entering a tracking number. The courier tracking URL is optional because some carriers provide tracking pages that require manual lookup. The next transition is `shipped` to `delivered`; a delivery confirmation note is required and the transition is recorded with its actor and timestamp. Unpaid orders cannot enter fulfillment, and transitions cannot skip a stage.
+
+The application does not book a courier or query live courier tracking events. Store staff must enter the tracking number and courier URL, and confirm delivery based on the courier's proof or customer confirmation. The `delivered` status is a Store-side confirmation, not an automatic carrier webhook result.
+
+Order numbers can be copied from the customer confirmation page, customer tracking page, Store order list, and Store order detail page. The copy control uses the Clipboard API with a legacy fallback and announces success or failure accessibly.
+
 ## Inspect deliveries
 
 Use Tinker:

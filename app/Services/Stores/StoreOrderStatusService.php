@@ -49,6 +49,12 @@ class StoreOrderStatusService
                 ]);
             }
 
+            if ($toStatus === 'delivered' && trim((string) $note) === '') {
+                throw ValidationException::withMessages([
+                    'note' => 'A delivery confirmation note is required before an order can be marked as delivered.',
+                ]);
+            }
+
             if ($toStatus === 'delivered' && $lockedOrder->shipped_at === null) {
                 throw ValidationException::withMessages([
                     'status' => 'An order must be shipped before it can be marked as delivered.',

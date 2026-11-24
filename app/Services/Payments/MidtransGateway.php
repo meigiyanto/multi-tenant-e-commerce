@@ -17,11 +17,11 @@ class MidtransGateway implements PaymentGateway
         $serverKey = (string) config('payments.gateways.midtrans.server_key');
 
         if ($serverKey === '') {
-            throw new RuntimeException('Midtrans Server Key belum dikonfigurasi.');
+            throw new RuntimeException('The Midtrans Server Key is not configured.');
         }
 
         if ($order->currency !== 'IDR') {
-            throw new RuntimeException('Midtrans saat ini hanya diaktifkan untuk pesanan berdenominasi IDR.');
+            throw new RuntimeException('Midtrans is currently enabled only for orders denominated in IDR.');
         }
 
         $baseUrl = config('payments.gateways.midtrans.production')
@@ -29,12 +29,12 @@ class MidtransGateway implements PaymentGateway
             : 'https://app.sandbox.midtrans.com';
 
         if ($transaction->currency !== $order->currency) {
-            throw new RuntimeException('Mata uang transaksi tidak sesuai dengan pesanan.');
+            throw new RuntimeException('The transaction currency does not match the order currency.');
         }
 
         $amount = (string) $transaction->amount;
         if (! preg_match('/^\\d+(?:\\.00)?$/', $amount) || (int) explode('.', $amount)[0] < 1) {
-            throw new RuntimeException('Nominal transaksi Midtrans harus berupa bilangan bulat IDR yang valid.');
+            throw new RuntimeException('The Midtrans transaction amount must be a valid whole-number IDR amount.');
         }
 
         $parameters = [
@@ -52,12 +52,12 @@ class MidtransGateway implements PaymentGateway
         $appUrlParts = parse_url($appUrl);
         if (! is_array($appUrlParts) || ! in_array($appUrlParts['scheme'] ?? null, ['http', 'https'], true)
             || empty($appUrlParts['host'])) {
-            throw new RuntimeException('APP_URL harus menggunakan alamat HTTP(S) yang valid untuk URL Finish Midtrans.');
+            throw new RuntimeException('APP_URL must be a valid HTTP(S) URL for the Midtrans Finish URL.');
         }
 
         $appKey = (string) config('app.key');
         if ($appKey === '') {
-            throw new RuntimeException('APP_KEY wajib tersedia untuk mengamankan URL Finish Midtrans.');
+            throw new RuntimeException('APP_KEY is required to secure the Midtrans Finish URL.');
         }
 
         $expires = now()->addDays(7)->timestamp;
@@ -73,15 +73,15 @@ class MidtransGateway implements PaymentGateway
             ->post($baseUrl.'/snap/v1/transactions', $parameters);
 
         if ($response->status() >= 500 || in_array($response->status(), [408, 429], true)) {
-            throw new PaymentGatewayUnavailableException('Midtrans belum dapat memastikan hasil pembuatan sesi pembayaran.');
+            throw new PaymentGatewayUnavailableException('Midtrans could not confirm the payment session creation result.');
         }
 
         if ($response->successful() === false) {
-            throw new RuntimeException('Midtrans gagal membuat sesi pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
+            throw new RuntimeException('Midtrans failed to create the payment session: '.($response->json('error_messages.0') ?? $response->body()));
         }
 
         if (empty($response->json('token')) || empty($response->json('redirect_url'))) {
-            throw new PaymentGatewayUnavailableException('Respons pembuatan sesi Midtrans tidak lengkap; hasil transaksi perlu direkonsiliasi.');
+            throw new PaymentGatewayUnavailableException('The Midtrans session response is incomplete; the transaction must be reconciled.');
         }
 
         return [
@@ -124,7 +124,7 @@ class MidtransGateway implements PaymentGateway
                 'accept' => 'paid',
                 'deny' => 'failed',
                 'challenge' => 'pending',
-                default => throw new RuntimeException('Fraud status notifikasi Midtrans tidak didukung.'),
+                default => throw new RuntimeException('The Midtrans notification fraud status is unsupported.'),
             };
         }
 
@@ -132,7 +132,7 @@ class MidtransGateway implements PaymentGateway
             'expire' => 'expired',
             'cancel', 'deny', 'failure' => 'failed',
             'pending', 'authorize' => 'pending',
-            default => throw new RuntimeException('Status transaksi Midtrans tidak didukung: '.$status),
+            default => throw new RuntimeException('Unsupported Midtrans transaction status: '.$status),
         };
     }
 
@@ -142,7 +142,7 @@ class MidtransGateway implements PaymentGateway
         $serverKey = (string) config('payments.gateways.midtrans.server_key');
 
         if ($serverKey === '') {
-            throw new RuntimeException('Midtrans Server Key belum dikonfigurasi.');
+            throw new RuntimeException('The Midtrans Server Key is not configured.');
         }
 
         $baseUrl = config('payments.gateways.midtrans.production')
@@ -159,13 +159,13 @@ class MidtransGateway implements PaymentGateway
         }
 
         if ($response->successful() === false) {
-            throw new RuntimeException('Midtrans GET Status gagal dengan HTTP '.$response->status().'.');
+            throw new RuntimeException('Midtrans GET Status failed with HTTP '.$response->status().'.');
         }
 
         $payload = $response->json();
 
         if (! is_array($payload)) {
-            throw new RuntimeException('Respons Midtrans GET Status tidak valid.');
+            throw new RuntimeException('The Midtrans GET Status response is invalid.');
         }
 
         return $payload;

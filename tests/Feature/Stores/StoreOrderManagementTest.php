@@ -69,6 +69,7 @@ class StoreOrderManagementTest extends TestCase
         $this->actingAs($user)
             ->patch(route('teams.stores.orders.status', ['team' => $team, 'store' => $store, 'order' => $order]), [
                 'status' => 'shipped',
+                'tracking_number' => 'JNE123456789',
                 'note' => 'Handed to courier.',
             ])
             ->assertRedirect(route('teams.stores.orders.show', ['team' => $team->slug, 'store' => $store->id, 'order' => $order->id]));
@@ -82,6 +83,41 @@ class StoreOrderManagementTest extends TestCase
             'to_status' => 'shipped',
             'note' => 'Handed to courier.',
         ]);
+    }
+
+    public function test_customer_can_view_order_tracking_with_a_valid_token(): void
+    {
+        [, , $store] = $this->ownedStore();
+        $order = $this->createOrder($store, 'ORD-TRACK', 'shipped', 'paid');
+        $order->update([
+            'shipping_tracking_number' => 'JNE123456789',
+            'shipping_tracking_url' => 'https://tracking.example.test/JNE123456789',
+            'shipped_at' => now(),
+        ]);
+        $token = hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'));
+
+        $this->get(route('storefront.orders.track', [
+            'orderNumber' => $order->order_number,
+            'token' => $token,
+        ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/order-tracking')
+                ->where('order.order_number', 'ORD-TRACK')
+                ->where('order.status', 'shipped')
+                ->where('order.tracking_number', 'JNE123456789'),
+            );
+    }
+
+    public function test_customer_cannot_view_order_tracking_with_an_invalid_token(): void
+    {
+        [, , $store] = $this->ownedStore();
+        $order = $this->createOrder($store, 'ORD-PRIVATE', 'processing', 'paid');
+
+        $this->get(route('storefront.orders.track', [
+            'orderNumber' => $order->order_number,
+            'token' => 'invalid-token',
+        ]))->assertNotFound();
     }
 
     public function test_unpaid_order_cannot_enter_fulfillment(): void

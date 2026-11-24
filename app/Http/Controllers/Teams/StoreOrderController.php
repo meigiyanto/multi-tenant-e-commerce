@@ -104,6 +104,7 @@ class StoreOrderController extends Controller
                     'courier' => $order->shipping_courier,
                     'service' => $order->shipping_service,
                     'tracking_number' => $order->shipping_tracking_number,
+                    'customer_tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                     'tracking_url' => $order->shipping_tracking_url,
                     'shipped_at' => $order->shipped_at?->toISOString(),
                     'delivered_at' => $order->delivered_at?->toISOString(),
@@ -170,14 +171,15 @@ class StoreOrderController extends Controller
         Store $store,
         Order $order,
         StoreOrderStatusService $statusService,
+        OrderNotificationService $notificationService,
     ): RedirectResponse {
         $this->authorizeOrder($team, $store, $order);
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['shipped', 'delivered'])],
-            'note' => ['nullable', 'string', 'max:1000'],
+            'note' => ['required_if:status,delivered', 'nullable', 'string', 'max:1000'],
             'tracking_number' => ['required_if:status,shipped', 'nullable', 'string', 'max:100'],
-            'tracking_url' => ['nullable', 'url', 'max:2048'],
+            'tracking_url' => ['nullable', 'url', 'regex:/^https?:\/\//i', 'max:2048'],
         ]);
 
         $statusService->transition(
@@ -189,6 +191,7 @@ class StoreOrderController extends Controller
             $validated['tracking_number'] ?? null,
             $validated['tracking_url'] ?? null,
         );
+        $notificationService->queueOrderStatusUpdated((int) $order->id, $validated['status']);
 
         return to_route('teams.stores.orders.show', [
             'team' => $team->slug,
@@ -201,7 +204,7 @@ class StoreOrderController extends Controller
     {
         $this->authorizeOrder($team, $store, $order);
 
-        abort_unless($order->payment_status === 'paid', 422, 'Only paid orders can retry payment notifications.');
+        abort_unless($order->payment_status === 'paid', 422, 'Only paid orders can retry order notifications.');
 
         $hasRetryableDelivery = $order->notificationDeliveries()
             ->where(function ($query): void {
@@ -212,13 +215,13 @@ class StoreOrderController extends Controller
 
         abort_unless($hasRetryableDelivery, 409, 'No retryable notification failures were found.');
 
-        $notificationService->queuePaymentConfirmed((int) $order->id);
+        $notificationService->retryFailedNotifications((int) $order->id);
 
         return to_route('teams.stores.orders.show', [
             'team' => $team->slug,
             'store' => $store->id,
             'order' => $order->id,
-        ])->with('success', __('Retry queued for failed payment notifications.'));
+        ])->with('success', __('Retry queued for failed order notifications.'));
     }
 
     private function authorizeStore(Team $team, Store $store): void

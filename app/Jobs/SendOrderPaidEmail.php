@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\NotificationDelivery;
+use App\Services\Orders\OrderTrackingUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,7 +31,7 @@ class SendOrderPaidEmail implements ShouldQueue
 
     public function __construct(public int $deliveryId) {}
 
-    public function handle(): void
+    public function handle(OrderTrackingUrl $tracking): void
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
@@ -65,26 +66,32 @@ class SendOrderPaidEmail implements ShouldQueue
 
         try {
             $order = $delivery->order;
-            $lines = $order->items->map(
-                fn ($item): string => $item->product_name.' ('.$item->quantity.' x '.$order->currency.' '.$item->unit_price.')',
-            )->implode("\n");
+            $trackingUrl = $tracking->for($order);
+            $eventMessage = match ($delivery->event) {
+                'order_shipped' => 'Your order has been shipped.',
+                'order_delivered' => 'Your order has been marked as delivered.',
+                default => 'Your payment has been confirmed successfully.',
+            };
             $body = implode("\n", [
-                'Halo '.$order->customer_name.',',
+                'Hello '.$order->customer_name.',',
                 '',
-                'Pembayaran untuk pesanan '.$order->order_number.' telah berhasil kami konfirmasi.',
-                '',
-                'Rincian pesanan:',
-                $lines,
-                '',
+                $eventMessage,
+                'Order number: '.$order->order_number,
+                'Order status: '.$order->status,
                 'Total: '.$order->currency.' '.$order->total,
-                'Status pesanan: '.$order->status,
+                $order->shipping_tracking_number ? 'Tracking number: '.$order->shipping_tracking_number : '',
+                'Track your order: '.$trackingUrl,
                 '',
-                'Terima kasih telah berbelanja di '.$delivery->store->name.'.',
+                'Thank you for shopping at '.$delivery->store->name.'.',
             ]);
 
             Mail::raw($body, function ($message) use ($delivery, $order): void {
-                $message->to($delivery->recipient)
-                    ->subject('Pembayaran berhasil - '.$order->order_number);
+                $subject = match ($delivery->event) {
+                    'order_shipped' => 'Your order has shipped - '.$order->order_number,
+                    'order_delivered' => 'Your order was delivered - '.$order->order_number,
+                    default => 'Payment confirmed - '.$order->order_number,
+                };
+                $message->to($delivery->recipient)->subject($subject);
             });
 
             $delivery->update([

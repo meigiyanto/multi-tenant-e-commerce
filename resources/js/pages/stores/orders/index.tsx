@@ -33,7 +33,7 @@ type Props = {
 };
 
 function money(amount: string, currency: string): string {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency }).format(Number(amount));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
 }
 
 function variant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -72,7 +72,7 @@ export default function StoreOrdersIndex({ team, store, orders, filters, statuse
 
                 <section className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm text-muted-foreground">{orders.total.toLocaleString('id-ID')} orders</p>
+                        <p className="text-sm text-muted-foreground">{orders.total.toLocaleString('en-US')} orders</p>
                         <p className="text-sm text-muted-foreground">Page {orders.current_page} of {orders.last_page}</p>
                     </div>
                     {orders.data.length ? (
@@ -94,7 +94,7 @@ export default function StoreOrdersIndex({ team, store, orders, filters, statuse
                                         <tr key={order.id}>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-2"><p className="font-medium">{order.order_number}</p><OrderNumberCopy value={order.order_number} /></div>
-                                                <p className="text-xs text-muted-foreground">{order.placed_at ? new Date(order.placed_at).toLocaleString('id-ID') : '—'}</p>
+                                                <p className="text-xs text-muted-foreground">{order.placed_at ? new Date(order.placed_at).toLocaleString('en-US') : '—'}</p>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <p>{order.customer_name}</p>

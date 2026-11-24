@@ -106,6 +106,35 @@ class OrderNotificationService
         }
     }
 
+    public function retryFailedNotifications(int $orderId): int
+    {
+        $deliveries = NotificationDelivery::query()
+            ->where('order_id', $orderId)
+            ->where(function ($query): void {
+                $query->whereNotNull('metadata->dispatch_error')
+                    ->orWhereNotNull('metadata->job_failure');
+            })
+            ->get();
+
+        foreach ($deliveries as $delivery) {
+            $metadata = (array) $delivery->metadata;
+            unset($metadata['dispatch_error'], $metadata['job_failure']);
+            $delivery->update([
+                'status' => 'queued',
+                'failed_at' => null,
+                'last_error' => null,
+                'metadata' => $metadata,
+            ]);
+
+            $job = $delivery->channel === 'mail'
+                ? new SendOrderPaidEmail($delivery->id)
+                : new SendOrderPaidWhatsApp($delivery->id);
+            $this->dispatchNotification($job, $delivery);
+        }
+
+        return $deliveries->count();
+    }
+
     private function dispatchNotification(object $job, NotificationDelivery $delivery): void
     {
         try {
@@ -125,7 +154,7 @@ class OrderNotificationService
                 'metadata' => $metadata,
             ]);
 
-            Log::error('Order payment notification dispatch failed.', [
+            Log::error('Order notification dispatch failed.', [
                 'notification_delivery_id' => $delivery->id,
                 'order_id' => $delivery->order_id,
                 'channel' => $delivery->channel,

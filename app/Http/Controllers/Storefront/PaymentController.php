@@ -56,7 +56,7 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Transaksi pembayaran belum ditemukan. Midtrans dapat mencoba kembali.',
+                'message' => 'Payment transaction not found. Midtrans may retry the notification.',
             ], 503);
         } catch (RuntimeException $exception) {
             Log::warning('Midtrans notification rejected', [

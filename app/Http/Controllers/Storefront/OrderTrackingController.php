@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class OrderTrackingController extends Controller
 {
-    public function show(Request $request, string $orderNumber): Response
+    public function show(Request $request, string $orderNumber): SymfonyResponse
     {
         $token = (string) $request->query('token', '');
         $appKey = (string) config('app.key');
@@ -50,7 +50,9 @@ class OrderTrackingController extends Controller
             ],
         ]);
 
-        $response->withViewData(['tracking_token' => $token]);
+        $response = $response->toResponse($request);
+        $response->headers->set('Cache-Control', 'no-store, private');
+        $response->headers->set('Referrer-Policy', 'no-referrer');
 
         return $response;
     }

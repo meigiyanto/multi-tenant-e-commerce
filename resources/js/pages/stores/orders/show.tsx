@@ -25,6 +25,7 @@ type Props = {
             service: string | null;
             tracking_number: string | null;
             tracking_url: string | null;
+            customer_tracking_url: string;
             shipped_at: string | null;
             delivered_at: string | null;
         };
@@ -44,7 +45,7 @@ type Props = {
 };
 
 function money(amount: string, currency: string): string {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency }).format(Number(amount));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
 }
 
 function title(value: string): string {
@@ -101,7 +102,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                     {order.history.map((entry) => (
                                         <li key={entry.id} className="border-l-2 pl-4">
                                             <p className="font-medium">{entry.from_status ? title(entry.from_status) + ' → ' : ''}{title(entry.to_status)}</p>
-                                            <p className="text-xs text-muted-foreground">{entry.actor ?? 'System'} · {entry.created_at ? new Date(entry.created_at).toLocaleString('id-ID') : '—'}</p>
+                                            <p className="text-xs text-muted-foreground">{entry.actor ?? 'System'} · {entry.created_at ? new Date(entry.created_at).toLocaleString('en-US') : '—'}</p>
                                             {entry.note ? <p className="mt-1 text-sm">{entry.note}</p> : null}
                                         </li>
                                     ))}
@@ -118,8 +119,8 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                 <Form action={base + '/orders/' + order.id + '/status'} method="patch" className="space-y-3">
                                     <input type="hidden" name="status" value={order.next_status} />
                                     {order.next_status === 'shipped' ? <><label className="block text-sm font-medium" htmlFor="tracking-number">Tracking number</label><input id="tracking-number" name="tracking_number" required maxLength={100} defaultValue={order.shipping.tracking_number ?? ''} placeholder="Enter the courier tracking number" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /><label className="block text-sm font-medium" htmlFor="tracking-url">Courier tracking URL (optional)</label><input id="tracking-url" name="tracking_url" type="url" maxLength={2048} defaultValue={order.shipping.tracking_url ?? ''} placeholder="https://courier.example/track" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /></> : null}
-                                    <label className="block text-sm font-medium" htmlFor="status-note">Note (optional)</label>
-                                    <textarea id="status-note" name="note" rows={3} maxLength={1000} placeholder="Add fulfillment or delivery details" className="w-full rounded-md border bg-background p-3 text-sm" />
+                                    <label className="block text-sm font-medium" htmlFor="status-note">{order.next_status === 'delivered' ? 'Delivery confirmation (required)' : 'Note (optional)'}</label>
+                                    <textarea id="status-note" name="note" rows={3} maxLength={1000} required={order.next_status === 'delivered'} placeholder={order.next_status === 'delivered' ? 'Confirm how receipt was verified' : 'Add fulfillment details'} className="w-full rounded-md border bg-background p-3 text-sm" />
                                     <Button type="submit" className="w-full">Mark as {title(order.next_status)}</Button>
                                 </Form>
                             </section>
@@ -140,6 +141,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                             <p className="mt-2 text-sm text-muted-foreground">{[order.shipping.provider, order.shipping.courier, order.shipping.service].filter(Boolean).join(' · ') || 'Shipping service not recorded'}</p>
                             <p className="mt-3 text-sm">Tracking number: <span className="font-medium">{order.shipping.tracking_number ?? 'Not assigned'}</span></p>
                             {order.shipping.tracking_url ? <a href={order.shipping.tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open courier tracking</a> : null}
+                            <a href={order.shipping.customer_tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open customer tracking page</a>
                             <p className="mt-2 text-xs text-muted-foreground">Shipped: {order.shipping.shipped_at ? new Date(order.shipping.shipped_at).toLocaleString('en-US') : '—'} · Delivered: {order.shipping.delivered_at ? new Date(order.shipping.delivered_at).toLocaleString('en-US') : '—'}</p>
                         </section>
 
@@ -151,7 +153,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                     <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium capitalize">{delivery.channel} · {delivery.provider ?? 'No provider'}</p><Badge variant={delivery.status === 'failed' ? 'destructive' : delivery.status === 'queued' || delivery.status === 'sending' ? 'secondary' : 'default'}>{title(delivery.status)}</Badge></div>
                                     <p className="break-all text-sm text-muted-foreground">To: {delivery.recipient}</p>
                                     <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('id-ID') : '—'}</dd></div>)}
+                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('en-US') : '—'}</dd></div>)}
                                     </dl>
                                     {delivery.provider_message_id ? <p className="break-all text-xs text-muted-foreground">Provider ID: {delivery.provider_message_id}</p> : null}
                                     {delivery.last_error ? <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{delivery.last_error}</p> : null}
@@ -165,7 +167,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                                 <div key={payment.id} className="border-t pt-3 first:border-0 first:pt-0">
                                     <p className="font-medium">{payment.gateway} · {title(payment.status)}</p>
                                     <p className="text-sm text-muted-foreground">{money(payment.amount, payment.currency)}</p>
-                                    <p className="text-xs text-muted-foreground">{payment.created_at ? new Date(payment.created_at).toLocaleString('id-ID') : '—'}</p>
+                                    <p className="text-xs text-muted-foreground">{payment.created_at ? new Date(payment.created_at).toLocaleString('en-US') : '—'}</p>
                                 </div>
                             ))}</div> : <p className="text-sm text-muted-foreground">No payment transaction recorded.</p>}
                         </section>
