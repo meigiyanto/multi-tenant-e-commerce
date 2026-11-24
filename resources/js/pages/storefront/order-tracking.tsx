@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { CheckCircle2, Clock3, Package, Truck } from 'lucide-react';
 import OrderNumberCopy from '@/components/order-number-copy';
 
@@ -30,6 +31,11 @@ const labels: Record<string, string> = {
 };
 
 export default function OrderTracking({ store, order }: Props) {
+    useEffect(() => {
+        const interval = window.setInterval(() => router.reload({ only: ['order'], preserveScroll: true }), 30000);
+        return () => window.clearInterval(interval);
+    }, []);
+
     const date = (value: string | null) => value ? new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Pending';
     return (
         <>
