@@ -172,7 +172,7 @@ class PaymentService
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
-        $this->assertValidNotificationStatusCode($payload);
+        $this->assertValidStatusCode($payload);
         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
     }
 
@@ -204,10 +204,7 @@ class PaymentService
                             throw new RuntimeException('Order ID dari Midtrans GET Status tidak cocok.');
                         }
 
-                        if ((string) ($payload['status_code'] ?? '') !== '200') {
-                            throw new RuntimeException('Status code dari Midtrans GET Status tidak valid.');
-                        }
-
+                        $this->assertValidStatusCode($payload);
                         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, false);
                         $transaction->refresh();
 
@@ -352,7 +349,7 @@ class PaymentService
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function assertValidNotificationStatusCode(array $payload): void
+    private function assertValidStatusCode(array $payload): void
     {
         $statusCode = $payload['status_code'] ?? null;
 
@@ -360,7 +357,7 @@ class PaymentService
             (is_string($statusCode) === false && is_int($statusCode) === false)
             || preg_match('/^\\d{3}$/', (string) $statusCode) !== 1
         ) {
-            throw new RuntimeException('Status code notifikasi Midtrans tidak valid.');
+            throw new RuntimeException('Status code Midtrans tidak valid.');
         }
 
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
