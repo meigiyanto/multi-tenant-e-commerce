@@ -156,8 +156,49 @@ class PaymentReconciliationTest extends TestCase
         $this->assertDatabaseHas('notification_deliveries', [
             'order_id' => $order->id,
             'channel' => 'whatsapp',
-            'status' => 'failed',
+            'status' => 'queued',
         ]);
+    }
+
+    public function test_duplicate_paid_webhook_retries_notification_dispatch_after_recoverable_failure(): void
+    {
+        config(['queue.default' => 'sync', 'services.fonnte.token' => null]);
+        [$transaction] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-retry-notification-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+        $whatsAppDelivery = \\App\\Models\\NotificationDelivery::query()
+            ->where('order_id', $transaction->order_id)
+            ->where('channel', 'whatsapp')
+            ->firstOrFail();
+        $this->assertSame('queued', $whatsAppDelivery->status);
+        $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'dispatch_error'));
+
+        config(['services.fonnte.token' => 'test-fonnte-token']);
+        \\Illuminate\\Support\\Facades\\Http::fake([
+            'api.fonnte.com/send' => \\Illuminate\\Support\\Facades\\Http::response([
+                'status' => true,
+                'id' => ['retry-message-id'],
+                'process' => 'pending',
+            ]),
+        ]);
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $this->assertSame('sent', $whatsAppDelivery->fresh()->status);
+        $this->assertSame('retry-message-id', $whatsAppDelivery->fresh()->provider_message_id);
     }
 
     public function test_it_records_successful_payment_even_when_inventory_requires_manual_review(): void
