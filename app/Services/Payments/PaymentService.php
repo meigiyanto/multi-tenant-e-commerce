@@ -268,6 +268,10 @@ class PaymentService
             $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
+                if ($transaction->status === 'paid' && $status === 'paid') {
+                    $paidOrderId = $transaction->order_id;
+                }
+
                 return;
             }
 
