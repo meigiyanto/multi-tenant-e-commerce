@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Package, Truck } from 'lucide-react';
+import { ArrowLeft, Bell, Package, RefreshCw, Truck } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ type Props = {
         total: string;
         placed_at: string | null;
         items: { id: number; product_name: string; variant_name: string; sku: string; quantity: number; unit_price: string; line_total: string }[];
+        notifications: { id: number; channel: string; recipient: string; status: string; provider: string | null; provider_message_id: string | null; last_error: string | null; retryable: boolean; queued_at: string | null; sent_at: string | null; delivered_at: string | null; read_at: string | null; failed_at: string | null }[];
         payments: { id: number; gateway: string; status: string; amount: string; currency: string; created_at: string | null }[];
         history: { id: number; from_status: string | null; to_status: string; note: string | null; actor: string | null; created_at: string | null }[];
         next_status: string | null;
@@ -131,6 +132,22 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                             <p className="text-sm">{address}</p>
                             {order.shipping.destination_label ? <p className="mt-1 text-sm text-muted-foreground">{order.shipping.destination_label}</p> : null}
                             <p className="mt-2 text-sm text-muted-foreground">{[order.shipping.provider, order.shipping.courier, order.shipping.service].filter(Boolean).join(' · ') || 'Shipping service not recorded'}</p>
+                        </section>
+
+                        <section className="rounded-xl border p-4">
+                            <div className="mb-3 flex items-center gap-2"><Bell className="h-4 w-4 text-muted-foreground" /><h2 className="font-semibold">Notification delivery</h2></div>
+                            {order.notifications.some((delivery) => delivery.retryable) ? <Form action={base + '/orders/' + order.id + '/notifications/retry'} method="post" className="mb-3"><Button type="submit" size="sm" variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Retry failed jobs</Button></Form> : null}
+                            {order.notifications.length ? <div className="space-y-4">{order.notifications.map((delivery) => (
+                                <div key={delivery.id} className="space-y-2 border-t pt-3 first:border-0 first:pt-0">
+                                    <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium capitalize">{delivery.channel} · {delivery.provider ?? 'No provider'}</p><Badge variant={delivery.status === 'failed' ? 'destructive' : delivery.status === 'queued' || delivery.status === 'sending' ? 'secondary' : 'default'}>{title(delivery.status)}</Badge></div>
+                                    <p className="break-all text-sm text-muted-foreground">To: {delivery.recipient}</p>
+                                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('id-ID') : '—'}</dd></div>)}
+                                    </dl>
+                                    {delivery.provider_message_id ? <p className="break-all text-xs text-muted-foreground">Provider ID: {delivery.provider_message_id}</p> : null}
+                                    {delivery.last_error ? <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{delivery.last_error}</p> : null}
+                                </div>
+                            ))}</div> : <p className="text-sm text-muted-foreground">No payment notifications have been queued for this order.</p>}
                         </section>
 
                         <section className="rounded-xl border p-4">

@@ -36,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('settings/teams/{team}/stores/{store}/orders', [StoreOrderController::class, 'index'])->name('teams.stores.orders.index');
         Route::get('settings/teams/{team}/stores/{store}/orders/{order}', [StoreOrderController::class, 'show'])->name('teams.stores.orders.show');
         Route::patch('settings/teams/{team}/stores/{store}/orders/{order}/status', [StoreOrderController::class, 'updateStatus'])->name('teams.stores.orders.status');
+        Route::post('settings/teams/{team}/stores/{store}/orders/{order}/notifications/retry', [StoreOrderController::class, 'retryNotifications'])->name('teams.stores.orders.notifications.retry');
         Route::get('settings/teams/{team}/stores/{store}/settings', [StoreController::class, 'edit'])->name('teams.stores.edit');
         Route::patch('settings/teams/{team}/stores/{store}', [StoreController::class, 'update'])->name('teams.stores.update');
         Route::patch('settings/teams/{team}/stores/{store}/status', [StoreController::class, 'updateStatus'])->name('teams.stores.status');

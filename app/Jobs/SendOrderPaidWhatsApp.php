@@ -34,7 +34,8 @@ class SendOrderPaidWhatsApp implements ShouldQueue
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
-        if (in_array($delivery->status, ['sent', 'delivered', 'read', 'failed'], true)) {
+        if (in_array($delivery->status, ['sent', 'delivered', 'read'], true)
+            || ($delivery->status === 'failed' && data_get($delivery->metadata, 'job_failure') === null)) {
             return;
         }
 
@@ -47,11 +48,18 @@ class SendOrderPaidWhatsApp implements ShouldQueue
                     ->orWhere(function ($stale): void {
                         $stale->where('status', 'sending')
                             ->where('updated_at', '<=', now()->subMinutes(10));
+                    })
+                    ->orWhere(function ($retryable): void {
+                        $retryable->where('status', 'failed')->whereNotNull('metadata->job_failure');
                     });
             })
             ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
 
         if ($claimed !== 1) {
+            if ($delivery->status === 'sending') {
+                $this->release(600);
+            }
+
             return;
         }
 
@@ -97,10 +105,6 @@ class SendOrderPaidWhatsApp implements ShouldQueue
             $messageIds = $result['id'] ?? [];
             $messageId = is_array($messageIds) ? (string) (array_values($messageIds)[0] ?? '') : (string) $messageIds;
 
-            if ($messageId === '') {
-                throw new \\RuntimeException('Fonnte menerima permintaan tetapi tidak mengembalikan ID pesan. Status pengiriman perlu direkonsiliasi.');
-            }
-
             $delivery->update([
                 'status' => 'sent',
                 'provider' => 'fonnte',
@@ -112,14 +116,27 @@ class SendOrderPaidWhatsApp implements ShouldQueue
                     'fonnte' => [
                         'process' => $result['process'] ?? null,
                         'detail' => $result['detail'] ?? null,
+                        'tracking_unavailable' => $messageId === '',
                     ],
                 ]),
             ]);
+
+            $metadata = (array) $delivery->fresh()->metadata;
+            $metadata = array_diff_key($metadata, ['job_failure' => true]);
+            $delivery->update(['metadata' => $metadata]);
         } catch (Throwable $exception) {
+            $metadata = (array) $delivery->metadata;
+            $metadata['job_failure'] = [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'occurred_at' => now()->toISOString(),
+            ];
+
             $delivery->update([
                 'status' => 'queued',
                 'provider' => 'fonnte',
                 'last_error' => $exception->getMessage(),
+                'metadata' => $metadata,
             ]);
 
             throw $exception;
@@ -128,6 +145,18 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
+        $delivery = NotificationDelivery::query()->find($this->deliveryId);
+        if ($delivery === null) {
+            return;
+        }
+
+        $metadata = (array) $delivery->metadata;
+        $metadata['job_failure'] = [
+            'exception' => $exception === null ? null : $exception::class,
+            'message' => $exception?->getMessage(),
+            'occurred_at' => now()->toISOString(),
+        ];
+
         NotificationDelivery::query()
             ->whereKey($this->deliveryId)
             ->whereNotIn('status', ['sent', 'delivered', 'read'])
@@ -136,6 +165,7 @@ class SendOrderPaidWhatsApp implements ShouldQueue
                 'provider' => 'fonnte',
                 'failed_at' => now(),
                 'last_error' => $exception?->getMessage(),
+                'metadata' => $metadata,
             ]);
     }
 }

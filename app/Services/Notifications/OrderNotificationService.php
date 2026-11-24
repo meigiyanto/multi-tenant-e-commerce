@@ -35,7 +35,7 @@ class OrderNotificationService
                 ],
             );
 
-            if ($emailDelivery->wasRecentlyCreated) {
+            if ($emailDelivery->wasRecentlyCreated || (data_get($emailDelivery->metadata, 'dispatch_error') !== null || data_get($emailDelivery->metadata, 'job_failure') !== null)) {
                 $this->dispatchNotification(new SendOrderPaidEmail($emailDelivery->id), $emailDelivery);
             }
         }
@@ -59,7 +59,7 @@ class OrderNotificationService
                 ],
             );
 
-            if ($whatsAppDelivery->wasRecentlyCreated) {
+            if ($whatsAppDelivery->wasRecentlyCreated || (data_get($whatsAppDelivery->metadata, 'dispatch_error') !== null || data_get($whatsAppDelivery->metadata, 'job_failure') !== null)) {
                 $this->dispatchNotification(new SendOrderPaidWhatsApp($whatsAppDelivery->id), $whatsAppDelivery);
             }
         }
@@ -72,10 +72,18 @@ class OrderNotificationService
         try {
             dispatch($job);
         } catch (Throwable $exception) {
+            $metadata = (array) $delivery->fresh()->metadata;
+            $metadata['dispatch_error'] = [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'occurred_at' => now()->toISOString(),
+            ];
+
             $delivery->update([
-                'status' => 'failed',
-                'failed_at' => now(),
+                'status' => 'queued',
+                'failed_at' => null,
                 'last_error' => $exception->getMessage(),
+                'metadata' => $metadata,
             ]);
 
             Log::error('Order payment notification dispatch failed.', [
@@ -85,6 +93,12 @@ class OrderNotificationService
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);
+
+            return;
         }
+
+        $metadata = (array) $delivery->fresh()->metadata;
+        $metadata = array_diff_key($metadata, ['dispatch_error' => true]);
+        $delivery->update(['metadata' => $metadata]);
     }
 }
