@@ -50,8 +50,6 @@ class OrderTrackingController extends Controller
             ],
         ]);
 
-        $response->withViewData(['tracking_token' => $token]);
-
         return $response;
     }
 }
