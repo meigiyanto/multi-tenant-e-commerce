@@ -163,7 +163,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                             </div>
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
-                            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Shipping service</h2><span className="text-xs text-slate-500">{weight_grams.toLocaleString('id-ID')} g</span></div>
+                            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Shipping service</h2><span className="text-xs text-slate-500">{weight_grams.toLocaleString('en-US')} g</span></div>
                             {!selectedDestination ? <p className="mt-4 text-sm text-slate-500">Select your destination to calculate available courier services.</p> : null}
                             {loadingRates ? <p className="mt-4 text-sm text-slate-500">Calculating shipping rates…</p> : null}
                             {rates.map((rate) => <label key={rate.courier + rate.service} className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-md border border-black/10 p-3 hover:border-slate-500"><span className="flex min-w-0 items-start gap-3">
