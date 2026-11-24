@@ -83,7 +83,7 @@ FONNTE_WEBHOOK_SECRET=use-a-long-random-secret
 
 Never commit either value. The queued job calls Fonnte's `POST https://api.fonnte.com/send` endpoint using the token in the Authorization header. Fonnte's successful API response is recorded as `sent`; it means Fonnte accepted/processed the request, not proof that the recipient received or read the message. Fonnte documents that a `Sent` status with state `0` means the target did not receive the message; the webhook records this as `failed`, not `delivered`.
 
-The webhook matches the callback `id` to `provider_message_id`, checks the URL secret using a constant-time comparison, and updates the delivery row inside a database transaction with a row lock. Recognized transitions are `sent → delivered → read`, `sent → read`, and `sent → failed`. A later callback cannot downgrade `read` or overwrite a terminal `failed` state. Unknown message IDs are acknowledged but ignored. Raw callback fields are retained in metadata for troubleshooting. Unknown state values are retained but do not change the delivery status.
+The webhook matches the callback `id` to `provider_message_id`, checks the URL secret using a constant-time comparison, and updates the delivery row inside a database transaction with a row lock. Duplicate queue jobs atomically claim a delivery before calling the provider; a job that encounters a recent `sending` claim is delayed for ten minutes so a crashed worker can be recovered without concurrent sends. Recognized transitions are `sent → delivered → read`, `sent → read`, and `sent → failed`. A later callback cannot downgrade `read` or overwrite a terminal `failed` state. Unknown message IDs are acknowledged but ignored. Raw callback fields are retained in metadata for troubleshooting. Unknown state values are retained but do not change the delivery status.
 
 For delivery updates, configure Fonnte's **Webhook Update Message Status** URL to:
 
@@ -100,4 +100,4 @@ php artisan config:clear
 php artisan queue:work --tries=3
 ```
 
-The WhatsApp channel is independently deduplicated by `order_id + event + channel`. Only test with a number you control before enabling customer notifications.
+The WhatsApp channel is independently deduplicated by `order_id + event + channel`. A transient queue-dispatch failure is retained as a `queued` delivery with `metadata.dispatch_error`; replaying the verified paid-payment callback retries dispatch for that row. The payment service also re-runs this idempotent scheduling step for duplicate callbacks after a transaction is already paid, so a notification-recording or queue-dispatch failure does not permanently strand a paid order. Only test with a number you control before enabling customer notifications.
