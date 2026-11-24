@@ -14,7 +14,7 @@ class FonnteDeliveryWebhookController extends Controller
     public function __invoke(Request $request, string $secret): JsonResponse
     {
         $configuredSecret = (string) config('services.fonnte.webhook_secret');
-        abort_if($configuredSecret === '' || ! hash_equals($configuredSecret, $secret), 401);
+        abort_if($configuredSecret === '' || !hash_equals($configuredSecret, $secret), 401);
 
         $validated = $request->validate([
             'id' => ['required', 'string', 'max:255'],
@@ -70,7 +70,7 @@ class FonnteDeliveryWebhookController extends Controller
 
         return response()->json([
             'success' => true,
-            'ignored' => ! $result['found'],
+            'ignored' => !$result['found'],
             'updated' => $result['updated'],
         ]);
     }
