@@ -124,7 +124,6 @@ class OrderNotificationDeliveryTest extends TestCase
             ->assertUnauthorized();
     }
 
-
     public function test_fonnte_webhook_records_delivered_then_read_without_downgrading_status(): void
     {
         $delivery = $this->whatsappDelivery('fonnte-message-delivered');
@@ -223,7 +222,7 @@ class OrderNotificationDeliveryTest extends TestCase
         $order = $this->order();
 
         return NotificationDelivery::query()->create([
-            'uuid' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
             'store_id' => $order->store_id,
             'order_id' => $order->id,
             'event' => 'payment_confirmed',
