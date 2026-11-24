@@ -29,7 +29,7 @@ class MidtransGateway implements PaymentGateway
             ? 'https://app.midtrans.com'
             : 'https://app.sandbox.midtrans.com';
 
-        if ($transaction->currency !== 'IDR' || $transaction->currency !== $order->currency) {
+        if ($transaction->currency !== $order->currency) {
             throw new RuntimeException('Mata uang transaksi tidak sesuai dengan pesanan.');
         }
 
@@ -49,9 +49,11 @@ class MidtransGateway implements PaymentGateway
                 'phone' => $order->customer_phone,
             ],
         ];
-        $domain = $order->store_id === null
-            ? null
-            : StoreDomain::query()->where('store_id', $order->store_id)->where('is_primary', true)->where('status', 'active')->value('domain');
+        $domain = StoreDomain::query()
+            ->where('store_id', $order->store_id)
+            ->where('is_primary', true)
+            ->where('status', 'active')
+            ->value('domain');
 
         if ($domain) {
             $scheme = rtrim((string) config('storefront.scheme', 'https'), ':/');
