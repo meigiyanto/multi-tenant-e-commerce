@@ -70,9 +70,6 @@ class SendOrderPaidWhatsApp implements ShouldQueue
         }
 
         $order = $delivery->order;
-        $lines = $order->items->map(
-            fn ($item): string => '- '.$item->product_name.' ('.$item->quantity.' x '.$order->currency.' '.$item->unit_price.')',
-        )->implode("\n");
         $eventMessage = match ($delivery->event) {
             'order_shipped' => 'Your order has been shipped.',
             'order_delivered' => 'Your order has been marked as delivered.',
