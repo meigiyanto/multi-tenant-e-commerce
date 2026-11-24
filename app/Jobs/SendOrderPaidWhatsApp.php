@@ -52,6 +52,10 @@ class SendOrderPaidWhatsApp implements ShouldQueue
             ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
 
         if ($claimed !== 1) {
+            if ($delivery->status === 'sending') {
+                $this->release(600);
+            }
+
             return;
         }
 
@@ -96,10 +100,6 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
             $messageIds = $result['id'] ?? [];
             $messageId = is_array($messageIds) ? (string) (array_values($messageIds)[0] ?? '') : (string) $messageIds;
-
-            if ($messageId === '') {
-                throw new \\RuntimeException('Fonnte menerima permintaan tetapi tidak mengembalikan ID pesan. Status pengiriman perlu direkonsiliasi.');
-            }
 
             $delivery->update([
                 'status' => 'sent',
