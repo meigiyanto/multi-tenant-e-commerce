@@ -6,7 +6,6 @@ use App\Contracts\Payments\PaymentGateway;
 use App\Exceptions\Payments\PaymentGatewayUnavailableException;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
-use App\Models\StoreDomain;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -49,26 +48,23 @@ class MidtransGateway implements PaymentGateway
                 'phone' => $order->customer_phone,
             ],
         ];
-        $domain = null;
-
-        if ($order->exists) {
-            $domain = StoreDomain::query()
-                ->where('store_id', $order->store_id)
-                ->where('is_primary', true)
-                ->where('status', 'active')
-                ->value('domain');
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $appUrlParts = parse_url($appUrl);
+        if (! is_array($appUrlParts) || ! in_array($appUrlParts['scheme'] ?? null, ['http', 'https'], true)
+            || empty($appUrlParts['host'])) {
+            throw new RuntimeException('APP_URL harus menggunakan alamat HTTP(S) yang valid untuk URL Finish Midtrans.');
         }
 
-        if ($domain) {
-            $scheme = rtrim((string) config('storefront.scheme', 'https'), ':/');
-            $port = parse_url((string) config('app.url'), PHP_URL_PORT);
-            $defaultPort = ($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80);
-            $host = $domain.($port && ! $defaultPort ? ':'.$port : '');
-
-            $parameters['callbacks'] = [
-                'finish' => $scheme.'://'.$host.'/orders/'.rawurlencode($order->order_number),
-            ];
+        $appKey = (string) config('app.key');
+        if ($appKey === '') {
+            throw new RuntimeException('APP_KEY wajib tersedia untuk mengamankan URL Finish Midtrans.');
         }
+
+        $expires = now()->addDays(7)->timestamp;
+        $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
+        $parameters['callbacks'] = [
+            'finish' => $appUrl.'/orders/'.rawurlencode($order->order_number).'?expires='.$expires.'&key='.$finishKey,
+        ];
 
         $response = Http::acceptJson()
             ->asJson()

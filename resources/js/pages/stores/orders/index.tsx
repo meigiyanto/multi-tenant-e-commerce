@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Search } from 'lucide-react';
+import OrderNumberCopy from '@/components/order-number-copy';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,7 +93,7 @@ export default function StoreOrdersIndex({ team, store, orders, filters, statuse
                                     {orders.data.map((order) => (
                                         <tr key={order.id}>
                                             <td className="px-4 py-3">
-                                                <p className="font-medium">{order.order_number}</p>
+                                                <div className="flex flex-wrap items-center gap-2"><p className="font-medium">{order.order_number}</p><OrderNumberCopy value={order.order_number} /></div>
                                                 <p className="text-xs text-muted-foreground">{order.placed_at ? new Date(order.placed_at).toLocaleString('id-ID') : '—'}</p>
                                             </td>
                                             <td className="px-4 py-3">

@@ -135,14 +135,27 @@ class CheckoutController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
-            return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
-                'storeSubdomain' => $request->route('storeSubdomain'),
-                'orderNumber' => $order->order_number,
-            ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
+            $appKey = (string) config('app.key');
+            $expires = now()->addDays(7)->timestamp;
+            $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
+            $finishUrl = rtrim((string) config('app.url'), '/').'/orders/'.rawurlencode($order->order_number)
+                .'?expires='.$expires.'&key='.$finishKey;
+
+            return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
         }
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
+    {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    public function finish(string $orderNumber, StoreContext $context): Response
+    {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    private function renderOrder(string $orderNumber, StoreContext $context): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -169,6 +182,7 @@ class CheckoutController extends Controller
                 'total' => $order->total,
                 'currency' => $order->currency,
                 'payment_url' => $order->paymentTransactions->first()?->redirect_url,
+                'tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
                     'variant_name' => $item->variant_name,
