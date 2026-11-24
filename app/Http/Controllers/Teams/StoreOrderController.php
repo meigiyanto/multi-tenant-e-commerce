@@ -214,7 +214,7 @@ class StoreOrderController extends Controller
 
         abort_unless($hasRetryableDelivery, 409, 'No retryable notification failures were found.');
 
-        $notificationService->queuePaymentConfirmed((int) $order->id);
+        $notificationService->retryFailedNotifications((int) $order->id);
 
         return to_route('teams.stores.orders.show', [
             'team' => $team->slug,
