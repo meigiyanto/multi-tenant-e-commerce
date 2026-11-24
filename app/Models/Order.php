@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property \\Illuminate\\Support\\Carbon|null $placed_at
+ * @property int $items_count
+ */
 #[Fillable([
     'store_id', 'user_id', 'order_number', 'status', 'payment_status', 'customer_name',
     'customer_email', 'customer_phone', 'shipping_address', 'shipping_city',
