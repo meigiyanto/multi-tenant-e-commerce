@@ -66,9 +66,6 @@ class SendOrderPaidEmail implements ShouldQueue
 
         try {
             $order = $delivery->order;
-            $lines = $order->items->map(
-                fn ($item): string => $item->product_name.' ('.$item->quantity.' x '.$order->currency.' '.$item->unit_price.')',
-            )->implode("\n");
             $trackingUrl = $tracking->for($order);
             $eventMessage = match ($delivery->event) {
                 'order_shipped' => 'Your order has been shipped.',
