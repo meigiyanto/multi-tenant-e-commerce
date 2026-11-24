@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Store;

@@ -6,7 +6,9 @@ use App\Jobs\SendOrderPaidEmail;
 use App\Jobs\SendOrderPaidWhatsApp;
 use App\Models\NotificationDelivery;
 use App\Models\Order;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class OrderNotificationService
 {
@@ -34,7 +36,7 @@ class OrderNotificationService
             );
 
             if ($emailDelivery->wasRecentlyCreated) {
-                SendOrderPaidEmail::dispatch($emailDelivery->id);
+                $this->dispatchNotification(new SendOrderPaidEmail($emailDelivery->id), $emailDelivery);
             }
         }
 
@@ -58,10 +60,31 @@ class OrderNotificationService
             );
 
             if ($whatsAppDelivery->wasRecentlyCreated) {
-                SendOrderPaidWhatsApp::dispatch($whatsAppDelivery->id);
+                $this->dispatchNotification(new SendOrderPaidWhatsApp($whatsAppDelivery->id), $whatsAppDelivery);
             }
         }
 
         return $emailDelivery ?? $whatsAppDelivery ?? null;
+    }
+
+    private function dispatchNotification(object $job, NotificationDelivery $delivery): void
+    {
+        try {
+            dispatch($job);
+        } catch (Throwable $exception) {
+            $delivery->update([
+                'status' => 'failed',
+                'failed_at' => now(),
+                'last_error' => $exception->getMessage(),
+            ]);
+
+            Log::error('Order payment notification dispatch failed.', [
+                'notification_delivery_id' => $delivery->id,
+                'order_id' => $delivery->order_id,
+                'channel' => $delivery->channel,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }

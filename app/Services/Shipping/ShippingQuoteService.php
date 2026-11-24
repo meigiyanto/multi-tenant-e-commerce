@@ -37,14 +37,15 @@ class ShippingQuoteService
         }
 
         $weight = $this->weight($cart);
-        $couriers = (array) config('shipping.providers.rajaongkir.couriers', []);
+        $couriers = array_values(array_filter((array) config('shipping.providers.rajaongkir.couriers', []), 'is_string'));
+        /** @var list<string> $couriers */
         $cacheKey = 'shipping-rates:'.hash('sha256', implode('|', [$store->id, $originId, $destinationId, $weight, implode(',', $couriers)]));
 
         /** @var list<array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}> $rates */
         $rates = Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate($originId, $destinationId, $weight, $couriers));
 
         usort($rates, static function (array $first, array $second): int {
-            $providerOrder = strcasecmp($first['courier_name'] ?? $first['courier'], $second['courier_name'] ?? $second['courier']);
+            $providerOrder = strcasecmp($first['courier_name'], $second['courier_name']);
 
             if ($providerOrder !== 0) {
                 return $providerOrder;

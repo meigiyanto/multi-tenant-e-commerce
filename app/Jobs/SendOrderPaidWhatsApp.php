@@ -20,13 +20,38 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
     public int $tries = 3;
 
+    public int $timeout = 30;
+
+    /** @return array<int, int> */
+    public function backoff(): array
+    {
+        return [30, 120];
+    }
+
     public function __construct(public int $deliveryId) {}
 
     public function handle(): void
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
-        if (in_array($delivery->status, ['sent', 'delivered', 'read'], true)) {
+        if (in_array($delivery->status, ['sent', 'delivered', 'read', 'failed'], true)) {
+            return;
+        }
+
+        // Claim the delivery atomically so duplicate queue jobs cannot send
+        // concurrently. A stale claim can be retried after a worker crash.
+        $claimed = NotificationDelivery::query()
+            ->whereKey($delivery->id)
+            ->where(function ($query): void {
+                $query->where('status', 'queued')
+                    ->orWhere(function ($stale): void {
+                        $stale->where('status', 'sending')
+                            ->where('updated_at', '<=', now()->subMinutes(10));
+                    });
+            })
+            ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
+
+        if ($claimed !== 1) {
             return;
         }
 
@@ -53,8 +78,6 @@ class SendOrderPaidWhatsApp implements ShouldQueue
             'Terima kasih telah berbelanja di '.$delivery->store->name.'.',
         ]);
 
-        $delivery->update(['status' => 'sending', 'last_error' => null]);
-
         try {
             $response = Http::asForm()
                 ->withHeaders(['Authorization' => $token])
@@ -73,6 +96,10 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
             $messageIds = $result['id'] ?? [];
             $messageId = is_array($messageIds) ? (string) (array_values($messageIds)[0] ?? '') : (string) $messageIds;
+
+            if ($messageId === '') {
+                throw new \\RuntimeException('Fonnte menerima permintaan tetapi tidak mengembalikan ID pesan. Status pengiriman perlu direkonsiliasi.');
+            }
 
             $delivery->update([
                 'status' => 'sent',

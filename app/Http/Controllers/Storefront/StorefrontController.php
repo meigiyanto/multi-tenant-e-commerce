@@ -21,7 +21,7 @@ class StorefrontController extends Controller
 
         abort_if($store === null, 404);
 
-        $settings = $store->settings['storefront'] ?? [];
+        $settings = $store->storefrontSettings();
         $products = $store->products()
             ->where('status', 'active')
             ->with([
@@ -47,10 +47,10 @@ class StorefrontController extends Controller
                     'name' => $variant->name,
                     'options' => $variant->options ?? [],
                     'price' => $variant->price ?? $product->price,
-                    'stock' => $product->track_inventory ? max(0, ($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) : null,
+                    'stock' => $product->track_inventory ? max(0, ($variant->inventory->quantity ?? 0) - ($variant->inventory->reserved_quantity ?? 0)) : null,
                 ])->values(),
                 'in_stock' => ! $product->track_inventory || $product->variants->contains(
-                    fn (ProductVariant $variant): bool => (($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0)) > 0,
+                    fn (ProductVariant $variant): bool => (($variant->inventory->quantity ?? 0) - ($variant->inventory->reserved_quantity ?? 0)) > 0,
                 ),
             ]);
 

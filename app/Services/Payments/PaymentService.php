@@ -84,9 +84,9 @@ class PaymentService
         try {
             $result = $gateway->createPayment($order, $transaction);
             $transaction->update([
-                'token' => $result['token'] ?? null,
-                'redirect_url' => $result['redirect_url'] ?? null,
-                'metadata' => ['gateway_response' => $result['response'] ?? []],
+                'token' => $result['token'],
+                'redirect_url' => $result['redirect_url'],
+                'metadata' => ['gateway_response' => $result['response']],
             ]);
         } catch (PaymentGatewayUnavailableException|ConnectionException $exception) {
             DB::transaction(function () use ($transaction, $exception): void {

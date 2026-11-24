@@ -10,6 +10,7 @@ use App\Support\Stores\StoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ShippingController extends Controller
 {
@@ -26,7 +27,7 @@ class ShippingController extends Controller
         }
     }
 
-    public function quotes(Request $request, StoreContext $context): JsonResponse
+    public function quotes(Request $request, StoreContext $context): SymfonyResponse
     {
         $validated = $request->validate(['destination_id' => ['required', 'integer', 'min:1']]);
         $store = $context->store();

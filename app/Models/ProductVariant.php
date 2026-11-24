@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property array<string, mixed>|null $options
  * @property numeric-string|float|int|null $price
  * @property bool $is_active
+ * @property-read Inventory|null $inventory
  */
 class ProductVariant extends Model
 {
