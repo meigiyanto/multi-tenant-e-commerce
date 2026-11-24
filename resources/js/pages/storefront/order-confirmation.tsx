@@ -14,7 +14,7 @@ type Props = {
 };
 
 export default function StorefrontOrderConfirmation({ store, order }: Props) {
-    const money = (amount: string | number) => new Intl.NumberFormat('id-ID', {
+    const money = (amount: string | number) => new Intl.NumberFormat('en-US', {
         style: 'currency', currency: order.currency || store.currency, maximumFractionDigits: 0,
     }).format(Number(amount));
     return <>
