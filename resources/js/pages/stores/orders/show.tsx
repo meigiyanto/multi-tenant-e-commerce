@@ -25,6 +25,7 @@ type Props = {
             service: string | null;
             tracking_number: string | null;
             tracking_url: string | null;
+            customer_tracking_url: string;
             shipped_at: string | null;
             delivered_at: string | null;
         };
@@ -140,6 +141,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                             <p className="mt-2 text-sm text-muted-foreground">{[order.shipping.provider, order.shipping.courier, order.shipping.service].filter(Boolean).join(' · ') || 'Shipping service not recorded'}</p>
                             <p className="mt-3 text-sm">Tracking number: <span className="font-medium">{order.shipping.tracking_number ?? 'Not assigned'}</span></p>
                             {order.shipping.tracking_url ? <a href={order.shipping.tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open courier tracking</a> : null}
+                            <a href={order.shipping.customer_tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open customer tracking page</a>
                             <p className="mt-2 text-xs text-muted-foreground">Shipped: {order.shipping.shipped_at ? new Date(order.shipping.shipped_at).toLocaleString('en-US') : '—'} · Delivered: {order.shipping.delivered_at ? new Date(order.shipping.delivered_at).toLocaleString('en-US') : '—'}</p>
                         </section>
 
