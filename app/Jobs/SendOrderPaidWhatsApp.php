@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\NotificationDelivery;
+use App\Services\Orders\OrderTrackingUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,7 +31,7 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
     public function __construct(public int $deliveryId) {}
 
-    public function handle(): void
+    public function handle(OrderTrackingUrl $tracking): void
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
@@ -65,25 +66,29 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
         $token = (string) config('services.fonnte.token');
         if ($token === '') {
-            throw new \RuntimeException('FONNTE_TOKEN belum dikonfigurasi.');
+            throw new \RuntimeException('The Fonnte API token is not configured.');
         }
 
         $order = $delivery->order;
         $lines = $order->items->map(
             fn ($item): string => '- '.$item->product_name.' ('.$item->quantity.' x '.$order->currency.' '.$item->unit_price.')',
         )->implode("\n");
+        $eventMessage = match ($delivery->event) {
+            'order_shipped' => 'Your order has been shipped.',
+            'order_delivered' => 'Your order has been marked as delivered.',
+            default => 'Your payment has been confirmed successfully.',
+        };
         $message = implode("\n", [
-            'Halo '.$order->customer_name.',',
+            'Hello '.$order->customer_name.',',
             '',
-            'Pembayaran pesanan '.$order->order_number.' berhasil dikonfirmasi.',
-            '',
-            'Rincian pesanan:',
-            $lines,
-            '',
+            $eventMessage,
+            'Order number: '.$order->order_number,
+            'Order status: '.$order->status,
             'Total: '.$order->currency.' '.$order->total,
-            'Status pesanan: '.$order->status,
+            $order->shipping_tracking_number ? 'Tracking number: '.$order->shipping_tracking_number : '',
+            'Track your order: '.$tracking->for($order),
             '',
-            'Terima kasih telah berbelanja di '.$delivery->store->name.'.',
+            'Thank you for shopping at '.$delivery->store->name.'.',
         ]);
 
         try {
@@ -99,7 +104,7 @@ class SendOrderPaidWhatsApp implements ShouldQueue
 
             $result = $response->json();
             if (! $response->successful() || ! is_array($result) || ! ($result['status'] ?? false)) {
-                throw new \RuntimeException('Fonnte menolak pengiriman: '.substr($response->body(), 0, 1000));
+                throw new \RuntimeException('Fonnte rejected the message: '.substr($response->body(), 0, 1000));
             }
 
             $messageIds = $result['id'] ?? [];
