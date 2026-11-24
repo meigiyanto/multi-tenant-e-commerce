@@ -203,7 +203,7 @@ class StoreOrderController extends Controller
     {
         $this->authorizeOrder($team, $store, $order);
 
-        abort_unless($order->payment_status === 'paid', 422, 'Only paid orders can retry payment notifications.');
+        abort_unless($order->payment_status === 'paid', 422, 'Only paid orders can retry order notifications.');
 
         $hasRetryableDelivery = $order->notificationDeliveries()
             ->where(function ($query): void {
