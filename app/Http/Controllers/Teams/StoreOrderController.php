@@ -103,6 +103,10 @@ class StoreOrderController extends Controller
                     'provider' => $order->shipping_provider,
                     'courier' => $order->shipping_courier,
                     'service' => $order->shipping_service,
+                    'tracking_number' => $order->shipping_tracking_number,
+                    'tracking_url' => $order->shipping_tracking_url,
+                    'shipped_at' => $order->shipped_at?->toISOString(),
+                    'delivered_at' => $order->delivered_at?->toISOString(),
                 ],
                 'customer_note' => $order->customer_note,
                 'currency' => $order->currency,
@@ -172,6 +176,8 @@ class StoreOrderController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['shipped', 'delivered'])],
             'note' => ['nullable', 'string', 'max:1000'],
+            'tracking_number' => ['required_if:status,shipped', 'nullable', 'string', 'max:100'],
+            'tracking_url' => ['nullable', 'url', 'max:2048'],
         ]);
 
         $statusService->transition(
@@ -180,6 +186,8 @@ class StoreOrderController extends Controller
             $request->user(),
             $validated['status'],
             $validated['note'] ?? null,
+            $validated['tracking_number'] ?? null,
+            $validated['tracking_url'] ?? null,
         );
 
         return to_route('teams.stores.orders.show', [
