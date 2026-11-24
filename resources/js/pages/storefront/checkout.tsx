@@ -80,7 +80,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                 setRates(payload.rates || []);
                 setData('shipping_courier', '');
                 setData('shipping_service', '');
-                if (!payload.rates?.length) setShippingError('Tidak ada layanan pengiriman yang tersedia untuk tujuan ini.');
+                if (!payload.rates?.length) setShippingError('No shipping services are available for this destination.');
             } catch (error) {
                 setShippingError(error instanceof Error ? error.message : 'Failed to calculate shipping rates.');
             } finally {
