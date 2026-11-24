@@ -176,7 +176,7 @@ class StoreOrderController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['shipped', 'delivered'])],
-            'note' => ['nullable', 'string', 'max:1000'],
+            'note' => ['required_if:status,delivered', 'nullable', 'string', 'max:1000'],
             'tracking_number' => ['required_if:status,shipped', 'nullable', 'string', 'max:100'],
             'tracking_url' => ['nullable', 'url', 'max:2048'],
         ]);
@@ -220,7 +220,7 @@ class StoreOrderController extends Controller
             'team' => $team->slug,
             'store' => $store->id,
             'order' => $order->id,
-        ])->with('success', __('Retry queued for failed payment notifications.'));
+        ])->with('success', __('Retry queued for failed order notifications.'));
     }
 
     private function authorizeStore(Team $team, Store $store): void
