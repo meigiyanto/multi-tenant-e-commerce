@@ -15,6 +15,7 @@ class BackfillPaidOrderNotifications extends Command
     public function handle(OrderNotificationService $notifications): int
     {
         $dispatch = (bool) $this->option('dispatch');
+        
         $query = Order::query()
             ->where('payment_status', 'paid')
             ->whereHas('paymentTransactions', fn ($query) => $query->where('status', 'paid'))
@@ -42,9 +43,11 @@ class BackfillPaidOrderNotifications extends Command
         ): void {
             foreach ($orders as $order) {
                 $ordersChecked++;
+                
                 $existing = $order->notificationDeliveries
                     ->where('event', 'payment_confirmed')
                     ->keyBy('channel');
+                
                 $channels = [];
 
                 if (filter_var($order->customer_email, FILTER_VALIDATE_EMAIL)) {
@@ -57,6 +60,7 @@ class BackfillPaidOrderNotifications extends Command
                 }
 
                 $phone = preg_replace('/\D+/', '', (string) $order->customer_phone);
+                
                 if ($phone !== '') {
                     if ($existing->has('whatsapp')) {
                         $alreadyRecorded++;
@@ -81,16 +85,13 @@ class BackfillPaidOrderNotifications extends Command
         });
 
         $this->newLine();
-        $this->table(
-            ['Metric', 'Count'],
-            [
-                ['Paid orders checked', $ordersChecked],
-                ['Eligible email deliveries', $eligibleMail],
-                ['Eligible WhatsApp deliveries', $eligibleWhatsApp],
-                ['Channels already recorded', $alreadyRecorded],
-                ['Orders processed', $processed],
-            ],
-        );
+        $this->table(['Metric', 'Count'], [
+            ['Paid orders checked', $ordersChecked],
+            ['Eligible email deliveries', $eligibleMail],
+            ['Eligible WhatsApp deliveries', $eligibleWhatsApp],
+            ['Channels already recorded', $alreadyRecorded],
+            ['Orders processed', $processed],
+        ]);
 
         if ($dispatch === false) {
             $this->warn('DRY RUN: no delivery records were created and no messages were queued.');
