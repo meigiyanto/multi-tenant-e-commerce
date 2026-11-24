@@ -122,15 +122,21 @@ class SendOrderPaidWhatsApp implements ShouldQueue
             ]);
 
             $metadata = (array) $delivery->fresh()->metadata;
-            if (array_key_exists('job_failure', $metadata)) {
-                unset($metadata['job_failure']);
-                $delivery->update(['metadata' => $metadata]);
-            }
+            unset($metadata['job_failure']);
+            $delivery->update(['metadata' => $metadata]);
         } catch (Throwable $exception) {
+            $metadata = (array) $delivery->metadata;
+            $metadata['job_failure'] = [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'occurred_at' => now()->toISOString(),
+            ];
+
             $delivery->update([
                 'status' => 'queued',
                 'provider' => 'fonnte',
                 'last_error' => $exception->getMessage(),
+                'metadata' => $metadata,
             ]);
 
             throw $exception;
