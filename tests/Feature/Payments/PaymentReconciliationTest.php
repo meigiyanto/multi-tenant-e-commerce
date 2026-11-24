@@ -5,6 +5,7 @@ namespace Tests\Feature\Payments;
 use App\Enums\TeamRole;
 use App\Jobs\SendOrderPaidEmail;
 use App\Models\InventoryReservation;
+use App\Models\NotificationDelivery;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Team;
@@ -179,7 +180,7 @@ class PaymentReconciliationTest extends TestCase
         );
 
         $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
-        $whatsAppDelivery = \App\Models\NotificationDelivery::query()
+        $whatsAppDelivery = NotificationDelivery::query()
             ->where('order_id', $transaction->order_id)
             ->where('channel', 'whatsapp')
             ->firstOrFail();
@@ -187,8 +188,8 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'job_failure'));
 
         config(['services.fonnte.token' => 'test-fonnte-token']);
-        \Illuminate\Support\Facades\Http::fake([
-            'api.fonnte.com/send' => \Illuminate\Support\Facades\Http::response([
+        Http::fake([
+            'api.fonnte.com/send' => Http::response([
                 'status' => true,
                 'id' => ['retry-message-id'],
                 'process' => 'pending',
