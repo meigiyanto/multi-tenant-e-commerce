@@ -111,7 +111,7 @@ export default function TeamEdit({
                         </div>
                         <div>
                             <p className="font-medium">Storefronts</p>
-                            <p className="text-sm text-muted-foreground">Create and manage online stores owned by this team.</p>
+                            <p className="text-sm text-muted-foreground">Create and manage online stores <br/>owned by this team.</p>
                         </div>
                     </div>
                     

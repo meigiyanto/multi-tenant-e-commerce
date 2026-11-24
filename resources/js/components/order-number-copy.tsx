@@ -57,7 +57,7 @@ export default function OrderNumberCopy({ value, className, size = 'sm' }: Props
         <span className="inline-flex items-center gap-2">
             <Button type="button" size={size} variant="outline" className={className} onClick={copyOrderNumber} aria-label="Copy order number">
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                <span>{copied ? 'Copied' : error ? 'Copy failed' : 'Copy'}</span>
+                <span>{copied ? 'Copied' : error ? 'Copy failed' : ''}</span>
             </Button>
             <span className="sr-only" role="status" aria-live="polite">{copied ? 'Order number copied to clipboard.' : error ? 'Unable to copy order number.' : ''}</span>
         </span>

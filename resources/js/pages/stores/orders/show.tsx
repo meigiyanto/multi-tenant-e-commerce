@@ -61,7 +61,7 @@ export default function StoreOrderShow({ team, store, order }: Props) {
             <Head title={order.order_number + ' — ' + store.name} />
             <div className="flex flex-col gap-6">
                 <div className="m-2">
-                    <Button asChild variant="ghost" size="sm" className="mb-2"><Link href={base + '/orders'}><ArrowLeft /> Back to orders</Link></Button>
+                    <Button asChild variant="outline" size="sm" className="mb-2"><Link href={base + '/orders'}><ArrowLeft /> Go back</Link></Button>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                         <div><Heading variant="small" title={order.order_number} description={order.placed_at ? 'Placed ' + new Date(order.placed_at).toLocaleString('en-US') : 'Order details'} /><OrderNumberCopy value={order.order_number} className="mt-2" /></div>
                         <div className="flex gap-2">

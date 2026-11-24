@@ -53,8 +53,8 @@ export default function StoreDashboard({ team, store, stats, recentOrders }: Pro
             <Head title={'Dashboard — ' + store.name} />
             <div className="flex flex-col gap-6">
                 <div className="m-2">
-                    <Button asChild variant="ghost" size="sm" className="mb-2">
-                        <Link href={base}><ArrowLeft /> Back to store</Link>
+                    <Button asChild variant="outline" size="sm" className="mb-2">
+                        <Link href={base}><ArrowLeft /> Go back</Link>
                     </Button>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store dashboard for ' + team.name + '.'} />
