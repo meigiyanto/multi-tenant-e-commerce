@@ -20,17 +20,40 @@ class SendOrderPaidEmail implements ShouldQueue
 
     public int $tries = 3;
 
+    public int $timeout = 60;
+
+    /** @return array<int, int> */
+    public function backoff(): array
+    {
+        return [30, 120];
+    }
+
     public function __construct(public int $deliveryId) {}
 
     public function handle(): void
     {
         $delivery = NotificationDelivery::query()->with(['order.items', 'store'])->findOrFail($this->deliveryId);
 
-        if (in_array($delivery->status, ['sent', 'delivered', 'read'], true)) {
+        if (in_array($delivery->status, ['sent', 'delivered', 'read', 'failed'], true)) {
             return;
         }
 
-        $delivery->update(['status' => 'sending', 'last_error' => null]);
+        // Atomically claim the row to prevent duplicate workers from sending
+        // the same email concurrently. Stale claims are recoverable.
+        $claimed = NotificationDelivery::query()
+            ->whereKey($delivery->id)
+            ->where(function ($query): void {
+                $query->where('status', 'queued')
+                    ->orWhere(function ($stale): void {
+                        $stale->where('status', 'sending')
+                            ->where('updated_at', '<=', now()->subMinutes(10));
+                    });
+            })
+            ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
+
+        if ($claimed !== 1) {
+            return;
+        }
 
         try {
             $order = $delivery->order;
