@@ -21,7 +21,7 @@ class StorefrontController extends Controller
 
         abort_if($store === null, 404);
 
-        $settings = $store->settings['storefront'] ?? [];
+        $settings = $store->storefrontSettings();
         $products = $store->products()
             ->where('status', 'active')
             ->with([
