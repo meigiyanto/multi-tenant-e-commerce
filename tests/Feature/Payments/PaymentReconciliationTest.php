@@ -404,6 +404,62 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull($reservation->released_at);
     }
 
+    public function test_it_rejects_successful_notifications_with_invalid_status_codes(): void
+    {
+        Queue::fake();
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-invalid-status-code-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '0200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertBadRequest()
+            ->assertJsonPath('success', false);
+
+        $this->assertSame('pending', $transaction->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame(5, $inventory->fresh()->quantity);
+        $this->assertSame(2, $inventory->fresh()->reserved_quantity);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_it_rejects_success_statuses_without_status_code_200(): void
+    {
+        Queue::fake();
+        [$transaction, $order] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-wrong-success-code-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '201',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertBadRequest()
+            ->assertJsonPath('success', false);
+
+        $this->assertSame('pending', $transaction->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        Queue::assertNothingPushed();
+    }
+
     private function pendingPayment(): array
     {
         $user = User::factory()->create();
