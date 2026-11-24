@@ -156,7 +156,7 @@ class StoreCatalogController extends Controller
             $product->update($this->productAttributes($data, $store, $product));
             foreach ($data['variants'] ?? [] as $variantData) {
                 $variant = isset($variantData['id'])
-                    ? $product->variants()->where('store_id', $store->id)->findOrFail($variantData['id'])
+                    ? $product->variants()->where('store_id', $store->id)->whereKey((int) $variantData['id'])->firstOrFail()
                     : null;
                 $variant = $this->saveVariant($store, $product, $variantData, $variant);
                 $inventory = $variant->inventory()->firstOrCreate(['store_id' => $store->id]);
@@ -260,6 +260,7 @@ class StoreCatalogController extends Controller
         return back()->with('success', __('Inventory adjusted.'));
     }
 
+    /** @return array<string, mixed> */
     private function validateProduct(Request $request, Store $store, ?Product $product = null): array
     {
         return $request->validate([
@@ -286,6 +287,10 @@ class StoreCatalogController extends Controller
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     private function productAttributes(array $data, Store $store, ?Product $product = null): array
     {
         return [
@@ -324,6 +329,7 @@ class StoreCatalogController extends Controller
         return $candidate;
     }
 
+    /** @param array<string, mixed> $data */
     private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
     {
         $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->where('id', '!=', $variant->id))->exists();
