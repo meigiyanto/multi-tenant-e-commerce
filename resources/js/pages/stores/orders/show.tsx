@@ -135,6 +135,22 @@ export default function StoreOrderShow({ team, store, order }: Props) {
                         </section>
 
                         <section className="rounded-xl border p-4">
+                            <div className="mb-3 flex items-center gap-2"><Bell className="h-4 w-4 text-muted-foreground" /><h2 className="font-semibold">Notification delivery</h2></div>
+                            {order.notifications.some((delivery) => delivery.retryable) ? <Form action={base + '/orders/' + order.id + '/notifications/retry'} method="post" className="mb-3"><Button type="submit" size="sm" variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Retry failed jobs</Button></Form> : null}
+                            {order.notifications.length ? <div className="space-y-4">{order.notifications.map((delivery) => (
+                                <div key={delivery.id} className="space-y-2 border-t pt-3 first:border-0 first:pt-0">
+                                    <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium capitalize">{delivery.channel} · {delivery.provider ?? 'No provider'}</p><Badge variant={delivery.status === 'failed' ? 'destructive' : delivery.status === 'queued' || delivery.status === 'sending' ? 'secondary' : 'default'}>{title(delivery.status)}</Badge></div>
+                                    <p className="break-all text-sm text-muted-foreground">To: {delivery.recipient}</p>
+                                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('id-ID') : '—'}</dd></div>)}
+                                    </dl>
+                                    {delivery.provider_message_id ? <p className="break-all text-xs text-muted-foreground">Provider ID: {delivery.provider_message_id}</p> : null}
+                                    {delivery.last_error ? <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{delivery.last_error}</p> : null}
+                                </div>
+                            ))}</div> : <p className="text-sm text-muted-foreground">No payment notifications have been queued for this order.</p>}
+                        </section>
+
+                        <section className="rounded-xl border p-4">
                             <h2 className="mb-3 font-semibold">Payments</h2>
                             {order.payments.length ? <div className="space-y-3">{order.payments.map((payment) => (
                                 <div key={payment.id} className="border-t pt-3 first:border-0 first:pt-0">
