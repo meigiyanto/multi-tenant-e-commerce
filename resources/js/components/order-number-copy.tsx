@@ -13,7 +13,19 @@ export default function OrderNumberCopy({ value, className, size = 'sm' }: Props
 
     async function copyOrderNumber() {
         try {
-            await navigator.clipboard.writeText(value);
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(value);
+            } else {
+                const input = document.createElement('textarea');
+                input.value = value;
+                input.style.position = 'fixed';
+                input.style.opacity = '0';
+                document.body.appendChild(input);
+                input.select();
+                const copied = document.execCommand('copy');
+                input.remove();
+                if (!copied) throw new Error('Clipboard access is unavailable.');
+            }
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1800);
         } catch {
