@@ -114,7 +114,7 @@ class StoreController extends Controller
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('update', $store);
 
-        $storefront = $store->settings['storefront'] ?? [];
+        $storefront = $store->storefrontSettings();
 
         return Inertia::render('stores/settings', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug, 'status' => $team->status],
@@ -229,7 +229,7 @@ class StoreController extends Controller
             'remove_banner' => ['sometimes', 'boolean'],
         ]);
         $settings = $store->settings ?? [];
-        $storefront = $settings['storefront'] ?? [];
+        $storefront = $store->storefrontSettings();
         $oldFiles = [];
         foreach (['logo' => 'logo_path', 'banner' => 'banner_path'] as $field => $key) {
             if ($request->boolean('remove_'.$field) && filled($storefront[$key] ?? null)) {
@@ -243,11 +243,15 @@ class StoreController extends Controller
                 $storefront[$key] = $request->file($field)->store("stores/{$store->id}/storefront", 'public');
             }
         }
+        /** @var list<array{label?: string|null, url?: string|null}> $navigation */
+        $navigation = $validated['navigation'] ?? [];
+        $navigation = array_values(array_filter($navigation, static fn (array $item): bool => filled($item['label'] ?? null) && filled($item['url'] ?? null)));
+
         $storefront = array_merge($storefront, [
             'description' => $validated['description'] ?? '',
             'primary_color' => $validated['primary_color'],
             'accent_color' => $validated['accent_color'],
-            'navigation' => collect($validated['navigation'] ?? [])->filter(fn (array $item) => filled($item['label'] ?? null) && filled($item['url'] ?? null))->values()->all(),
+            'navigation' => $navigation,
             'contact' => [
                 'email' => $validated['contact']['email'] ?? '',
                 'phone' => $validated['contact']['phone'] ?? '',
