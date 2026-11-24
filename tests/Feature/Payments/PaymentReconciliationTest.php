@@ -157,7 +157,7 @@ class PaymentReconciliationTest extends TestCase
         $this->assertDatabaseHas('notification_deliveries', [
             'order_id' => $order->id,
             'channel' => 'whatsapp',
-            'status' => 'queued',
+            'status' => 'failed',
         ]);
     }
 
@@ -184,7 +184,7 @@ class PaymentReconciliationTest extends TestCase
             ->where('order_id', $transaction->order_id)
             ->where('channel', 'whatsapp')
             ->firstOrFail();
-        $this->assertSame('queued', $whatsAppDelivery->status);
+        $this->assertSame('failed', $whatsAppDelivery->status);
         $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'job_failure'));
 
         config(['services.fonnte.token' => 'test-fonnte-token']);
