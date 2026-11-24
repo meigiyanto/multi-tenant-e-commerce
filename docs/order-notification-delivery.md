@@ -37,6 +37,29 @@ Allowed status callbacks are `delivered`, `read`, and `failed`. The webhook is a
 
 The generic callback contract does not automatically configure a provider. Actual delivered/read events require a mail provider that offers delivery webhooks and a small provider-specific adapter that maps its event format to this contract.
 
+## Backfill notifications for historical paid orders
+
+Orders paid before notification tracking was deployed are not automatically replayed by Midtrans. Inspect eligible historical orders first; the command is a dry run unless `--dispatch` is explicitly supplied:
+
+```bash
+php artisan notifications:backfill-paid-orders
+```
+
+To limit the inspection or processing to one order ID:
+
+```bash
+php artisan notifications:backfill-paid-orders --order=123
+```
+
+After reviewing the dry-run output, use `--dispatch` to create missing delivery records and queue the email/WhatsApp jobs:
+
+```bash
+php artisan notifications:backfill-paid-orders --dispatch
+php artisan notifications:backfill-paid-orders --dispatch --order=123
+```
+
+The command only selects orders whose order payment status and at least one payment transaction are both `paid`. It skips channels that already have a `payment_confirmed` delivery record, so repeated runs do not enqueue duplicates. Configure an asynchronous queue connection (for example `QUEUE_CONNECTION=database`) and run a queue worker before dispatching; with the `sync` queue driver, jobs may execute immediately inside the command. Review recipients and test delivery before processing all historical orders.
+
 ## Inspect deliveries
 
 Use Tinker:
@@ -58,7 +81,9 @@ FONNTE_TOKEN=your_device_token
 FONNTE_WEBHOOK_SECRET=use-a-long-random-secret
 ```
 
-Never commit either value. The queued job calls Fonnte's `POST https://api.fonnte.com/send` endpoint using the token in the Authorization header. Fonnte's successful API response is recorded as `sent`; it is not proof of delivery or that the customer read the message.
+Never commit either value. The queued job calls Fonnte's `POST https://api.fonnte.com/send` endpoint using the token in the Authorization header. Fonnte's successful API response is recorded as `sent`; it means Fonnte accepted/processed the request, not proof that the recipient received or read the message. Fonnte documents that a `Sent` status with state `0` means the target did not receive the message; the webhook records this as `failed`, not `delivered`.
+
+The webhook matches the callback `id` to `provider_message_id`, checks the URL secret using a constant-time comparison, and updates the delivery row inside a database transaction with a row lock. Recognized transitions are `sent → delivered → read`, `sent → read`, and `sent → failed`. A later callback cannot downgrade `read` or overwrite a terminal `failed` state. Unknown message IDs are acknowledged but ignored. Raw callback fields are retained in metadata for troubleshooting. Unknown state values are retained but do not change the delivery status.
 
 For delivery updates, configure Fonnte's **Webhook Update Message Status** URL to:
 

@@ -8,6 +8,7 @@ use App\Models\Inventory;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Services\Notifications\OrderNotificationService;
 use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -89,10 +90,12 @@ class PaymentService
             ]);
         } catch (PaymentGatewayUnavailableException|ConnectionException $exception) {
             DB::transaction(function () use ($transaction, $exception): void {
+
                 $lockedTransaction = PaymentTransaction::query()
                     ->whereKey($transaction->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
                     'session_creation_uncertain' => [
                         'message' => $exception->getMessage(),
@@ -106,15 +109,19 @@ class PaymentService
             throw $exception;
         } catch (Throwable $exception) {
             DB::transaction(function () use ($transaction, $exception): void {
+
                 $lockedTransaction = PaymentTransaction::query()
                     ->whereKey($transaction->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $order = Order::query()
                     ->whereKey($lockedTransaction->order_id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $inventoryError = $this->applyInventoryTransition($order, 'failed');
+
                 $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
                     'session_creation_error' => [
                         'message' => $exception->getMessage(),
@@ -154,12 +161,14 @@ class PaymentService
         return $transaction->refresh();
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function handleNotification(array $payload, string $gatewayName): void
     {
         $gateway = $this->gateways->driver($gatewayName, false);
 
-        if (! $gateway->verifyNotification($payload)) {
+        if ($gateway->verifyNotification($payload) === false) {
             throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
         }
 
@@ -226,7 +235,9 @@ class PaymentService
         return $reconciled;
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     private function applyVerifiedStatus(
         array $payload,
         PaymentGateway $gateway,
@@ -246,7 +257,7 @@ class PaymentService
                 throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
             }
 
-            if (! $isNotification && ! isset($payload['currency'])) {
+            if ($isNotification === false && isset($payload['currency']) === false) {
                 throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
             }
 
@@ -329,8 +340,7 @@ class PaymentService
         });
 
         if ($paidOrderId !== null) {
-            app(\App\Services\Notifications\OrderNotificationService::class)
-                ->queuePaymentConfirmed($paidOrderId);
+            app(OrderNotificationService::class)->queuePaymentConfirmed($paidOrderId);
         }
     }
 
@@ -347,9 +357,7 @@ class PaymentService
             }
 
             $metadata = (array) ($locked->metadata ?? []);
-            $attempts = $result === 'not_found'
-                ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1
-                : 0;
+            $attempts = $result === 'not_found' ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1 : 0;
             $metadata['reconciliation'] = [
                 'checked_at' => now()->toISOString(),
                 'result' => $result,
@@ -417,12 +425,12 @@ class PaymentService
 
     private function normalizeAmount(mixed $amount): string
     {
-        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
+        if (is_string($amount) === false && is_int($amount) === false && is_float($amount) === false) {
             throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
         }
 
         $amount = (string) $amount;
-        if (! preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount)) {
+        if (preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount) === 0) {
             throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
         }
 
@@ -432,7 +440,8 @@ class PaymentService
         return $integer.'.'.str_pad($fraction, 2, '0');
     }
 
-    /** @param array<string, mixed> $payload
+    /**
+     * @param  array<string, mixed>  $payload
      * @return array<string, scalar|null>
      */
     private function safeNotificationMetadata(array $payload): array
@@ -451,7 +460,7 @@ class PaymentService
 
     private function applyInventoryTransition(Order $order, string $status): ?string
     {
-        if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
+        if (in_array($status, ['paid', 'failed', 'expired'], true) === false) {
             return null;
         }
 

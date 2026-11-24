@@ -38,6 +38,7 @@ class OrderNotificationService
             }
         }
 
+        $whatsAppDelivery = null;
         $phone = preg_replace('/\\D+/', '', (string) $order->customer_phone);
         if ($phone !== '') {
             $whatsAppDelivery = NotificationDelivery::query()->firstOrCreate(
