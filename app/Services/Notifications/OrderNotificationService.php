@@ -35,7 +35,7 @@ class OrderNotificationService
                 ],
             );
 
-            if ($emailDelivery->wasRecentlyCreated || data_get($emailDelivery->metadata, 'dispatch_error') !== null) {
+            if ($emailDelivery->wasRecentlyCreated || (data_get($emailDelivery->metadata, 'dispatch_error') !== null || data_get($emailDelivery->metadata, 'job_failure') !== null)) {
                 $this->dispatchNotification(new SendOrderPaidEmail($emailDelivery->id), $emailDelivery);
             }
         }
@@ -59,7 +59,7 @@ class OrderNotificationService
                 ],
             );
 
-            if ($whatsAppDelivery->wasRecentlyCreated || data_get($whatsAppDelivery->metadata, 'dispatch_error') !== null) {
+            if ($whatsAppDelivery->wasRecentlyCreated || (data_get($whatsAppDelivery->metadata, 'dispatch_error') !== null || data_get($whatsAppDelivery->metadata, 'job_failure') !== null)) {
                 $this->dispatchNotification(new SendOrderPaidWhatsApp($whatsAppDelivery->id), $whatsAppDelivery);
             }
         }
