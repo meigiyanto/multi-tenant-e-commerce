@@ -25,13 +25,17 @@ class ResolveStoreFromOrderNumber
     {
         $orderNumber = (string) $request->route('orderNumber', '');
         $providedKey = (string) $request->query('key', '');
+        $expires = $request->query('expires');
         $appKey = (string) config('app.key');
 
-        if ($orderNumber === '' || $providedKey === '' || $appKey === '') {
+        if ($orderNumber === '' || $providedKey === '' || $appKey === ''
+            || ! is_string($expires) && ! is_int($expires)
+            || filter_var($expires, FILTER_VALIDATE_INT) === false
+            || (int) $expires < now()->timestamp) {
             abort(404);
         }
 
-        $expectedKey = hash_hmac('sha256', $orderNumber, $appKey);
+        $expectedKey = hash_hmac('sha256', $orderNumber.'|'.$expires, $appKey);
         if (! hash_equals($expectedKey, $providedKey)) {
             abort(404);
         }
@@ -56,6 +60,10 @@ class ResolveStoreFromOrderNumber
         $request->attributes->set('store_domain', $domain);
         $request->attributes->set('team', $domain->store->team);
 
-        return $next($request);
+        $response = $next($request);
+        $response->headers->set('Cache-Control', 'no-store, private');
+        $response->headers->set('Referrer-Policy', 'no-referrer');
+
+        return $response;
     }
 }
