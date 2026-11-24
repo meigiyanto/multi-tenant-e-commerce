@@ -52,6 +52,10 @@ class SendOrderPaidEmail implements ShouldQueue
             ->update(['status' => 'sending', 'last_error' => null, 'updated_at' => now()]);
 
         if ($claimed !== 1) {
+            if ($delivery->status === 'sending') {
+                $this->release(600);
+            }
+
             return;
         }
 
