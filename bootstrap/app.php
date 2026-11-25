@@ -24,6 +24,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/fonnte/*',
         ]);
 
+        $middleware->redirectUsersTo(function (Request $request): string {
+            $user = $request->user();
+
+            if ($user?->isPlatformAdmin()) {
+                return route('platform.admin.teams.index');
+            }
+
+            $team = $user?->currentTeam;
+
+            return $team
+                ? route('dashboard', ['current_team' => $team->slug])
+                : route('home');
+        });
+
         $middleware->alias([
             'store.domain' => ResolveStoreFromDomain::class,
         ]);
