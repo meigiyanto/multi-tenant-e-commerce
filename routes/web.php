@@ -48,6 +48,7 @@ if ($storefrontRootDomain !== '') {
             Route::middleware(['auth:customer', EnsureCustomerAccount::class])->group(function (): void {
                 Route::get('/account/verify-email', [CustomerEmailVerificationController::class, 'show'])->name('storefront.account.verification');
                 Route::post('/account/verification-notification', [CustomerEmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('storefront.account.verification.send');
+                Route::get('/account/verify-email/{id}/{hash}', [CustomerEmailVerificationController::class, 'verify'])->middleware('signed')->name('storefront.account.verification.verify');
                 Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
                 Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
                 Route::get('/account/profile', [CustomerProfileController::class, 'edit'])->name('storefront.account.profile');
