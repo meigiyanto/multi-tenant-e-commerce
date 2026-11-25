@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Http\\Responses;
+namespace App\Http\Responses;
 
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Auth;
-use Laravel\\Fortify\\Contracts\\LoginResponse as LoginResponseContract;
-use Symfony\\Component\\HttpFoundation\\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Symfony\Component\HttpFoundation\Response;
 
 class LoginResponse implements LoginResponseContract
 {
@@ -34,7 +34,6 @@ class LoginResponse implements LoginResponseContract
         }
 
         $team = $request->user()?->currentTeam;
-
         $destination = $team
             ? route('dashboard', ['current_team' => $team->slug])
             : route('home');
