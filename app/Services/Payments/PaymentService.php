@@ -203,7 +203,7 @@ class PaymentService
             throw new RuntimeException('The Midtrans refund notification does not contain refund details.');
         }
 
-        $refundTotal = '0.00';
+        $refundTotalCents = 0;
         $refundDetail = null;
 
         foreach ($refunds as $refund) {
@@ -212,21 +212,18 @@ class PaymentService
             }
 
             $amount = $this->normalizeAmount($refund['refund_amount']);
-            [$totalInteger, $totalFraction] = explode('.', $refundTotal);
             [$amountInteger, $amountFraction] = explode('.', $amount);
-            $refundTotal = number_format(
-                ((int) $totalInteger * 100 + (int) $totalFraction + (int) $amountInteger * 100 + (int) $amountFraction) / 100,
-                2,
-                '.',
-                ''
-            );
+            $refundTotalCents += ((int) $amountInteger * 100) + (int) $amountFraction;
 
             if ($refundDetail === null || $amount === $refundAmount) {
                 $refundDetail = $refund;
             }
         }
 
-        if ($refundTotal !== $refundAmount) {
+        [$refundInteger, $refundFraction] = explode('.', $refundAmount);
+        $reportedRefundCents = ((int) $refundInteger * 100) + (int) $refundFraction;
+
+        if ($refundTotalCents !== $reportedRefundCents) {
             throw new RuntimeException('The Midtrans refund details do not match the reported refund amount.');
         }
 
@@ -264,8 +261,16 @@ class PaymentService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if ($transaction->status !== 'paid' || $transaction->paid_at === null) {
+                throw new RuntimeException('Midtrans cannot confirm a refund for a payment that is not recorded as paid.');
+            }
+
             if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
                 throw new RuntimeException('The Midtrans refund gross amount does not match the original payment.');
+            }
+
+            if (isset($payload['currency']) && strtoupper((string) $payload['currency']) !== strtoupper($transaction->currency)) {
+                throw new RuntimeException('The Midtrans refund currency does not match the original payment.');
             }
 
             $metadata = (array) ($transaction->metadata ?? []);
