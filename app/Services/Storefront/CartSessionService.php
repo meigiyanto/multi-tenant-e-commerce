@@ -27,6 +27,13 @@ class CartSessionService
         return $id;
     }
 
+    public function rotateAndAttach(Response $response, Request $request): Response
+    {
+        $request->attributes->set(self::ATTRIBUTE_NAME, Str::random(48));
+
+        return $this->attach($response, $request);
+    }
+
     public function attach(Response $response, Request $request): Response
     {
         $response->headers->setCookie(cookie(
