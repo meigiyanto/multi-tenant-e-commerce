@@ -203,7 +203,7 @@ class StorefrontCartTest extends TestCase
         Notification::assertSentTo($customer, VerifyCustomerEmail::class);
     }
 
-    public function test_customer_logout_only_unlinks_their_own_active_cart(): void
+    public function test_customer_logout_preserves_cart_ownership_and_rotates_the_browser_cart_token(): void
     {
         [$store] = $this->activeStoreWithVariant();
         $customer = $this->createCustomer($store, ['email' => 'logout-customer@example.com']);
@@ -222,15 +222,16 @@ class StorefrontCartTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->withHeader('X-Storefront-Cart-Token', $sessionId)
+        $response = $this->withHeader('X-Storefront-Cart-Token', $sessionId)
             ->actingAs($customer, 'customer')
             ->post('http://'.$store->slug.'.localhost/account/logout')
             ->assertRedirect();
 
         $this->assertDatabaseHas('carts', [
             'id' => $ownedCart->id,
-            'customer_id' => null,
+            'customer_id' => $customer->id,
         ]);
+        $this->assertNotEmpty($response->headers->getCookies());
         $this->assertDatabaseHas('carts', [
             'id' => $otherCart->id,
             'customer_id' => $otherCustomer->id,
