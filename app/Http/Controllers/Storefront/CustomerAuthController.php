@@ -7,7 +7,6 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +14,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class CustomerAuthController extends Controller
 {
@@ -37,7 +37,7 @@ class CustomerAuthController extends Controller
         return Inertia::render('storefront/account/register', ['store' => ['name' => $store->name]]);
     }
 
-    public function login(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
+    public function login(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -57,9 +57,10 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer, (bool) ($credentials['remember'] ?? false));
         $request->session()->regenerate();
-        $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
+        $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
+        $response = to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
 
-        return to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
+        return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
     }
 
     public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
@@ -83,31 +84,38 @@ class CustomerAuthController extends Controller
         $customer->sendEmailVerificationNotification();
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
-        $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
-
-        return to_route('storefront.account.profile', ['storeSubdomain' => $store->slug])
+        $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
+        $response = to_route('storefront.account.profile', ['storeSubdomain' => $store->slug])
             ->with('success', __('Your customer account has been created.'));
+
+        return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
     }
 
-    private function linkActiveCart(int $storeId, string $sessionId, Customer $customer): void
+    private function linkActiveCart(int $storeId, string $sessionId, Customer $customer): bool
     {
-        Cart::query()->where('store_id', $storeId)->where('session_id', $sessionId)
-            ->where('status', 'active')->update(['customer_id' => $customer->id, 'user_id' => null]);
+        $cartQuery = Cart::query()->where('store_id', $storeId)
+            ->where('session_id', $sessionId)->where('status', 'active');
+
+        $hasForeignOwner = (clone $cartQuery)->whereNotNull('customer_id')
+            ->where('customer_id', '!=', $customer->id)->exists();
+
+        $cartQuery->where(function ($query) use ($customer): void {
+            $query->whereNull('customer_id')->orWhere('customer_id', $customer->id);
+        })->update(['customer_id' => $customer->id]);
+
+        return $hasForeignOwner;
     }
 
     public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
-        $store = $context->store();
-        if ($store !== null) {
-            Cart::query()->where('store_id', $store->id)
-                ->where('session_id', $cartSessions->id($request))
-                ->where('status', 'active')->update(['customer_id' => null]);
-        }
-
         Auth::guard('customer')->logout();
         $request->session()->regenerate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('storefront.home', ['storeSubdomain' => $context->store()?->slug]);
+        $response = redirect()->route('storefront.home', [
+            'storeSubdomain' => $context->store()?->slug,
+        ]);
+
+        return $cartSessions->rotateAndAttach($response, $request);
     }
 }
