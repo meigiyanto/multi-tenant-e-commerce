@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\DashboardController;\nuse App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
@@ -14,7 +14,8 @@ use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
-use Illuminate\Support\Facades\Route;\nuse Inertia\Inertia;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
