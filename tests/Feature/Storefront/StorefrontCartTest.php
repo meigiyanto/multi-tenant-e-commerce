@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -150,7 +151,7 @@ class StorefrontCartTest extends TestCase
     public function test_customer_order_history_includes_orders_from_every_store_without_leaking_other_customers_orders(): void
     {
         [$store] = $this->activeStoreWithVariant();
-        [, , $otherStore] = $this->activeStoreWithVariant('other-store');
+        [$otherStore] = $this->activeStoreWithVariant('other-store');
         $user = User::factory()->create(['email' => 'legacy-customer@example.com']);
 
         $this->createLegacyOrder($store, 'ORD-LEGACY-LOCAL', 'legacy-customer@example.com', null);
