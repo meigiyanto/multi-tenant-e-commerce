@@ -154,9 +154,9 @@ class CheckoutController extends Controller
             && filled($user->shipping_postal_code);
     }
 
-    public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
+    public function order(Request $request, string $storeSubdomain, string $orderNumber, StoreContext $context): Response
     {
-        return $this->renderOrder($orderNumber, $context);
+        return $this->renderOrder($orderNumber, $context, (int) $request->user('customer')->id);
     }
 
     public function finish(string $orderNumber, StoreContext $context): Response
@@ -164,11 +164,12 @@ class CheckoutController extends Controller
         return $this->renderOrder($orderNumber, $context);
     }
 
-    private function renderOrder(string $orderNumber, StoreContext $context): Response
+    private function renderOrder(string $orderNumber, StoreContext $context, ?int $customerId = null): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
         $order = Order::query()->where('store_id', $store->id)->where('order_number', $orderNumber)
+            ->when($customerId !== null, fn ($query) => $query->where('customer_id', $customerId))
             ->with(['items', 'paymentTransactions' => fn ($query) => $query->latest()])->firstOrFail();
 
         return Inertia::render('storefront/order-confirmation', [
