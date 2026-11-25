@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, ReceiptText, ShieldCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -28,6 +28,10 @@ export function AppSidebar() {
             title: 'Platform Teams',
             href: '/platform/admin/teams',
             icon: ShieldCheck,
+        }, {
+            title: 'Refund Requests',
+            href: '/platform/admin/refunds',
+            icon: ReceiptText,
         }] : []),
     ];
 
