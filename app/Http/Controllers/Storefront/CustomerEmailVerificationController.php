@@ -25,10 +25,10 @@ class CustomerEmailVerificationController extends Controller
         ]);
     }
 
-    public function verify(Request $request, string $storeSubdomain, string $id, string $hash): RedirectResponse
+    public function verify(Request $request, int $id, string $hash): RedirectResponse
     {
         $customer = $request->user('customer');
-        abort_unless(ctype_digit($id) && $customer && (string) $customer->getKey() === $id
+        abort_unless($customer && (int) $customer->getKey() === $id
             && hash_equals(sha1($customer->getEmailForVerification()), $hash), 403);
 
         if ($customer->markEmailAsVerified()) {
@@ -36,7 +36,7 @@ class CustomerEmailVerificationController extends Controller
         }
 
         return to_route('storefront.account.index', [
-            'storeSubdomain' => $storeSubdomain,
+            'storeSubdomain' => $request->route('storeSubdomain'),
         ])->with('verified', true);
     }
 

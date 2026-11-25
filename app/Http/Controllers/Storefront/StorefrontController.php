@@ -21,11 +21,6 @@ class StorefrontController extends Controller
 
         abort_if($store === null, 404);
 
-        $customer = $request->user('customer');
-        $customer = $customer !== null && (int) $customer->store_id === (int) $store->getKey()
-            ? $customer
-            : null;
-
         $settings = $store->storefrontSettings();
         $products = $store->products()
             ->where('status', 'active')
@@ -71,10 +66,6 @@ class StorefrontController extends Controller
                 'accent_color' => $settings['accent_color'] ?? '#0f172a',
                 'navigation' => $settings['navigation'] ?? [],
                 'contact' => array_merge(['email' => '', 'phone' => '', 'address' => ''], $settings['contact'] ?? []),
-            ],
-            'auth' => [
-                'user' => $customer?->only(['id', 'name', 'email']),
-                'isPlatformAdmin' => false,
             ],
             'products' => $products,
             'cart_count' => $carts->countForSession($store, $cartSessions->id($request)),

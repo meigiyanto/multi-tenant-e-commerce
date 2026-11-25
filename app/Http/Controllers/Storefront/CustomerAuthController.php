@@ -58,14 +58,12 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer, (bool) ($credentials['remember'] ?? false));
         $request->session()->regenerate();
         $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
-        $storeSubdomain = (string) $request->route('storeSubdomain');
-        abort_if($storeSubdomain === '', 404);
-        $response = to_route('storefront.account.index', ['storeSubdomain' => $storeSubdomain]);
+        $response = to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
 
         return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
     }
 
-    public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
+    public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -87,9 +85,7 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
         $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
-        $storeSubdomain = (string) $request->route('storeSubdomain');
-        abort_if($storeSubdomain === '', 404);
-        $response = to_route('storefront.account.profile', ['storeSubdomain' => $storeSubdomain])
+        $response = to_route('storefront.account.profile', ['storeSubdomain' => $store->slug])
             ->with('success', __('Your customer account has been created.'));
 
         return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
@@ -110,20 +106,14 @@ class CustomerAuthController extends Controller
         return $hasForeignOwner;
     }
 
-    public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
+    public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
-        $store = $context->store();
-        abort_if($store === null, 404);
-
         Auth::guard('customer')->logout();
-        $storeSubdomain = (string) $request->route('storeSubdomain');
-        abort_if($storeSubdomain === '', 404);
-
-        $request->session()->invalidate();
+        $request->session()->regenerate();
         $request->session()->regenerateToken();
 
-        $response = to_route('storefront.home', [
-            'storeSubdomain' => $storeSubdomain,
+        $response = redirect()->route('storefront.home', [
+            'storeSubdomain' => $context->store()?->slug,
         ]);
 
         return $cartSessions->rotateAndAttach($response, $request);
