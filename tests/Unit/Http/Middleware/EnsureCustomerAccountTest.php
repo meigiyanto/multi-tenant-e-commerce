@@ -19,7 +19,8 @@ class EnsureCustomerAccountTest extends TestCase
     public function test_authenticated_store_customer_is_allowed(): void
     {
         $store = $this->makeStore();
-        $customer = Customer::query()->create(['store_id' => $store->id, 'name' => 'Customer', 'email' => 'customer@example.com', 'password' => 'password', 'email_verified_at' => now()]);
+        $customer = Customer::query()->create(['store_id' => $store->id, 'name' => 'Customer', 'email' => 'customer@example.com', 'password' => 'password']);
+        $customer->forceFill(['email_verified_at' => now()])->save();
         $request = Request::create('/account/profile');
         $request->setUserResolver(fn (?string $guard = null) => $guard === 'customer' ? $customer : null);
 
