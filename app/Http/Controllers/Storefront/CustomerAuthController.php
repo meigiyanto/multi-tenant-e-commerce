@@ -7,7 +7,6 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +14,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class CustomerAuthController extends Controller
 {
@@ -37,7 +37,7 @@ class CustomerAuthController extends Controller
         return Inertia::render('storefront/account/register', ['store' => ['name' => $store->name]]);
     }
 
-    public function login(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
+    public function login(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
