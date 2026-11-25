@@ -46,9 +46,6 @@ class CustomerProfileController extends Controller
 
         $user->save();
 
-        if ($emailChanged) {
-        }
-
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $emailChanged
@@ -56,8 +53,6 @@ class CustomerProfileController extends Controller
                 : __('Profile updated.'),
         ]);
 
-        return $emailChanged
-            ? to_route('storefront.account.verification', ['storeSubdomain' => $store->slug])
-            : to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
+        return to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
     }
 }
