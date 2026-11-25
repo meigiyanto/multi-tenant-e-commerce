@@ -4,18 +4,22 @@ namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
 use App\Jobs\SendOrderPaidEmail;
+use App\Models\Customer;
 use App\Models\InventoryReservation;
 use App\Models\NotificationDelivery;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Models\RefundRequest;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Payments\PaymentService;
+use App\Notifications\Storefront\RefundRequestResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class PaymentReconciliationTest extends TestCase
@@ -495,6 +499,65 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame(3, $inventory->fresh()->quantity);
         $this->assertSame(0, $inventory->fresh()->reserved_quantity);
         $this->assertSame(1, $order->statusHistories()->count());
+    }
+
+    public function test_it_resolves_a_refund_request_from_a_verified_midtrans_refund_notification_once(): void
+    {
+        Notification::fake();
+        [$transaction, $order] = $this->pendingPayment();
+        $customer = Customer::query()->create([
+            'store_id' => $order->store_id,
+            'name' => 'Refund Customer',
+            'email' => 'refund-customer@example.com',
+            'password' => 'password',
+        ]);
+        $order->update([
+            'customer_id' => $customer->id,
+            'payment_status' => 'paid',
+            'status' => 'processing',
+        ]);
+        $transaction->update(['status' => 'paid', 'paid_at' => now()]);
+        $refundRequest = RefundRequest::query()->create([
+            'store_id' => $order->store_id,
+            'order_id' => $order->id,
+            'customer_id' => $customer->id,
+            'payment_transaction_id' => $transaction->id,
+            'status' => 'under_review',
+            'reason' => 'Product quality issue',
+        ]);
+
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-refund-'.$transaction->id,
+            'transaction_status' => 'refund',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'refund_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'credit_card',
+            'refunds' => [[
+                'refund_method' => 'offline',
+                'refund_key' => 'refund-key-'.$transaction->id,
+                'refund_chargeback_id' => 418346278,
+                'refund_amount' => '115000.00',
+                'reason' => 'Product quality issue',
+                'bank_confirmed_at' => now()->toDateTimeString(),
+            ]],
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $this->assertSame('refunded', $refundRequest->fresh()->status);
+        $this->assertSame('418346278', $refundRequest->fresh()->refund_reference);
+        $this->assertSame('paid', $transaction->fresh()->status);
+        $this->assertSame('paid', $order->fresh()->payment_status);
+        $this->assertSame('refund', data_get($transaction->fresh()->metadata, 'last_refund_notification.transaction_status'));
+        Notification::assertSentTo($customer, RefundRequestResult::class, 1);
     }
 
     private function pendingPayment(): array
