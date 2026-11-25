@@ -10,7 +10,7 @@ type Props = {
     items: CheckoutItem[];
     subtotal: string;
     weight_grams: number;
-    customer: { name: string; email: string; phone: string; shipping_address: string; shipping_city: string; shipping_province: string; shipping_postal_code: string };
+    customer: { name: string; email: string; phone: string; shipping_address: string; shipping_city: string; shipping_province: string; shipping_postal_code: string; address_label: string; recipient_name: string; address_phone: string };
 };
 
 export default function StorefrontCheckout({ store, items, subtotal, weight_grams, customer }: Props) {
@@ -101,7 +101,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
                             <h2 className="text-lg font-semibold">Shipping address</h2>
-                            <p className="mt-4 whitespace-pre-line text-sm font-medium">{customer.shipping_address}</p>
+                            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{customer.address_label} · {customer.recipient_name} · {customer.address_phone}</p><p className="mt-2 whitespace-pre-line text-sm font-medium">{customer.shipping_address}</p>
                             <p className="mt-1 text-sm text-slate-600">{[customer.shipping_city, customer.shipping_province, customer.shipping_postal_code].filter(Boolean).join(', ')}</p>
                             <p className="mt-3 text-xs text-slate-500">The saved street address and postal code will be used for this order. Select the matching courier destination below.</p>
                             <div className="relative mt-5">
