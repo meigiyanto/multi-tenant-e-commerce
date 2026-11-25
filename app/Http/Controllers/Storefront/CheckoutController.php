@@ -47,7 +47,8 @@ class CheckoutController extends Controller
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
         $user = $request->user('customer');
-        if (! $this->hasCompleteShippingProfile($user)) {
+        $defaultAddress = $user->addresses()->where('is_default', true)->first();
+        if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
             $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
 
             return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your contact information and default shipping address before checkout.');
@@ -82,10 +83,13 @@ class CheckoutController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone ?? '',
-                'shipping_address' => $user->shipping_address ?? '',
-                'shipping_city' => $user->shipping_city ?? '',
-                'shipping_province' => $user->shipping_province ?? '',
-                'shipping_postal_code' => $user->shipping_postal_code ?? '',
+                'shipping_address' => $defaultAddress->address,
+                'shipping_city' => $defaultAddress->city,
+                'shipping_province' => $defaultAddress->province,
+                'shipping_postal_code' => $defaultAddress->postal_code ?? '',
+                'address_label' => $defaultAddress->label,
+                'recipient_name' => $defaultAddress->recipient_name,
+                'address_phone' => $defaultAddress->phone,
             ],
         ])->toResponse($request);
 
@@ -98,7 +102,8 @@ class CheckoutController extends Controller
         abort_if($store === null, 404);
         $user = $request->user('customer');
 
-        if (! $this->hasCompleteShippingProfile($user)) {
+        $defaultAddress = $user->addresses()->where('is_default', true)->first();
+        if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
             return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your phone number and default shipping address before placing an order.');
         }
 
@@ -115,11 +120,11 @@ class CheckoutController extends Controller
         /** @var array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $checkoutData */
         $checkoutData = [
             ...$data,
-            'customer_name' => $user->name,
+            'customer_name' => $defaultAddress->recipient_name,
             'customer_email' => $user->email,
-            'customer_phone' => $user->phone,
-            'shipping_address' => $user->shipping_address,
-            'shipping_postal_code' => $user->shipping_postal_code,
+            'customer_phone' => $defaultAddress->phone,
+            'shipping_address' => $defaultAddress->address,
+            'shipping_postal_code' => $defaultAddress->postal_code,
         ];
 
         $cart = Cart::query()
@@ -151,13 +156,12 @@ class CheckoutController extends Controller
         }
     }
 
-    private function hasCompleteShippingProfile(Customer $user): bool
+    private function hasCompleteShippingProfile(Customer $user, ?CustomerAddress $address): bool
     {
-        return filled($user->phone)
-            && filled($user->shipping_address)
-            && filled($user->shipping_city)
-            && filled($user->shipping_province)
-            && filled($user->shipping_postal_code);
+        return filled($user->phone) && $address !== null
+            && filled($address->recipient_name) && filled($address->phone)
+            && filled($address->address) && filled($address->city)
+            && filled($address->province);
     }
 
     public function order(Request $request, string $storeSubdomain, string $orderNumber, StoreContext $context): Response
