@@ -63,7 +63,7 @@ class CustomerAuthController extends Controller
         return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
     }
 
-    public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
+    public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -106,7 +106,7 @@ class CustomerAuthController extends Controller
         return $hasForeignOwner;
     }
 
-    public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
+    public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
     {
         Auth::guard('customer')->logout();
         $request->session()->regenerate();
