@@ -339,13 +339,19 @@ class StorefrontCartTest extends TestCase
 
     private function createCustomer(Store $store, array $attributes = []): Customer
     {
-        return Customer::query()->create(array_merge([
+        $data = array_merge([
             'store_id' => $store->id,
             'name' => 'Store Customer',
             'email' => 'customer-'.\Illuminate\Support\Str::uuid().'@example.com',
             'password' => 'password',
-            'email_verified_at' => now(),
-        ], $attributes));
+        ], $attributes);
+        $verifiedAt = array_key_exists('email_verified_at', $attributes) ? $attributes['email_verified_at'] : now();
+        unset($data['email_verified_at']);
+
+        $customer = Customer::query()->create($data);
+        $customer->forceFill(['email_verified_at' => $verifiedAt])->save();
+
+        return $customer;
     }
 
     private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId, ?int $customerId = null): Order
