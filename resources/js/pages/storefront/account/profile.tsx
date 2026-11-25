@@ -14,7 +14,6 @@ export default function CustomerProfile({ store, profile, avatar_url, addresses 
     const addressForm = useForm({ label: '', type: 'home' as 'home' | 'office', recipient_name: profile.name, phone: profile.phone ?? '', address: '', city: '', province: '', postal_code: '', is_default: addresses.length === 0 });
     const submitProfile = (event: FormEvent) => { event.preventDefault(); profileForm.patch('/account/profile', { forceFormData: true, preserveScroll: true }); };
     const submitAddress = (event: FormEvent) => { event.preventDefault(); addressForm.post('/account/addresses', { preserveScroll: true, onSuccess: () => addressForm.reset('label', 'address', 'city', 'province', 'postal_code') }); };
-    const defaultAddress = addresses.find((address) => address.is_default);
 
     return <CustomerAccountLayout title="My profile" storeName={store.name}>
         <div className="space-y-7">
