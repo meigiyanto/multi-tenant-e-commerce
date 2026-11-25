@@ -286,6 +286,66 @@ class StorefrontCartTest extends TestCase
             );
     }
 
+
+    public function test_customer_can_change_password_from_their_profile(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['password' => 'OldPassword123!']);
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'OldPassword123!',
+                'password' => 'NewPassword123!',
+                'password_confirmation' => 'NewPassword123!',
+            ])
+            ->assertRedirect();
+
+        $this->assertTrue(Hash::check('NewPassword123!', $user->fresh()->password));
+    }
+
+    public function test_customer_profile_keeps_existing_password_when_password_fields_are_blank(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['password' => 'OldPassword123!']);
+        $oldHash = $user->password;
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => 'Updated Customer',
+                'email' => $user->email,
+                'current_password' => '',
+                'password' => '',
+                'password_confirmation' => '',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame($oldHash, $user->fresh()->password);
+        $this->assertSame('Updated Customer', $user->fresh()->name);
+    }
+
+    public function test_changing_customer_email_resets_verification_and_sends_a_new_link(): void
+    {
+        Notification::fake();
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['email' => 'old-customer@example.com']);
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => $user->name,
+                'email' => 'new-customer@example.com',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'new-customer@example.com',
+            'email_verified_at' => null,
+        ]);
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
     private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId): Order
     {
         return Order::query()->create([
