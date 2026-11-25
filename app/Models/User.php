@@ -62,7 +62,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
      */
     public function isCustomerAccount(): bool
     {
-        return ! $this->isPlatformAdmin() && ! $this->teams()->exists();
+        return ! $this->isPlatformAdmin()
+            && ! $this->teams()->where('teams.is_personal', false)->exists();
     }
 
     protected function casts(): array
