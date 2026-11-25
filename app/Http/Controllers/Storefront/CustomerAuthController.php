@@ -51,7 +51,7 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer, (bool) ($credentials['remember'] ?? false));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('storefront.account.index', ['storeSubdomain' => $store->slug]));
+        return to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
     }
 
     public function register(Request $request, StoreContext $context): RedirectResponse
@@ -81,7 +81,7 @@ class CustomerAuthController extends Controller
     public function logout(Request $request, StoreContext $context): RedirectResponse
     {
         Auth::guard('customer')->logout();
-        $request->session()->invalidate();
+        $request->session()->regenerate();
         $request->session()->regenerateToken();
 
         return redirect()->route('storefront.home', ['storeSubdomain' => $context->store()?->slug]);
