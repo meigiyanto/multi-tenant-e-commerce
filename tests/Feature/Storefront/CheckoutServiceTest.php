@@ -23,6 +23,8 @@ class CheckoutServiceTest extends TestCase
         [$store, $cart, $variant] = $this->cartWithStock(5, 1);
 
         $customer = $this->createCustomer($store);
+        $legacyPlatformUser = User::factory()->create();
+        $cart->update(['user_id' => $legacyPlatformUser->id]);
         $order = app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000, $customer);
 
         $this->assertInstanceOf(Order::class, $order);
@@ -59,7 +61,7 @@ class CheckoutServiceTest extends TestCase
             'id' => $cart->id,
             'status' => 'converted',
             'customer_id' => $customer->id,
-            'user_id' => null,
+            'user_id' => $legacyPlatformUser->id,
         ]);
         $this->assertDatabaseHas('order_status_histories', [
             'order_id' => $order->id,
@@ -85,6 +87,37 @@ class CheckoutServiceTest extends TestCase
             'product_variant_id' => $variant->id,
             'quantity' => 1,
             'reserved_quantity' => 0,
+        ]);
+    }
+
+    public function test_checkout_rejects_a_cart_already_owned_by_another_customer(): void
+    {
+        [$store, $cart] = $this->cartWithStock(5, 0);
+        $cartOwner = $this->createCustomer($store);
+        $authenticatedCustomer = $this->createCustomer($store);
+        $cart->update(['customer_id' => $cartOwner->id]);
+
+        try {
+            app(CheckoutService::class)->place(
+                $store,
+                'checkout-session',
+                $this->customerData(),
+                $this->shippingRate(),
+                12345,
+                'Jakarta Selatan, DKI Jakarta',
+                2000,
+                $authenticatedCustomer,
+            );
+            $this->fail('A customer must not check out another customer\'s cart.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('cart', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseHas('carts', [
+            'id' => $cart->id,
+            'customer_id' => $cartOwner->id,
+            'status' => 'active',
         ]);
     }
 
