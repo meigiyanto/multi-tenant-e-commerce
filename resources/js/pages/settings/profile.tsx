@@ -27,6 +27,7 @@ export default function Profile({ mustVerifyEmail, status, error, profile }: { m
         <Head title="Profile settings" />
         <h1 className="sr-only">Profile settings</h1>
         <div className="space-y-6">
+            {error ? <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{error}</p> : null}
             <Heading variant="small" title="Profile" description="Update your contact information and default shipping address" />
             <Form {...ProfileController.update.form()} options={{ preserveScroll: true }} className="space-y-6">
                 {({ processing, errors }) => <>
