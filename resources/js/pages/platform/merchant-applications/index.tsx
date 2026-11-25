@@ -1,6 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -20,8 +19,7 @@ export default function MerchantApplications({ applications }: { applications: P
                         <Form action={`/platform/admin/merchant-applications/${application.id}`} method="patch" className="space-y-2">
                             <input type="hidden" name="status" value="approved" />
                             <Textarea name="review_notes" defaultValue={application.review_notes ?? ''} rows={2} placeholder="Optional approval notes" />
-                            <InputError />
-                            <Button disabled={false}>Approve application</Button>
+                            <Button type="submit">Approve application</Button>
                         </Form>
                         <Form action={`/platform/admin/merchant-applications/${application.id}`} method="patch" className="space-y-2">
                             <input type="hidden" name="status" value="rejected" />
