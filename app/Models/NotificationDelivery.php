@@ -7,20 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
-#[Fillable([
-    'uuid', 'store_id', 'order_id', 'event', 'channel', 'recipient', 'status',
-    'provider', 'provider_message_id', 'last_error', 'metadata', 'queued_at',
-    'sent_at', 'delivered_at', 'read_at', 'failed_at',
-])]
 /**
  * @property array<string, mixed>|null $metadata
- * @property Carbon|null $created_at
+ * @property Carbon $created_at
  * @property Carbon|null $queued_at
  * @property Carbon|null $sent_at
  * @property Carbon|null $delivered_at
  * @property Carbon|null $read_at
  * @property Carbon|null $failed_at
  */
+#[Fillable([
+    'uuid', 'store_id', 'order_id', 'event', 'channel', 'recipient', 'status',
+    'provider', 'provider_message_id', 'last_error', 'metadata', 'queued_at',
+    'sent_at', 'delivered_at', 'read_at', 'failed_at',
+])]
 class NotificationDelivery extends Model
 {
     protected function casts(): array
