@@ -58,7 +58,9 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer, (bool) ($credentials['remember'] ?? false));
         $request->session()->regenerate();
         $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
-        $response = to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
+        $storeSubdomain = (string) $request->route('storeSubdomain');
+        abort_if($storeSubdomain === '', 404);
+        $response = to_route('storefront.account.index', ['storeSubdomain' => $storeSubdomain]);
 
         return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
     }
@@ -85,7 +87,9 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
         $cartConflict = $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
-        $response = to_route('storefront.account.profile', ['storeSubdomain' => $store->slug])
+        $storeSubdomain = (string) $request->route('storeSubdomain');
+        abort_if($storeSubdomain === '', 404);
+        $response = to_route('storefront.account.profile', ['storeSubdomain' => $storeSubdomain])
             ->with('success', __('Your customer account has been created.'));
 
         return $cartConflict ? $cartSessions->rotateAndAttach($response, $request) : $response;
