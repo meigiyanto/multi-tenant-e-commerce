@@ -40,9 +40,9 @@ class CustomerAddressBookTest extends TestCase
 
     public function test_deleting_default_address_promotes_another_saved_address(): void
     {
-        [, $customer] = $this->storeAndCustomer();
-        $home = $customer->addresses()->create($this->addressData(['label' => 'Rumah', 'type' => 'home', 'is_default' => true]));
-        $office = $customer->addresses()->create($this->addressData(['label' => 'Kantor', 'type' => 'office']));
+        [$store, $customer] = $this->storeAndCustomer();
+        $home = $customer->addresses()->create($this->addressData(['store_id' => $store->id, 'label' => 'Rumah', 'type' => 'home', 'is_default' => true]));
+        $office = $customer->addresses()->create($this->addressData(['store_id' => $store->id, 'label' => 'Kantor', 'type' => 'office']));
 
         $this->actingAs($customer, 'customer')
             ->delete('http://shop.localhost/account/addresses/'.$home->id)
@@ -61,7 +61,7 @@ class CustomerAddressBookTest extends TestCase
             'email' => 'other@example.com',
             'password' => 'StrongPassword123!',
         ]);
-        $address = $other->addresses()->create($this->addressData());
+        $address = $other->addresses()->create($this->addressData(['store_id' => $store->id]));
 
         $this->actingAs($customer, 'customer')
             ->delete('http://shop.localhost/account/addresses/'.$address->id)
@@ -86,6 +86,7 @@ class CustomerAddressBookTest extends TestCase
             'email' => 'customer@example.com',
             'password' => 'StrongPassword123!',
             'phone' => '08123456789',
+            'email_verified_at' => now(),
         ]);
 
         return [$store, $customer];
