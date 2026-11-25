@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Storefront;
 
+use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\ProductVariant;
