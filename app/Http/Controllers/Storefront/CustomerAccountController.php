@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Support\Stores\StoreContext;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +19,6 @@ class CustomerAccountController extends Controller
         $customer = $request->user('customer');
         $orders = Order::query()->where('store_id', $store->id)->where('customer_id', $customer->id);
 
-        /** @var Collection<int, Order> $latestOrderRecords */
         $latestOrderRecords = (clone $orders)
             ->with(['store:id,name'])
             ->withCount('items')
