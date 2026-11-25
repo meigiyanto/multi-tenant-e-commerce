@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\MerchantApplication;
 use App\Models\Team;
 use Closure;
 use Illuminate\Http\Request;
