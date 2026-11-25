@@ -159,7 +159,7 @@ class CheckoutController extends Controller
 
     private function defaultShippingAddress(Customer $user): ?CustomerAddress
     {
-        $address = $this->defaultShippingAddress($user);
+        $address = $user->addresses()->where('is_default', true)->first();
         if ($address !== null || blank($user->shipping_address)) {
             return $address;
         }
