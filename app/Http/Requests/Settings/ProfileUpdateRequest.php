@@ -24,7 +24,7 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...$this->profileRules($this->user()->id),
+            ...$this->profileRules($this->user('web')->id),
             'phone' => ['nullable', 'string', 'max:40'],
             'shipping_address' => ['nullable', 'string', 'max:2000'],
             'shipping_city' => ['nullable', 'string', 'max:120'],
