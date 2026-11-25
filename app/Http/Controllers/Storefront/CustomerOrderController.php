@@ -32,7 +32,7 @@ class CustomerOrderController extends Controller
             'items_count' => $order->items_count,
             'total' => $order->total,
             'currency' => $order->currency,
-            'placed_at' => $order->placed_at?->toISOString(),
+            'placed_at' => $order->placed_at->toISOString(),
             'tracking_url' => route('storefront.orders.track', [
                 'orderNumber' => $order->order_number,
                 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key')),
