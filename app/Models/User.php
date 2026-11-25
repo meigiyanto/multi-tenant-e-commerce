@@ -48,6 +48,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasTeams, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
+    /** @return HasOne<PlatformAdmin, $this> */
     public function platformAdmin(): HasOne
     {
         return $this->hasOne(PlatformAdmin::class);
