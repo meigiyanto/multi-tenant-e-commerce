@@ -38,7 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]);
             }
 
-            $user = $request->user();
+            $user = $request->user('web');
 
             if ($user?->isPlatformAdmin()) {
                 return route('platform.admin.teams.index');
