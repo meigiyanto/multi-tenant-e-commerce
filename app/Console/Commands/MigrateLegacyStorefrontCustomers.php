@@ -48,6 +48,31 @@ class MigrateLegacyStorefrontCustomers extends Command
                 'users.shipping_address', 'users.shipping_city', 'users.shipping_province',
                 'users.shipping_postal_code', 'users.email_verified_at']);
 
+        $legacyUsers = DB::table('users')
+            ->where(function ($query): void {
+                $query->whereExists(fn ($orders) => $orders->selectRaw('1')
+                    ->from('orders')->whereColumn('orders.user_id', 'users.id')->whereNull('orders.customer_id'))
+                    ->orWhereExists(fn ($carts) => $carts->selectRaw('1')
+                        ->from('carts')->whereColumn('carts.user_id', 'users.id')->whereNull('carts.customer_id'));
+            })
+            ->get(['users.id', 'users.email', 'users.current_team_id']);
+        $eligibleIds = $users->pluck('id')->all();
+        $blockedUsers = $legacyUsers->reject(fn ($user): bool => in_array($user->id, $eligibleIds, true));
+
+        foreach ($blockedUsers as $user) {
+            $reasons = [];
+            if ($user->current_team_id !== null) {
+                $reasons[] = 'current_team_id is set';
+            }
+            if (DB::table('platform_admins')->where('user_id', $user->id)->exists()) {
+                $reasons[] = 'platform administrator';
+            }
+            if (DB::table('team_members')->where('user_id', $user->id)->exists()) {
+                $reasons[] = 'team membership exists';
+            }
+            $this->warn("Manual review required for user {$user->id} ({$user->email}): ".implode(', ', $reasons).'.');
+        }
+
         $eligible = 0;
         $conflicts = 0;
         $linkedOrders = 0;
@@ -117,6 +142,7 @@ class MigrateLegacyStorefrontCustomers extends Command
         $this->table(['Metric', 'Count'], [
             ['Eligible customer/store identities', $eligible],
             ['Conflicts requiring manual review', $conflicts],
+            ['Blocked legacy users requiring team/platform review', $blockedUsers->count()],
             ['Orders linked', $apply ? $linkedOrders : 'not applied'],
             ['Carts linked', $apply ? $linkedCarts : 'not applied'],
         ]);
