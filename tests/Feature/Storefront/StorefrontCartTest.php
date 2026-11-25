@@ -155,6 +155,19 @@ class StorefrontCartTest extends TestCase
             ->assertRedirect('/login');
     }
 
+    public function test_storefront_login_and_registration_return_to_customer_account(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/account/login')
+            ->assertRedirect('/login')
+            ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
+
+        $this->get('http://'.$store->slug.'.localhost/account/register')
+            ->assertRedirect('/register')
+            ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
+    }
+
     public function test_guest_is_redirected_to_login_before_checkout(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant();
