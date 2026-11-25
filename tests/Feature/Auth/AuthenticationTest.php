@@ -51,6 +51,11 @@ class AuthenticationTest extends TestCase
     public function test_users_can_authenticate_using_the_login_screen()
     {
         $user = User::factory()->create();
+        $team = $user->currentTeam;
+
+        $user->forceFill(['current_team_id' => null])->save();
+        $team?->members()->detach($user);
+        $team?->delete();
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,
