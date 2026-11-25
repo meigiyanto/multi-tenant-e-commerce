@@ -132,8 +132,8 @@ class CheckoutController extends Controller
             $appKey = (string) config('app.key');
             $expires = now()->addDays(7)->timestamp;
             $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
-            $finishUrl = rtrim((string) config('app.url'), '/').'/orders/'.rawurlencode($order->order_number).' ?expires='.$expires.'&key='.$finishKey;
-            $finishUrl = str_replace(' ?', '?', $finishUrl);
+            $finishUrl = rtrim((string) config('app.url'), '/').'/orders/'.rawurlencode($order->order_number)
+                .'?expires='.$expires.'&key='.$finishKey;
 
             return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
