@@ -64,8 +64,11 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('home'));
-        $this->assertDatabaseCount('teams', 0);
-        $this->assertNull($user->fresh()->current_team_id);
+        $freshUser = $user->fresh();
+
+        $this->assertNull($freshUser->current_team_id);
+        $this->assertCount(0, $freshUser->teams);
+        $this->assertDatabaseMissing('team_members', ['user_id' => $user->id]);
     }
 
     public function test_passkey_login_response_redirects_to_home_without_a_team(): void
