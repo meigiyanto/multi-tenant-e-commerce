@@ -22,7 +22,7 @@ class CustomerProfileController extends Controller
         ]);
     }
 
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, StoreContext $context): RedirectResponse
     {
         $user = $request->user();
         $user->fill($request->validated());
@@ -33,6 +33,6 @@ class CustomerProfileController extends Controller
 
         $user->save();
 
-        return redirect()->route('storefront.account.profile')->with('success', 'Profile updated.');
+        return redirect()->route('storefront.account.profile', ['storeSubdomain' => $context->store()->slug])->with('success', 'Profile updated.');
     }
 }
