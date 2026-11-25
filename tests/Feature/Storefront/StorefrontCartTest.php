@@ -132,10 +132,11 @@ class StorefrontCartTest extends TestCase
         $this->get('http://'.$store->slug.'.localhost/')->assertOk();
         $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
 
-        $this->actingAs(User::factory()->create())
-            ->get('http://'.$store->slug.'.localhost/checkout')
-            ->assertRedirect('/account/profile')
-            ->assertSessionHas('error');
+        $response = $this->actingAs(User::factory()->create())
+            ->get('http://'.$store->slug.'.localhost/checkout');
+
+        $response->assertRedirect()->assertSessionHas('error');
+        $this->assertSame('/account/profile', parse_url((string) $response->headers->get('Location'), PHP_URL_PATH));
     }
 
     public function test_authenticated_checkout_displays_saved_customer_profile(): void
