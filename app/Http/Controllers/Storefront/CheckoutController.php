@@ -42,6 +42,10 @@ class CheckoutController extends Controller
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
         $user = $request->user();
+        if (blank($user->phone) || blank($user->shipping_address) || blank($user->shipping_city) || blank($user->shipping_province) || blank($user->shipping_postal_code)) {
+            return redirect()->route('profile.edit')->with('error', 'Complete your contact information and default shipping address before checkout.');
+        }
+
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
             $product = $item->product;
             $variant = $item->variant;
