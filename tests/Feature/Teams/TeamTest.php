@@ -444,6 +444,7 @@ class TeamTest extends TestCase
     public function test_the_teams_index_hides_empty_personal_customer_workspaces(): void
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
         $merchantTeam = Team::factory()->create(['name' => 'Merchant Workspace']);
         $merchantTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
