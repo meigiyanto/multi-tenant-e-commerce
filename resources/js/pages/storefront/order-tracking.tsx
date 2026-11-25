@@ -32,7 +32,7 @@ const labels: Record<string, string> = {
 
 export default function OrderTracking({ store, order }: Props) {
     useEffect(() => {
-        const interval = window.setInterval(() => router.reload({ only: ['order'], preserveScroll: true }), 30000);
+        const interval = window.setInterval(() => router.reload({ only: ['order'] }), 30000);
         return () => window.clearInterval(interval);
     }, []);
 

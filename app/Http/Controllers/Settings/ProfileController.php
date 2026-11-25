@@ -21,8 +21,6 @@ class ProfileController extends Controller
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
-            'error' => $request->session()->get('error'),
-            'success' => $request->session()->get('success'),
             'profile' => $user->only(['name', 'email', 'phone', 'shipping_address', 'shipping_city', 'shipping_province', 'shipping_postal_code']),
         ]);
     }
@@ -30,15 +28,30 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        $user->fill($request->validated());
+        $emailChanged = $user->email !== $request->validated('email');
+        $validated = $request->validated();
+        unset($validated['current_password']);
+        if (blank($validated['password'] ?? null)) {
+            unset($validated['password']);
+        }
+        $user->fill($validated);
 
-        if ($user->isDirty('email')) {
+        if ($emailChanged) {
             $user->email_verified_at = null;
         }
 
         $user->save();
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
-        $request->session()->flash('success', __('Profile updated.'));
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $emailChanged
+                ? __('Profile updated. A new verification link has been sent to your new email address.')
+                : __('Profile updated.'),
+        ]);
 
         return redirect()->intended(route('profile.edit'));
     }

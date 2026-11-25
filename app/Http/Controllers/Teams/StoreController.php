@@ -7,6 +7,7 @@ use App\Enums\StoreDomainStatus;
 use App\Enums\StoreStatus;
 use App\Enums\TeamStatus;
 use App\Http\Controllers\Controller;
+use App\Models\MerchantApplication;
 use App\Models\Store;
 use App\Models\StoreDomain;
 use App\Models\Team;
@@ -52,6 +53,13 @@ class StoreController extends Controller
     {
         Gate::authorize('update', $team);
         abort_unless($team->status === TeamStatus::Active->value, 403);
+        $hasExistingStore = $team->stores()->exists();
+        $hasApprovedApplication = MerchantApplication::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'approved')
+            ->exists();
+        abort_unless($hasApprovedApplication || $hasExistingStore, 403);
+        abort_if($team->is_personal && ! $hasExistingStore, 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

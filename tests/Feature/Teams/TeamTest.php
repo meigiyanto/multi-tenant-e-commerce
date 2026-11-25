@@ -3,6 +3,7 @@
 namespace Tests\Feature\Teams;
 
 use App\Enums\TeamRole;
+use App\Models\MerchantApplication;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,7 @@ class TeamTest extends TestCase
     public function test_the_teams_index_page_can_be_rendered()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         $response = $this
             ->actingAs($user)
@@ -28,6 +30,7 @@ class TeamTest extends TestCase
     public function test_teams_can_be_created()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         $response = $this
             ->actingAs($user)
@@ -65,6 +68,7 @@ class TeamTest extends TestCase
     public function test_team_slug_uses_next_available_suffix()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         Team::factory()->create(['name' => 'Acme', 'slug' => 'acme']);
         Team::factory()->create(['name' => 'Acme One', 'slug' => 'acme-1']);
@@ -433,6 +437,32 @@ class TeamTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->post(route('teams.switch', $team));
+
+        $response->assertForbidden();
+    }
+
+
+    public function test_the_teams_index_hides_empty_personal_customer_workspaces(): void
+    {
+        $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
+        $merchantTeam = Team::factory()->create(['name' => 'Merchant Workspace']);
+        $merchantTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
+
+        $response = $this->actingAs($user)->get(route('teams.index'));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('teams/index')
+            ->has('teams', 1)
+            ->where('teams.0.name', 'Merchant Workspace'));
+    }
+
+    public function test_customers_cannot_open_a_personal_team_dashboard_without_a_store(): void
+    {
+        $user = User::factory()->create();
+        $personalTeam = $user->personalTeam();
+
+        $response = $this->actingAs($user)->get(route('dashboard', ['current_team' => $personalTeam->slug]));
 
         $response->assertForbidden();
     }

@@ -13,7 +13,7 @@ import { send } from '@/routes/verification';
 type ProfileData = { name: string; email: string; phone: string | null; shipping_address: string | null; shipping_city: string | null; shipping_province: string | null; shipping_postal_code: string | null };
 type PageProps = { auth: Auth };
 
-export default function Profile({ mustVerifyEmail, status, error, success, profile }: { mustVerifyEmail: boolean; status?: string; error?: string; success?: string; profile: ProfileData }) {
+export default function Profile({ mustVerifyEmail, status, profile }: { mustVerifyEmail: boolean; status?: string; profile: ProfileData }) {
     const { auth } = usePage<PageProps>().props;
     const fields = [
         { name: 'phone', label: 'Phone / WhatsApp', value: profile.phone ?? '', placeholder: '+62...' },
@@ -27,16 +27,20 @@ export default function Profile({ mustVerifyEmail, status, error, success, profi
         <Head title="Profile settings" />
         <h1 className="sr-only">Profile settings</h1>
         <div className="space-y-6">
-            {error ? <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{error}</p> : null}
             <Heading variant="small" title="Profile" description="Update your contact information and default shipping address" />
             <Form {...ProfileController.update.form()} options={{ preserveScroll: true }} className="space-y-6">
                 {({ processing, errors }) => <>
-                    <div className="grid gap-2"><Label htmlFor="name">Name</Label><Input id="name" className="mt-1 block w-full" defaultValue={profile.name} name="name" required autoComplete="name" placeholder="Full name" /><InputError className="mt-2" message={errors.name} /></div>
-                    <div className="grid gap-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" className="mt-1 block w-full" defaultValue={profile.email} name="email" required autoComplete="username" placeholder="Email address" /><InputError className="mt-2" message={errors.email} /></div>
+                    <div className="grid gap-2"><Label htmlFor="name">Name</Label><Input id="name" className="mt-1 block w-full" defaultValue={profile.name} name="name" required autoComplete="name" placeholder="Full name" /><InputError message={errors.name} /></div>
+                    <div className="grid gap-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" className="mt-1 block w-full" defaultValue={profile.email} name="email" required autoComplete="username" placeholder="Email address" /><InputError message={errors.email} /></div>
                     {mustVerifyEmail && auth.user.email_verified_at === null ? <div><p className="-mt-4 text-sm text-muted-foreground">Your email address is unverified. <Link href={send()} as="button" className="text-foreground underline">Click here to re-send the verification email.</Link></p>{status === 'verification-link-sent' ? <div className="mt-2 text-sm font-medium text-green-600">A new verification link has been sent to your email address.</div> : null}</div> : null}
                     <div className="border-t pt-5"><Heading variant="small" title="Default shipping details" description="These details are automatically used during checkout." /></div>
-                    {fields.map((field) => <div className="grid gap-2" key={field.name}><Label htmlFor={field.name}>{field.label}</Label><Input id={field.name} name={field.name} defaultValue={field.value} placeholder={field.placeholder} /><InputError className="mt-2" message={errors[field.name as keyof typeof errors]} /></div>)}
-                    <div className="flex items-center gap-4"><Button disabled={processing} data-test="update-profile-button">Save</Button></div>
+                    {fields.map((field) => <div className="grid gap-2" key={field.name}><Label htmlFor={field.name}>{field.label}</Label><Input id={field.name} name={field.name} defaultValue={field.value} placeholder={field.placeholder} /><InputError message={errors[field.name as keyof typeof errors]} /></div>)}
+                    <div className="space-y-4 border-t pt-5"><Heading variant="small" title="Change password" description="Leave these fields blank to keep your current password." />
+                        <div className="grid gap-2"><Label htmlFor="current_password">Current password</Label><Input id="current_password" name="current_password" type="password" autoComplete="current-password" /><InputError message={errors.current_password} /></div>
+                        <div className="grid gap-2"><Label htmlFor="password">New password</Label><Input id="password" name="password" type="password" autoComplete="new-password" /><InputError message={errors.password} /></div>
+                        <div className="grid gap-2"><Label htmlFor="password_confirmation">Confirm new password</Label><Input id="password_confirmation" name="password_confirmation" type="password" autoComplete="new-password" /></div>
+                    </div>
+                    <div className="flex items-center gap-4"><Button disabled={processing} data-test="update-profile-button">Save changes</Button></div>
                 </>}
             </Form>
         </div>

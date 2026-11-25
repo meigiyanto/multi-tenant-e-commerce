@@ -9,6 +9,7 @@ use App\Http\Controllers\Teams\StoreOrderController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
+use App\Http\Middleware\EnsureMerchantTeamContext;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('settings/teams', [TeamController::class, 'index'])->name('teams.index');
     Route::post('settings/teams', [TeamController::class, 'store'])->name('teams.store');
 
-    Route::middleware(EnsureTeamMembership::class)->group(function () {
+    Route::middleware([EnsureTeamMembership::class, EnsureMerchantTeamContext::class])->group(function () {
         Route::get('settings/teams/{team}', [TeamController::class, 'edit'])->name('teams.edit');
         Route::get('settings/teams/{team}/stores', [StoreController::class, 'index'])->name('teams.stores.index');
         Route::post('settings/teams/{team}/stores', [StoreController::class, 'store'])->name('teams.stores.store');

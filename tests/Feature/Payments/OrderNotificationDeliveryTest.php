@@ -84,7 +84,7 @@ class OrderNotificationDeliveryTest extends TestCase
         ]);
         Mail::shouldReceive('raw')->once();
 
-        (new SendOrderPaidEmail($delivery->id))->handle(app(\App\ervices\Orders\OrderTrackingUrl::class));
+        (new SendOrderPaidEmail($delivery->id))->handle(app(\App\Services\Orders\OrderTrackingUrl::class));
 
         $this->assertSame('sent', $delivery->fresh()->status);
         $this->assertNotNull($delivery->fresh()->sent_at);

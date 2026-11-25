@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -150,7 +151,7 @@ class StorefrontCartTest extends TestCase
     public function test_customer_order_history_includes_orders_from_every_store_without_leaking_other_customers_orders(): void
     {
         [$store] = $this->activeStoreWithVariant();
-        [, , $otherStore] = $this->activeStoreWithVariant('other-store');
+        [$otherStore] = $this->activeStoreWithVariant('other-store');
         $user = User::factory()->create(['email' => 'legacy-customer@example.com']);
 
         $this->createLegacyOrder($store, 'ORD-LEGACY-LOCAL', 'legacy-customer@example.com', null);
@@ -284,6 +285,67 @@ class StorefrontCartTest extends TestCase
                 ->where('customer.shipping_address', 'Jl. Merdeka No. 10')
                 ->where('customer.shipping_postal_code', '12345'),
             );
+    }
+
+
+    public function test_customer_can_change_password_from_their_profile(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['password' => 'OldPassword123!']);
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'OldPassword123!',
+                'password' => 'NewPassword123!',
+                'password_confirmation' => 'NewPassword123!',
+            ])
+            ->assertRedirect()
+            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Profile updated.']);
+
+        $this->assertTrue(Hash::check('NewPassword123!', $user->fresh()->password));
+    }
+
+    public function test_customer_profile_keeps_existing_password_when_password_fields_are_blank(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['password' => 'OldPassword123!']);
+        $oldHash = $user->password;
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => 'Updated Customer',
+                'email' => $user->email,
+                'current_password' => '',
+                'password' => '',
+                'password_confirmation' => '',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame($oldHash, $user->fresh()->password);
+        $this->assertSame('Updated Customer', $user->fresh()->name);
+    }
+
+    public function test_changing_customer_email_resets_verification_and_sends_a_new_link(): void
+    {
+        Notification::fake();
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['email' => 'old-customer@example.com']);
+
+        $this->actingAs($user)
+            ->patch('http://'.$store->slug.'.localhost/account/profile', [
+                'name' => $user->name,
+                'email' => 'new-customer@example.com',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'new-customer@example.com',
+            'email_verified_at' => null,
+        ]);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId): Order

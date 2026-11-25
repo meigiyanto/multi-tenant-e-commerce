@@ -30,6 +30,8 @@ class CustomerEmailVerificationController extends Controller
             $request->user()->sendEmailVerificationNotification();
         }
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('A new verification link has been sent to your email address.')]);
+
         return back()->with('status', 'verification-link-sent');
     }
 }
