@@ -3,6 +3,7 @@
 namespace Tests\Feature\Stores;
 
 use App\Enums\TeamRole;
+use App\Models\MerchantApplication;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +37,7 @@ class StoreManagementTest extends TestCase
         $user = User::factory()->create();
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         config(['storefront.root_domain' => 'platform.test']);
 
@@ -269,6 +271,7 @@ class StoreManagementTest extends TestCase
         $user = User::factory()->create();
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         foreach (['first-shop', 'second-shop'] as $slug) {
             $this->actingAs($user)
