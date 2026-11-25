@@ -16,9 +16,13 @@ class CustomerOrderController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
+        $user = $request->user();
         $orders = Order::query()
             ->where('store_id', $store->id)
-            ->where('user_id', $request->user()->id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id)
+                    ->orWhereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+            })
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
