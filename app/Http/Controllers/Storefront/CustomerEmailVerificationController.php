@@ -20,14 +20,14 @@ class CustomerEmailVerificationController extends Controller
         return Inertia::render('storefront/account/verify-email', [
             'store' => ['name' => $store->name],
             'status' => $request->session()->get('status'),
-            'email' => $request->user()->email,
+            'email' => $request->user('customer')->email,
         ]);
     }
 
     public function send(Request $request): RedirectResponse
     {
-        if (! $request->user()->hasVerifiedEmail()) {
-            $request->user()->sendEmailVerificationNotification();
+        if (! $request->user('customer')->hasVerifiedEmail()) {
+            $request->user('customer')->sendEmailVerificationNotification();
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('A new verification link has been sent to your email address.')]);
