@@ -38,10 +38,12 @@ class CustomerAccountController extends Controller
         ]);
 
         $user = $customer;
+        $defaultAddress = $user->addresses()->where('is_default', true)->first();
         $profileComplete = filled($user->name) && filled($user->email)
-            && filled($user->phone) && filled($user->shipping_address)
-            && filled($user->shipping_city) && filled($user->shipping_province)
-            && filled($user->shipping_postal_code);
+            && filled($user->phone) && $defaultAddress !== null
+            && filled($defaultAddress->recipient_name) && filled($defaultAddress->phone)
+            && filled($defaultAddress->address) && filled($defaultAddress->city)
+            && filled($defaultAddress->province);
 
         return Inertia::render('storefront/account/index', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
