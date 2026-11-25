@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardController;\nuse App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
@@ -14,7 +14,7 @@ use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route;\nuse Inertia\Inertia;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
@@ -48,7 +48,16 @@ Route::post('/payments/midtrans/notification', [PaymentController::class, 'notif
 Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
 
-Route::middleware('guest')->get('/platform/login', function (\\Illuminate\\Http\\Request $request) {\n    $request->session()->put('platform_login', true);\n\n    return Inertia::render('auth/platform-login', [\n        'canResetPassword' => \\Laravel\\Fortify\\Features::enabled(\\Laravel\\Fortify\\Features::resetPasswords()),\n        'status' => $request->session()->get('status'),\n    ]);\n})->name('platform.login');\n\nRoute::inertia('/', 'welcome')->name('home');
+Route::middleware('guest')->get('/platform/login', function (\\Illuminate\\Http\\Request $request) {\n    $request->session()->put('platform_login', true);\n\n    return Inertia::render('auth/platform-login', [\n        'canResetPassword' => \\Laravel\\Fortify\\Features::enabled(\\Laravel\\Fortify\\Features::resetPasswords()),\n        'status' => $request->session()->get('status'),\n    ]);\n})->name('platform.login');\n\nRoute::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
+    $request->session()->put('platform_login', true);
+
+    return Inertia::render('auth/platform-login', [
+        'canResetPassword' => \Laravel\Fortify\Features::enabled(\Laravel\Fortify\Features::resetPasswords()),
+        'status' => $request->session()->get('status'),
+    ]);
+})->name('platform.login');
+
+Route::inertia('/', 'welcome')->name('home');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
