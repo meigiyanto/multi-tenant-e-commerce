@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\Team;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,23 +36,23 @@ class StoreDashboardController extends Controller
                 ->count(),
         ];
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Order> $recentOrderRecords */
+        /** @var Collection<int, Order> $recentOrderRecords */
         $recentOrderRecords = (clone $orders)
             ->withCount('items')
             ->orderByDesc('placed_at')
             ->limit(8)
             ->get();
         $recentOrders = $recentOrderRecords->map(fn (Order $order): array => [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'customer_name' => $order->customer_name,
-                'status' => $order->status,
-                'payment_status' => $order->payment_status,
-                'total' => (string) $order->total,
-                'currency' => $order->currency,
-                'items_count' => (int) $order->items_count,
-                'placed_at' => $order->placed_at?->toISOString(),
-            ]);
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+            'total' => (string) $order->total,
+            'currency' => $order->currency,
+            'items_count' => (int) $order->items_count,
+            'placed_at' => $order->placed_at?->toISOString(),
+        ]);
 
         return Inertia::render('stores/dashboard', [
             'team' => ['id' => $team->id, 'name' => $team->name, 'slug' => $team->slug],

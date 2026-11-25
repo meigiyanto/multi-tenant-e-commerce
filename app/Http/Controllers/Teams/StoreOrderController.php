@@ -10,6 +10,7 @@ use App\Services\Notifications\OrderNotificationService;
 use App\Services\Stores\StoreOrderStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -28,7 +29,7 @@ class StoreOrderController extends Controller
             'search' => ['nullable', 'string', 'max:120'],
         ]);
 
-        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, Order> $orders */
+        /** @var LengthAwarePaginator<int, Order> $orders */
         $orders = Order::query()
             ->where('store_id', $store->id)
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
