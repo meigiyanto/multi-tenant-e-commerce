@@ -1,8 +1,9 @@
-import { Link } from '@inertiajs/react';
+import { Form, Link } from '@inertiajs/react';
 import { ClipboardList, Package } from 'lucide-react';
 import CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
-type Order = { order_number: string; store_name: string; status: string; payment_status: string; items_count: number; total: string; currency: string; placed_at: string | null; tracking_url: string };
+type RefundRequest = { status: string; reason: string; refund_reference: string | null; result_notes: string | null; created_at: string | null } | null;
+type Order = { order_number: string; store_name: string; status: string; payment_status: string; items_count: number; total: string; currency: string; placed_at: string | null; tracking_url: string; can_request_refund: boolean; refund_request: RefundRequest };
 type Props = { store: { name: string; currency: string }; orders: Order[] };
 
 export default function CustomerOrders({ store, orders }: Props) {
@@ -11,6 +12,8 @@ export default function CustomerOrders({ store, orders }: Props) {
         {orders.length ? <div className="space-y-4">{orders.map((order) => <article key={order.order_number} className="rounded-lg border border-black/10 bg-white p-5">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-slate-500">Order number</p><p className="mt-1 font-semibold">{order.order_number}</p><p className="mt-1 text-xs text-slate-500">Purchased from <strong>{order.store_name}</strong></p><p className="mt-1 text-xs text-slate-500">{order.placed_at ? new Date(order.placed_at).toLocaleString('en-US') : 'Date unavailable'}</p></div><div className="text-right"><p className="font-semibold">{money(order.total, order.currency)}</p><p className="mt-1 text-xs capitalize text-slate-500">{order.payment_status.replaceAll('_', ' ')}</p></div></div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-4"><div className="flex items-center gap-2 text-sm text-slate-600"><Package className="h-4 w-4" />{order.items_count} {order.items_count === 1 ? 'item' : 'items'} · <span className="capitalize">{order.status.replaceAll('_', ' ')}</span></div><a href={order.tracking_url} className="text-sm font-semibold underline underline-offset-4">Track order</a></div>
+            {order.refund_request ? <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm"><p className="font-semibold">Refund request: <span className="capitalize">{order.refund_request.status.replaceAll('_', ' ')}</span></p><p className="mt-1 text-slate-600">{order.refund_request.result_notes ?? 'Your request is being reviewed. We will update you when there is a result.'}</p>{order.refund_request.refund_reference ? <p className="mt-1 text-xs text-slate-500">Refund reference: {order.refund_request.refund_reference}</p> : null}</div> : null}
+            {order.can_request_refund ? <Form action={`/account/orders/${order.order_number}/refund-requests`} method="post" className="mt-4 space-y-2 border-t border-black/5 pt-4"><label className="block text-sm font-medium">Request a refund<textarea name="reason" required minLength={5} maxLength={3000} rows={2} placeholder="Tell us why you are requesting a refund." className="mt-1 w-full rounded-md border border-black/15 p-3 text-sm" /></label><button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Submit refund request</button><p className="text-xs text-slate-500">Refund requests are reviewed by the platform team. Submission does not guarantee approval.</p></Form> : null}
         </article>)}</div> : <div className="rounded-lg border border-dashed border-black/15 bg-white px-6 py-16 text-center"><ClipboardList className="mx-auto h-9 w-9 text-slate-400" /><h2 className="mt-3 font-semibold">No orders yet</h2><p className="mt-1 text-sm text-slate-500">Your purchases from all stores will appear here.</p><Link href="/" className="mt-5 inline-flex rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Start shopping</Link></div>}
     </CustomerAccountLayout>;
 }
