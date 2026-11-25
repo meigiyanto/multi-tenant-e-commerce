@@ -18,7 +18,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
     {
         $key = (string) config('shipping.providers.rajaongkir.api_key');
         if ($key === '') {
-            throw new RuntimeException('RajaOngkir API key belum dikonfigurasi.');
+            throw new RuntimeException('The RajaOngkir API key is not configured.');
         }
 
         return Http::baseUrl(rtrim((string) config('shipping.providers.rajaongkir.base_url'), '/').'/')
@@ -36,14 +36,14 @@ class RajaOngkirShippingProvider implements ShippingProvider
         ]);
 
         if ($response->successful() === false) {
-            throw new RuntimeException('Gagal mencari tujuan pengiriman dari RajaOngkir.');
+            throw new RuntimeException('Failed to retrieve shipping destinations from RajaOngkir.');
         }
 
         return $response->json('data', []);
     }
 
     /**
-     * @param list<string> $couriers
+     * @param  list<string>  $couriers
      * @return list<array<string, mixed>>
      */
     public function calculate(int $originId, int $destinationId, int $weightGrams, array $couriers): array
@@ -64,7 +64,7 @@ class RajaOngkirShippingProvider implements ShippingProvider
             }
 
             if ($response->successful() === false) {
-                throw new RuntimeException('Gagal menghitung ongkos kirim dari RajaOngkir.');
+                throw new RuntimeException('Failed to calculate shipping rates from RajaOngkir.');
             }
 
             /** @var list<array<string, mixed>> $services */
@@ -95,8 +95,8 @@ class RajaOngkirShippingProvider implements ShippingProvider
     }
 
     /**
-     * @param CourierPayload $courier
-     * @param ServicePayload $service
+     * @param  CourierPayload  $courier
+     * @param  ServicePayload  $service
      * @return NormalizedRate
      */
     private function normalizeRate(array $courier, array $service): array

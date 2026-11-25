@@ -45,7 +45,7 @@ class PaymentControllerTest extends TestCase
         $payments->shouldReceive('handleNotification')
             ->once()
             ->with($payload, 'midtrans')
-            ->andThrow(new RuntimeException('Signature notifikasi pembayaran tidak valid.'));
+            ->andThrow(new RuntimeException('The payment notification signature is invalid.'));
 
         $this->app->instance(PaymentService::class, $payments);
 
@@ -53,7 +53,7 @@ class PaymentControllerTest extends TestCase
             ->assertBadRequest()
             ->assertExactJson([
                 'success' => false,
-                'message' => 'Signature notifikasi pembayaran tidak valid.',
+                'message' => 'The payment notification signature is invalid.',
             ]);
     }
 

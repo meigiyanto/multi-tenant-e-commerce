@@ -53,6 +53,7 @@ class FashionProductSeeder extends Seeder
         }
     }
 
+    /** @param array<string, mixed> $data */
     private function seedProduct(Store $store, Category $category, array $data, string $prefix): void
     {
         $description = implode("\n", [
@@ -133,6 +134,7 @@ class FashionProductSeeder extends Seeder
      * Existing images are preserved so rerunning the seeder never replaces
      * photos uploaded by a store owner.
      */
+    /** @param array<string, mixed> $data */
     private function seedProductImage(Store $store, Product $product, array $data): void
     {
         if ($product->images()->exists()) {
@@ -183,6 +185,7 @@ class FashionProductSeeder extends Seeder
      * Product descriptions carry the available product metadata; variant
      * attributes are stored in product_variants.options as structured JSON.
      */
+    /** @return list<array<string, mixed>> */
     private function catalog(): array
     {
         return [

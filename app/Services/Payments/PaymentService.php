@@ -8,6 +8,7 @@ use App\Models\Inventory;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Services\Notifications\OrderNotificationService;
 use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -18,18 +19,16 @@ use Throwable;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways)
-    {
-    }
+    public function __construct(private readonly PaymentGatewayManager $gateways) {}
 
     public function start(Order $order): PaymentTransaction
     {
         if ($order->payment_status !== 'pending' || $order->status !== 'pending') {
-            throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+            throw new RuntimeException('This order cannot be paid.');
         }
 
         if ($order->currency !== 'IDR') {
-            throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+            throw new RuntimeException('The Midtrans gateway only accepts IDR transactions.');
         }
 
         $gatewayName = (string) config('payments.default');
@@ -38,11 +37,11 @@ class PaymentService
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedOrder->payment_status !== 'pending' || $lockedOrder->status !== 'pending') {
-                throw new RuntimeException('Pesanan ini tidak dapat dibayar.');
+                throw new RuntimeException('This order cannot be paid.');
             }
 
             if ($lockedOrder->currency !== 'IDR') {
-                throw new RuntimeException('Gateway Midtrans hanya menerima mata uang IDR.');
+                throw new RuntimeException('The Midtrans gateway only accepts IDR transactions.');
             }
 
             $existing = $lockedOrder->paymentTransactions()
@@ -63,7 +62,7 @@ class PaymentService
                 ->exists();
 
             if ($inProgress) {
-                throw new RuntimeException('Sesi pembayaran sedang dibuat. Silakan coba kembali beberapa saat lagi.');
+                throw new RuntimeException('A payment session is being created. Please try again in a few moments.');
             }
 
             $lockedOrder->update(['payment_status' => 'pending']);
@@ -85,16 +84,18 @@ class PaymentService
         try {
             $result = $gateway->createPayment($order, $transaction);
             $transaction->update([
-                'token' => $result['token'] ?? null,
-                'redirect_url' => $result['redirect_url'] ?? null,
-                'metadata' => ['gateway_response' => $result['response'] ?? []],
+                'token' => $result['token'],
+                'redirect_url' => $result['redirect_url'],
+                'metadata' => ['gateway_response' => $result['response']],
             ]);
         } catch (PaymentGatewayUnavailableException|ConnectionException $exception) {
             DB::transaction(function () use ($transaction, $exception): void {
+
                 $lockedTransaction = PaymentTransaction::query()
                     ->whereKey($transaction->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
                     'session_creation_uncertain' => [
                         'message' => $exception->getMessage(),
@@ -108,15 +109,19 @@ class PaymentService
             throw $exception;
         } catch (Throwable $exception) {
             DB::transaction(function () use ($transaction, $exception): void {
+
                 $lockedTransaction = PaymentTransaction::query()
                     ->whereKey($transaction->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $order = Order::query()
                     ->whereKey($lockedTransaction->order_id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
                 $inventoryError = $this->applyInventoryTransition($order, 'failed');
+
                 $metadata = array_merge((array) ($lockedTransaction->metadata ?? []), [
                     'session_creation_error' => [
                         'message' => $exception->getMessage(),
@@ -156,15 +161,18 @@ class PaymentService
         return $transaction->refresh();
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function handleNotification(array $payload, string $gatewayName): void
     {
         $gateway = $this->gateways->driver($gatewayName, false);
 
-        if (! $gateway->verifyNotification($payload)) {
-            throw new RuntimeException('Signature notifikasi pembayaran tidak valid.');
+        if ($gateway->verifyNotification($payload) === false) {
+            throw new RuntimeException('The payment notification signature is invalid.');
         }
 
+        $this->assertValidStatusCode($payload);
         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
     }
 
@@ -188,6 +196,7 @@ class PaymentService
                             if ($transaction->redirect_url === null && $attempts >= 3) {
                                 $this->failUnconfirmedSession($transaction);
                             }
+
                             continue;
                         }
 
@@ -195,17 +204,14 @@ class PaymentService
                             throw new RuntimeException('Order ID dari Midtrans GET Status tidak cocok.');
                         }
 
-                        if ((string) ($payload['status_code'] ?? '') !== '200') {
-                            throw new RuntimeException('Status code dari Midtrans GET Status tidak valid.');
-                        }
-
+                        $this->assertValidStatusCode($payload);
                         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, false);
                         $transaction->refresh();
 
                         $this->recordReconciliationAttempt($transaction, 'checked');
 
                         if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
-                            ++$reconciled;
+                            $reconciled++;
                             Log::info('Midtrans payment reconciled from status API', [
                                 'payment_transaction_id' => $transaction->id,
                                 'order_id' => $transaction->gateway_order_id,
@@ -227,14 +233,18 @@ class PaymentService
         return $reconciled;
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     private function applyVerifiedStatus(
         array $payload,
         PaymentGateway $gateway,
         string $gatewayName,
         bool $isNotification,
     ): void {
-        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification): void {
+        $paidOrderId = null;
+
+        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification, &$paidOrderId): void {
             $transaction = PaymentTransaction::query()
                 ->where('gateway', $gatewayName)
                 ->where('gateway_order_id', $payload['order_id'] ?? '')
@@ -242,37 +252,41 @@ class PaymentService
                 ->firstOrFail();
 
             if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
-                throw new RuntimeException('Nominal notifikasi pembayaran tidak sesuai dengan transaksi.');
+                throw new RuntimeException('The payment notification amount does not match the transaction.');
             }
 
-            if (! $isNotification && ! isset($payload['currency'])) {
-                throw new RuntimeException('Mata uang respons status Midtrans tidak tersedia.');
+            if ($isNotification === false && isset($payload['currency']) === false) {
+                throw new RuntimeException('The Midtrans status response does not include a currency.');
             }
 
             if (isset($payload['currency']) && strtoupper((string) $payload['currency']) !== strtoupper($transaction->currency)) {
-                throw new RuntimeException('Mata uang notifikasi pembayaran tidak sesuai dengan transaksi.');
+                throw new RuntimeException('The payment notification currency does not match the transaction.');
             }
 
             $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
+                if ($transaction->status === 'paid' && $status === 'paid') {
+                    $paidOrderId = $transaction->order_id;
+                }
+
                 return;
             }
 
             $order = Order::query()->whereKey($transaction->order_id)->lockForUpdate()->firstOrFail();
 
             if ($order->payment_status === 'paid' && $status !== 'paid') {
-                throw new RuntimeException('Status pesanan tidak mengizinkan perubahan pembayaran ini.');
+                throw new RuntimeException('The order status does not allow this payment update.');
             }
 
             $inventoryError = null;
 
             if ($order->status === 'cancelled') {
                 if ($status === 'paid') {
-                    $inventoryError = 'Pembayaran diterima setelah pesanan dibatalkan; perlu pemeriksaan manual.';
+                    $inventoryError = 'Payment was received after the order was cancelled; manual review is required.';
                 }
             } elseif ($order->status !== 'pending') {
-                $inventoryError = 'Status pesanan tidak mengizinkan transisi pembayaran otomatis; perlu pemeriksaan manual.';
+                $inventoryError = 'The order status does not allow an automatic payment transition; manual review is required.';
             } else {
                 $inventoryError = $this->applyInventoryTransition($order, $status);
             }
@@ -293,6 +307,10 @@ class PaymentService
             ]);
 
             $order->update(['payment_status' => $status]);
+
+            if ($status === 'paid') {
+                $paidOrderId = $order->id;
+            }
 
             if ($status === 'paid' && $order->status === 'pending' && $inventoryError === null) {
                 $order->update(['status' => 'processing']);
@@ -322,6 +340,31 @@ class PaymentService
                 ]);
             }
         });
+
+        if ($paidOrderId !== null) {
+            app(OrderNotificationService::class)->queuePaymentConfirmed($paidOrderId);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertValidStatusCode(array $payload): void
+    {
+        $statusCode = $payload['status_code'] ?? null;
+
+        if (
+            (is_string($statusCode) === false && is_int($statusCode) === false)
+            || preg_match('/^\\d{3}$/', (string) $statusCode) !== 1
+        ) {
+            throw new RuntimeException('The Midtrans status code is invalid.');
+        }
+
+        $transactionStatus = (string) ($payload['transaction_status'] ?? '');
+
+        if (in_array($transactionStatus, ['settlement', 'capture'], true) && (string) $statusCode !== '200') {
+            throw new RuntimeException('Successful Midtrans transactions must use status code 200.');
+        }
     }
 
     private function recordReconciliationAttempt(
@@ -337,9 +380,7 @@ class PaymentService
             }
 
             $metadata = (array) ($locked->metadata ?? []);
-            $attempts = $result === 'not_found'
-                ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1
-                : 0;
+            $attempts = $result === 'not_found' ? (int) data_get($metadata, 'reconciliation.not_found_attempts', 0) + 1 : 0;
             $metadata['reconciliation'] = [
                 'checked_at' => now()->toISOString(),
                 'result' => $result,
@@ -407,13 +448,13 @@ class PaymentService
 
     private function normalizeAmount(mixed $amount): string
     {
-        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
-            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        if (is_string($amount) === false && is_int($amount) === false && is_float($amount) === false) {
+            throw new RuntimeException('The payment notification amount is invalid.');
         }
 
         $amount = (string) $amount;
-        if (! preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount)) {
-            throw new RuntimeException('Nominal notifikasi pembayaran tidak valid.');
+        if (preg_match('/^\d{1,13}(?:\.\d{1,2})?$/', $amount) === 0) {
+            throw new RuntimeException('The payment notification amount is invalid.');
         }
 
         [$integer, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
@@ -422,7 +463,8 @@ class PaymentService
         return $integer.'.'.str_pad($fraction, 2, '0');
     }
 
-    /** @param array<string, mixed> $payload
+    /**
+     * @param  array<string, mixed>  $payload
      * @return array<string, scalar|null>
      */
     private function safeNotificationMetadata(array $payload): array
@@ -441,7 +483,7 @@ class PaymentService
 
     private function applyInventoryTransition(Order $order, string $status): ?string
     {
-        if (! in_array($status, ['paid', 'failed', 'expired'], true)) {
+        if (in_array($status, ['paid', 'failed', 'expired'], true) === false) {
             return null;
         }
 
@@ -465,14 +507,14 @@ class PaymentService
             ->keyBy('product_variant_id');
 
         if ($reservations->count() !== $expected->count()) {
-            return 'Ledger reservasi inventori tidak lengkap untuk pesanan ini.';
+            return 'The inventory reservation ledger is incomplete for this order.';
         }
 
         $transitions = [];
         foreach ($expected as $variantId => $quantity) {
             $reservation = $reservations->get($variantId);
             if ($reservation === null || $reservation->quantity !== $quantity) {
-                return 'Jumlah reservasi inventori tidak sesuai dengan item pesanan.';
+                return 'The inventory reservation quantity does not match the order items.';
             }
 
             $inventory = Inventory::query()
@@ -483,11 +525,11 @@ class PaymentService
                 ->first();
 
             if ($inventory === null || $inventory->reserved_quantity < $quantity) {
-                return 'Reservasi inventori tidak tersedia atau tidak konsisten untuk pesanan ini.';
+                return 'The inventory reservation is missing or inconsistent for this order.';
             }
 
             if ($status === 'paid' && $inventory->quantity < $quantity) {
-                return 'Stok inventori tidak mencukupi untuk menyelesaikan pembayaran.';
+                return 'Insufficient inventory to complete the payment.';
             }
 
             $transitions[] = [$reservation, $inventory, $quantity];

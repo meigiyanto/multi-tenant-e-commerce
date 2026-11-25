@@ -32,7 +32,7 @@ class StoreCatalogController extends Controller
             'team' => ['name' => $team->name, 'slug' => $team->slug],
             'store' => ['id' => $store->id, 'name' => $store->name, 'currency' => $store->currency],
             'products' => $store->products()->with(['category:id,name', 'images:id,product_id,path,is_primary', 'variants.inventory'])
-                ->latest()->paginate(15)->through(fn (Product $product) => [
+                ->latest()->paginate(10)->through(fn (Product $product) => [
                     'id' => $product->id,
                     'name' => $product->name,
                     'slug' => $product->slug,
@@ -41,7 +41,7 @@ class StoreCatalogController extends Controller
                     'category' => $product->category?->name,
                     'image_url' => ($image = $product->images->firstWhere('is_primary', true) ?? $product->images->first()) ? Storage::disk('public')->url($image->path) : null,
                     'variants_count' => $product->variants->count(),
-                    'stock' => $product->variants->sum(fn (ProductVariant $variant) => max(0, ($variant->inventory?->quantity ?? 0) - ($variant->inventory?->reserved_quantity ?? 0))),
+                    'stock' => $product->variants->sum(fn (ProductVariant $variant) => max(0, ($variant->inventory->quantity ?? 0) - ($variant->inventory->reserved_quantity ?? 0))),
                 ]),
             'categories' => $store->categories()->withCount('products')->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'slug', 'is_active', 'parent_id']),
             'canManage' => Gate::allows('update', $store),
@@ -119,8 +119,8 @@ class StoreCatalogController extends Controller
                     'id' => $variant->id, 'name' => $variant->name, 'sku' => $variant->sku,
                     'options' => $variant->options ?? [], 'price' => $variant->price,
                     'compare_at_price' => $variant->compare_at_price,
-                    'initial_stock' => $variant->inventory?->quantity ?? 0,
-                    'low_stock_threshold' => $variant->inventory?->low_stock_threshold ?? 0,
+                    'initial_stock' => $variant->inventory->quantity ?? 0,
+                    'low_stock_threshold' => $variant->inventory->low_stock_threshold ?? 0,
                 ]),
                 'images' => $product->images->map(fn (ProductImage $image) => [
                     'id' => $image->id, 'url' => Storage::disk('public')->url($image->path),
@@ -156,7 +156,7 @@ class StoreCatalogController extends Controller
             $product->update($this->productAttributes($data, $store, $product));
             foreach ($data['variants'] ?? [] as $variantData) {
                 $variant = isset($variantData['id'])
-                    ? $product->variants()->where('store_id', $store->id)->findOrFail($variantData['id'])
+                    ? $product->variants()->where('store_id', $store->id)->whereKey((int) $variantData['id'])->firstOrFail()
                     : null;
                 $variant = $this->saveVariant($store, $product, $variantData, $variant);
                 $inventory = $variant->inventory()->firstOrCreate(['store_id' => $store->id]);
@@ -260,6 +260,7 @@ class StoreCatalogController extends Controller
         return back()->with('success', __('Inventory adjusted.'));
     }
 
+    /** @return array<string, mixed> */
     private function validateProduct(Request $request, Store $store, ?Product $product = null): array
     {
         return $request->validate([
@@ -286,6 +287,10 @@ class StoreCatalogController extends Controller
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
     private function productAttributes(array $data, Store $store, ?Product $product = null): array
     {
         return [
@@ -324,6 +329,7 @@ class StoreCatalogController extends Controller
         return $candidate;
     }
 
+    /** @param array<string, mixed> $data */
     private function saveVariant(Store $store, Product $product, array $data, ?ProductVariant $variant = null): ProductVariant
     {
         $skuExists = ProductVariant::query()->where('store_id', $store->id)->where('sku', $data['sku'])->when($variant, fn ($query) => $query->where('id', '!=', $variant->id))->exists();

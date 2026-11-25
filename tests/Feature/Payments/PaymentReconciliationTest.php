@@ -3,7 +3,9 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\TeamRole;
+use App\Jobs\SendOrderPaidEmail;
 use App\Models\InventoryReservation;
+use App\Models\NotificationDelivery;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Team;
@@ -13,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PaymentReconciliationTest extends TestCase
@@ -34,6 +37,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_reconciles_a_successful_payment_and_consumes_inventory_once(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         Http::fake([
             'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
@@ -42,6 +46,7 @@ class PaymentReconciliationTest extends TestCase
         $reconciled = app(PaymentService::class)->reconcilePendingTransactions();
 
         $this->assertSame(1, $reconciled);
+        Queue::assertPushed(SendOrderPaidEmail::class, 1);
         $this->assertDatabaseHas('payment_transactions', ['id' => $transaction->id, 'status' => 'paid']);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'payment_status' => 'paid', 'status' => 'processing']);
         $this->assertDatabaseHas('inventories', [
@@ -61,6 +66,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_processes_duplicate_successful_webhooks_without_consuming_inventory_twice(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         $payload = [
             'order_id' => $transaction->gateway_order_id,
@@ -99,6 +105,7 @@ class PaymentReconciliationTest extends TestCase
             'quantity' => 2,
         ]);
         $this->assertSame(1, $order->statusHistories()->count());
+        Queue::assertPushed(SendOrderPaidEmail::class, 1);
     }
 
     public function test_it_keeps_a_transaction_pending_when_midtrans_still_reports_pending(): void
@@ -133,8 +140,71 @@ class PaymentReconciliationTest extends TestCase
         $this->assertSame('error', data_get($transaction->metadata, 'reconciliation.result'));
     }
 
+    public function test_notification_dispatch_failure_does_not_fail_payment_reconciliation(): void
+    {
+        config([
+            'queue.default' => 'sync',
+            'services.fonnte.token' => null,
+        ]);
+        [$transaction, $order] = $this->pendingPayment();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/status' => Http::response($this->statusPayload($transaction, 'settlement')),
+        ]);
+
+        $this->assertSame(1, app(PaymentService::class)->reconcilePendingTransactions());
+
+        $this->assertSame('paid', $transaction->fresh()->status);
+        $this->assertDatabaseHas('notification_deliveries', [
+            'order_id' => $order->id,
+            'channel' => 'whatsapp',
+            'status' => 'failed',
+        ]);
+    }
+
+    public function test_duplicate_paid_webhook_retries_notification_dispatch_after_recoverable_failure(): void
+    {
+        config(['queue.default' => 'sync', 'services.fonnte.token' => null]);
+        [$transaction] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-retry-notification-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+        $whatsAppDelivery = NotificationDelivery::query()
+            ->where('order_id', $transaction->order_id)
+            ->where('channel', 'whatsapp')
+            ->firstOrFail();
+        $this->assertSame('failed', $whatsAppDelivery->status);
+        $this->assertNotNull(data_get($whatsAppDelivery->metadata, 'job_failure'));
+
+        config(['services.fonnte.token' => 'test-fonnte-token']);
+        Http::fake([
+            'api.fonnte.com/send' => Http::response([
+                'status' => true,
+                'id' => ['retry-message-id'],
+                'process' => 'pending',
+            ]),
+        ]);
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $this->assertSame('sent', $whatsAppDelivery->fresh()->status);
+        $this->assertSame('retry-message-id', $whatsAppDelivery->fresh()->provider_message_id);
+    }
+
     public function test_it_records_successful_payment_even_when_inventory_requires_manual_review(): void
     {
+        Queue::fake();
         [$transaction, $order, $inventory] = $this->pendingPayment();
         $inventory->update(['reserved_quantity' => 0]);
         Http::fake([
@@ -157,6 +227,7 @@ class PaymentReconciliationTest extends TestCase
 
     public function test_it_records_payment_after_order_cancellation_for_manual_review(): void
     {
+        Queue::fake();
         [$transaction, $order] = $this->pendingPayment();
         $order->update(['status' => 'cancelled']);
         InventoryReservation::query()->where('order_id', $order->id)->update([
@@ -211,7 +282,7 @@ class PaymentReconciliationTest extends TestCase
             app(PaymentService::class)->start($order);
             $this->fail('Payment session creation should fail.');
         } catch (\RuntimeException $exception) {
-            $this->assertStringContainsString('Midtrans gagal membuat sesi pembayaran', $exception->getMessage());
+            $this->assertStringContainsString('Midtrans failed to create the payment session', $exception->getMessage());
         }
 
         $inventory->refresh();
@@ -333,6 +404,99 @@ class PaymentReconciliationTest extends TestCase
         $this->assertNotNull($reservation->released_at);
     }
 
+    public function test_it_rejects_successful_notifications_with_invalid_status_codes(): void
+    {
+        Queue::fake();
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-invalid-status-code-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '0200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertBadRequest()
+            ->assertJsonPath('success', false);
+
+        $this->assertSame('pending', $transaction->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame(5, $inventory->fresh()->quantity);
+        $this->assertSame(2, $inventory->fresh()->reserved_quantity);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_it_rejects_success_statuses_without_status_code_200(): void
+    {
+        Queue::fake();
+        [$transaction, $order] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-wrong-success-code-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '201',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)
+            ->assertBadRequest()
+            ->assertJsonPath('success', false);
+
+        $this->assertSame('pending', $transaction->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_out_of_order_pending_notification_cannot_downgrade_a_paid_transaction(): void
+    {
+        Queue::fake();
+        [$transaction, $order, $inventory] = $this->pendingPayment();
+        $payload = [
+            'order_id' => $transaction->gateway_order_id,
+            'transaction_id' => 'midtrans-ordering-'.$transaction->id,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => '115000.00',
+            'currency' => 'IDR',
+            'payment_type' => 'bank_transfer',
+        ];
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $payload['transaction_status'] = 'pending';
+        $payload['status_code'] = '201';
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'].$payload['status_code'].$payload['gross_amount'].'test-signature-secret',
+        );
+
+        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk();
+
+        $this->assertSame('paid', $transaction->fresh()->status);
+        $this->assertSame('paid', $order->fresh()->payment_status);
+        $this->assertSame('processing', $order->fresh()->status);
+        $this->assertSame(3, $inventory->fresh()->quantity);
+        $this->assertSame(0, $inventory->fresh()->reserved_quantity);
+        $this->assertSame(1, $order->statusHistories()->count());
+    }
+
     private function pendingPayment(): array
     {
         $user = User::factory()->create();
@@ -430,7 +594,7 @@ class PaymentReconciliationTest extends TestCase
     private function statusPayload(PaymentTransaction $transaction, string $status): array
     {
         return [
-            'status_code' => '200',
+            'status_code' => in_array($status, ['settlement', 'capture'], true) ? '200' : (in_array($status, ['pending', 'authorize'], true) ? '201' : '202'),
             'order_id' => $transaction->gateway_order_id,
             'transaction_id' => 'midtrans-transaction-'.$transaction->id,
             'transaction_status' => $status,

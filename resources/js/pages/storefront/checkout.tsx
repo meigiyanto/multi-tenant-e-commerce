@@ -52,10 +52,10 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                     headers: { Accept: 'application/json' },
                 });
                 const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || 'Gagal mencari kota tujuan.');
+                if (!response.ok) throw new Error(payload.message || 'Failed to search destinations.');
                 setDestinations(payload.data || []);
             } catch (error) {
-                setShippingError(error instanceof Error ? error.message : 'Gagal mencari kota tujuan.');
+                setShippingError(error instanceof Error ? error.message : 'Failed to search destinations.');
             } finally {
                 setLoadingDestinations(false);
             }
@@ -76,13 +76,13 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                     headers: { Accept: 'application/json' },
                 });
                 const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || payload.errors?.shipping?.[0] || 'Gagal menghitung ongkir.');
+                if (!response.ok) throw new Error(payload.message || payload.errors?.shipping?.[0] || 'Failed to calculate shipping rates.');
                 setRates(payload.rates || []);
                 setData('shipping_courier', '');
                 setData('shipping_service', '');
-                if (!payload.rates?.length) setShippingError('Tidak ada layanan pengiriman yang tersedia untuk tujuan ini.');
+                if (!payload.rates?.length) setShippingError('No shipping services are available for this destination.');
             } catch (error) {
-                setShippingError(error instanceof Error ? error.message : 'Gagal menghitung ongkir.');
+                setShippingError(error instanceof Error ? error.message : 'Failed to calculate shipping rates.');
             } finally {
                 setLoadingRates(false);
             }
@@ -163,7 +163,7 @@ export default function StorefrontCheckout({ store, items, subtotal, weight_gram
                             </div>
                         </div>
                         <div className="rounded-md border border-black/10 bg-white p-5 sm:p-7">
-                            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Shipping service</h2><span className="text-xs text-slate-500">{weight_grams.toLocaleString('id-ID')} g</span></div>
+                            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Shipping service</h2><span className="text-xs text-slate-500">{weight_grams.toLocaleString('en-US')} g</span></div>
                             {!selectedDestination ? <p className="mt-4 text-sm text-slate-500">Select your destination to calculate available courier services.</p> : null}
                             {loadingRates ? <p className="mt-4 text-sm text-slate-500">Calculating shipping rates…</p> : null}
                             {rates.map((rate) => <label key={rate.courier + rate.service} className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-md border border-black/10 p-3 hover:border-slate-500"><span className="flex min-w-0 items-start gap-3">

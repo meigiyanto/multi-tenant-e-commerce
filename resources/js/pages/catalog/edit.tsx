@@ -20,7 +20,7 @@ export default function CatalogEdit({ team, store, categories, product, movement
         <>
             <Head title={'Edit ' + product.name} />
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-                <Button asChild size="sm" variant="ghost" className="self-start"><Link href={base}><ArrowLeft /> Back to catalog</Link></Button>
+                <Button asChild size="sm" variant="outline" className="self-start"><Link href={base}><ArrowLeft /> Go back</Link></Button>
                 <Heading title="Edit product" description={'Update ' + product.name + ', its variants, images, prices, and inventory.'} />
                 <Form action={base + '/products/' + product.id} method="patch" encType="multipart/form-data" className="space-y-6">
                     {({ errors, processing }) => <>

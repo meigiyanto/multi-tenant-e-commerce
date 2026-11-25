@@ -1,0 +1,190 @@
+import { Form, Head, Link } from '@inertiajs/react';
+import { ArrowLeft, Bell, RefreshCw, Truck } from 'lucide-react';
+import OrderNumberCopy from '@/components/order-number-copy';
+import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+type Props = {
+    team: { name: string; slug: string };
+    store: { id: number; name: string; currency: string };
+    order: {
+        id: number;
+        order_number: string;
+        status: string;
+        payment_status: string;
+        customer: { name: string; email: string; phone: string };
+        shipping: {
+            address: string;
+            city: string;
+            province: string;
+            postal_code: string;
+            destination_label: string | null;
+            provider: string | null;
+            courier: string | null;
+            service: string | null;
+            tracking_number: string | null;
+            tracking_url: string | null;
+            customer_tracking_url: string;
+            shipped_at: string | null;
+            delivered_at: string | null;
+        };
+        customer_note: string | null;
+        currency: string;
+        subtotal: string;
+        shipping_amount: string;
+        discount_amount: string;
+        total: string;
+        placed_at: string | null;
+        items: { id: number; product_name: string; variant_name: string; sku: string; quantity: number; unit_price: string; line_total: string }[];
+        notifications: { id: number; channel: string; recipient: string; status: string; provider: string | null; provider_message_id: string | null; last_error: string | null; retryable: boolean; queued_at: string | null; sent_at: string | null; delivered_at: string | null; read_at: string | null; failed_at: string | null }[];
+        payments: { id: number; gateway: string; status: string; amount: string; currency: string; created_at: string | null }[];
+        history: { id: number; from_status: string | null; to_status: string; note: string | null; actor: string | null; created_at: string | null }[];
+        next_status: string | null;
+    };
+};
+
+function money(amount: string, currency: string): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
+}
+
+function title(value: string): string {
+    return value.replaceAll('_', ' ');
+}
+
+export default function StoreOrderShow({ team, store, order }: Props) {
+    const base = '/settings/teams/' + team.slug + '/stores/' + store.id;
+    const address = [order.shipping.address, order.shipping.city, order.shipping.province, order.shipping.postal_code].filter(Boolean).join(', ');
+
+    return (
+        <>
+            <Head title={order.order_number + ' — ' + store.name} />
+            <div className="flex flex-col gap-6">
+                <div className="m-2">
+                    <Button asChild variant="outline" size="sm" className="mb-2"><Link href={base + '/orders'}><ArrowLeft /> Go back</Link></Button>
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                        <div><Heading variant="small" title={order.order_number} description={order.placed_at ? 'Placed ' + new Date(order.placed_at).toLocaleString('en-US') : 'Order details'} /><OrderNumberCopy value={order.order_number} className="mt-2" /></div>
+                        <div className="flex gap-2">
+                            <Badge>{title(order.status)}</Badge>
+                            <Badge variant="secondary">Payment: {title(order.payment_status)}</Badge>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
+                    <div className="space-y-4">
+                        <section className="rounded-xl border">
+                            <div className="border-b p-4"><h2 className="font-semibold">Items</h2></div>
+                            <div className="divide-y">
+                                {order.items.map((item) => (
+                                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                                        <div>
+                                            <p className="font-medium">{item.product_name}</p>
+                                            <p className="text-sm text-muted-foreground">{item.variant_name} · SKU {item.sku}</p>
+                                            <p className="text-xs text-muted-foreground">{item.quantity} × {money(item.unit_price, order.currency)}</p>
+                                        </div>
+                                        <p className="font-medium tabular-nums">{money(item.line_total, order.currency)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <dl className="space-y-2 border-t p-4 text-sm">
+                                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Subtotal</dt><dd>{money(order.subtotal, order.currency)}</dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Shipping</dt><dd>{money(order.shipping_amount, order.currency)}</dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Discount</dt><dd>−{money(order.discount_amount, order.currency)}</dd></div>
+                                <div className="flex justify-between gap-3 border-t pt-3 font-semibold"><dt>Total</dt><dd>{money(order.total, order.currency)}</dd></div>
+                            </dl>
+                        </section>
+
+                        <section className="rounded-xl border p-4">
+                            <h2 className="mb-3 font-semibold">Order status history</h2>
+                            {order.history.length ? (
+                                <ol className="space-y-4">
+                                    {order.history.map((entry) => (
+                                        <li key={entry.id} className="border-l-2 pl-4">
+                                            <p className="font-medium">{entry.from_status ? title(entry.from_status) + ' → ' : ''}{title(entry.to_status)}</p>
+                                            <p className="text-xs text-muted-foreground">{entry.actor ?? 'System'} · {entry.created_at ? new Date(entry.created_at).toLocaleString('en-US') : '—'}</p>
+                                            {entry.note ? <p className="mt-1 text-sm">{entry.note}</p> : null}
+                                        </li>
+                                    ))}
+                                </ol>
+                            ) : <p className="text-sm text-muted-foreground">No status history recorded.</p>}
+                        </section>
+                    </div>
+
+                    <aside className="space-y-4">
+                        {order.next_status ? (
+                            <section className="rounded-xl border p-4">
+                                <div className="mb-3 flex items-center gap-2"><Truck className="h-4 w-4 text-muted-foreground" /><h2 className="font-semibold">Fulfillment</h2></div>
+                                <p className="mb-3 text-sm text-muted-foreground">Payment is confirmed. Update the order when this fulfillment step is complete.</p>
+                                <Form action={base + '/orders/' + order.id + '/status'} method="patch" className="space-y-3">
+                                    <input type="hidden" name="status" value={order.next_status} />
+                                    {order.next_status === 'shipped' ? <><label className="block text-sm font-medium" htmlFor="tracking-number">Tracking number</label><input id="tracking-number" name="tracking_number" required maxLength={100} defaultValue={order.shipping.tracking_number ?? ''} placeholder="Enter the courier tracking number" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /><label className="block text-sm font-medium" htmlFor="tracking-url">Courier tracking URL (optional)</label><input id="tracking-url" name="tracking_url" type="url" maxLength={2048} defaultValue={order.shipping.tracking_url ?? ''} placeholder="https://courier.example/track" className="h-10 w-full rounded-md border bg-background px-3 text-sm" /></> : null}
+                                    <label className="block text-sm font-medium" htmlFor="status-note">{order.next_status === 'delivered' ? 'Delivery confirmation (required)' : 'Note (optional)'}</label>
+                                    <textarea id="status-note" name="note" rows={3} maxLength={1000} required={order.next_status === 'delivered'} placeholder={order.next_status === 'delivered' ? 'Confirm how receipt was verified' : 'Add fulfillment details'} className="w-full rounded-md border bg-background p-3 text-sm" />
+                                    <Button type="submit" className="w-full">Mark as {title(order.next_status)}</Button>
+                                </Form>
+                            </section>
+                        ) : null}
+
+                        <section className="rounded-xl border p-4">
+                            <h2 className="mb-3 font-semibold">Customer</h2>
+                            <p className="font-medium">{order.customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{order.customer.email}</p>
+                            <p className="text-sm text-muted-foreground">{order.customer.phone}</p>
+                            {order.customer_note ? <p className="mt-3 border-t pt-3 text-sm">Note: {order.customer_note}</p> : null}
+                        </section>
+
+                        <section className="rounded-xl border p-4">
+                            <h2 className="mb-3 font-semibold">Shipping</h2>
+                            <p className="text-sm">{address}</p>
+                            {order.shipping.destination_label ? <p className="mt-1 text-sm text-muted-foreground">{order.shipping.destination_label}</p> : null}
+                            <p className="mt-2 text-sm text-muted-foreground">{[order.shipping.provider, order.shipping.courier, order.shipping.service].filter(Boolean).join(' · ') || 'Shipping service not recorded'}</p>
+                            <p className="mt-3 text-sm">Tracking number: <span className="font-medium">{order.shipping.tracking_number ?? 'Not assigned'}</span></p>
+                            {order.shipping.tracking_url ? <a href={order.shipping.tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open courier tracking</a> : null}
+                            <a href={order.shipping.customer_tracking_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-blue-700 underline">Open customer tracking page</a>
+                            <p className="mt-2 text-xs text-muted-foreground">Shipped: {order.shipping.shipped_at ? new Date(order.shipping.shipped_at).toLocaleString('en-US') : '—'} · Delivered: {order.shipping.delivered_at ? new Date(order.shipping.delivered_at).toLocaleString('en-US') : '—'}</p>
+                        </section>
+
+                        <section className="rounded-xl border p-4">
+                            <div className="mb-3 flex items-center gap-2"><Bell className="h-4 w-4 text-muted-foreground" /><h2 className="font-semibold">Notification delivery</h2></div>
+                            {order.notifications.some((delivery) => delivery.retryable) ? <Form action={base + '/orders/' + order.id + '/notifications/retry'} method="post" className="mb-3"><Button type="submit" size="sm" variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Retry failed jobs</Button></Form> : null}
+                            {order.notifications.length ? <div className="space-y-4">{order.notifications.map((delivery) => (
+                                <div key={delivery.id} className="space-y-2 border-t pt-3 first:border-0 first:pt-0">
+                                    <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium capitalize">{delivery.channel} · {delivery.provider ?? 'No provider'}</p><Badge variant={delivery.status === 'failed' ? 'destructive' : delivery.status === 'queued' || delivery.status === 'sending' ? 'secondary' : 'default'}>{title(delivery.status)}</Badge></div>
+                                    <p className="break-all text-sm text-muted-foreground">To: {delivery.recipient}</p>
+                                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {([['Queued', delivery.queued_at], ['Sent', delivery.sent_at], ['Delivered', delivery.delivered_at], ['Read', delivery.read_at], ['Failed', delivery.failed_at]] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ? new Date(value).toLocaleString('en-US') : '—'}</dd></div>)}
+                                    </dl>
+                                    {delivery.provider_message_id ? <p className="break-all text-xs text-muted-foreground">Provider ID: {delivery.provider_message_id}</p> : null}
+                                    {delivery.last_error ? <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{delivery.last_error}</p> : null}
+                                </div>
+                            ))}</div> : <p className="text-sm text-muted-foreground">No payment notifications have been queued for this order.</p>}
+                        </section>
+
+                        <section className="rounded-xl border p-4">
+                            <h2 className="mb-3 font-semibold">Payments</h2>
+                            {order.payments.length ? <div className="space-y-3">{order.payments.map((payment) => (
+                                <div key={payment.id} className="border-t pt-3 first:border-0 first:pt-0">
+                                    <p className="font-medium">{payment.gateway} · {title(payment.status)}</p>
+                                    <p className="text-sm text-muted-foreground">{money(payment.amount, payment.currency)}</p>
+                                    <p className="text-xs text-muted-foreground">{payment.created_at ? new Date(payment.created_at).toLocaleString('en-US') : '—'}</p>
+                                </div>
+                            ))}</div> : <p className="text-sm text-muted-foreground">No payment transaction recorded.</p>}
+                        </section>
+                    </aside>
+                </div>
+            </div>
+        </>
+    );
+}
+
+StoreOrderShow.layout = (props: { team: { name: string; slug: string }; store: { name: string; id: number }; order: { order_number: string; id: number } }) => ({
+    breadcrumbs: [
+        { title: 'Teams', href: '/settings/teams' },
+        { title: props.team.name, href: '/settings/teams/' + props.team.slug },
+        { title: 'Stores', href: '/settings/teams/' + props.team.slug + '/stores' },
+        { title: props.store.name, href: '/settings/teams/' + props.team.slug + '/stores/' + props.store.id },
+        { title: 'Orders', href: '/settings/teams/' + props.team.slug + '/stores/' + props.store.id + '/orders' },
+        { title: props.order.order_number, href: '/settings/teams/' + props.team.slug + '/stores/' + props.store.id + '/orders/' + props.order.id },
+    ],
+});

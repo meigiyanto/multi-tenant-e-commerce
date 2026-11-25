@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -14,7 +13,10 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $carts, private readonly CartSessionService $cartSessions) {}
+    public function __construct(
+        private readonly CartService $carts,
+        private readonly CartSessionService $cartSessions,
+    ) {}
 
     public function show(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
@@ -52,7 +54,7 @@ class CartController extends Controller
         return $this->cartSessions->attach($response, $request);
     }
 
-    public function store(string $storeSubdomain, Request $request, StoreContext $context): RedirectResponse
+    public function store(string $storeSubdomain, Request $request, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -64,10 +66,10 @@ class CartController extends Controller
 
         $this->carts->add($store, $this->cartSessions->id($request), $data['product_variant_id'], $data['quantity'] ?? 1);
 
-        return $this->cartSessions->attach(back()->with('success', 'Produk berhasil ditambahkan ke keranjang.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product added to cart.'), $request);
     }
 
-    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
+    public function update(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -75,16 +77,16 @@ class CartController extends Controller
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
         $this->carts->update($store, $this->cartSessions->id($request), $item, $data['quantity']);
 
-        return $this->cartSessions->attach(back()->with('success', 'Jumlah produk diperbarui.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product quantity updated.'), $request);
     }
 
-    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): RedirectResponse
+    public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
 
         $this->carts->remove($store, $this->cartSessions->id($request), $item);
 
-        return $this->cartSessions->attach(back()->with('success', 'Produk dihapus dari keranjang.'), $request);
+        return $this->cartSessions->attach(back()->with('success', 'Product removed from cart.'), $request);
     }
 }

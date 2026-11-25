@@ -33,18 +33,19 @@ class ShippingQuoteService
         $originId = (int) data_get($settings, 'shipping.origin_destination_id', 0);
 
         if ($originId < 1) {
-            throw ValidationException::withMessages(['shipping' => 'Alamat asal pengiriman toko belum dikonfigurasi oleh pemilik toko.']);
+            throw ValidationException::withMessages(['shipping' => 'The store owner has not configured the shipping origin address.']);
         }
 
         $weight = $this->weight($cart);
-        $couriers = (array) config('shipping.providers.rajaongkir.couriers', []);
+        $couriers = array_values(array_filter((array) config('shipping.providers.rajaongkir.couriers', []), 'is_string'));
+        /** @var list<string> $couriers */
         $cacheKey = 'shipping-rates:'.hash('sha256', implode('|', [$store->id, $originId, $destinationId, $weight, implode(',', $couriers)]));
 
         /** @var list<array{courier: string, courier_name: string, service: string, description: string, amount: int, etd: string}> $rates */
         $rates = Cache::remember($cacheKey, now()->addSeconds(90), fn (): array => $this->provider->calculate($originId, $destinationId, $weight, $couriers));
 
         usort($rates, static function (array $first, array $second): int {
-            $providerOrder = strcasecmp($first['courier_name'] ?? $first['courier'], $second['courier_name'] ?? $second['courier']);
+            $providerOrder = strcasecmp($first['courier_name'], $second['courier_name']);
 
             if ($providerOrder !== 0) {
                 return $providerOrder;
@@ -66,7 +67,7 @@ class ShippingQuoteService
         );
 
         if ($rate === null) {
-            throw ValidationException::withMessages(['shipping_service' => 'Layanan pengiriman tidak valid atau tarif sudah berubah. Silakan hitung ulang ongkir.']);
+            throw ValidationException::withMessages(['shipping_service' => 'The selected shipping service is invalid or the rate has changed. Please recalculate shipping.']);
         }
 
         return $rate;

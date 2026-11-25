@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Store;
@@ -46,7 +47,7 @@ class CartService
                 ->first();
 
             if ($variant === null) {
-                throw ValidationException::withMessages(['product_variant_id' => 'Varian produk tidak tersedia di toko ini.']);
+                throw ValidationException::withMessages(['product_variant_id' => 'This product variant is not available in this store.']);
             }
 
             $product = Product::query()
@@ -56,7 +57,7 @@ class CartService
                 ->first();
 
             if ($product === null) {
-                throw ValidationException::withMessages(['product_variant_id' => 'Produk tidak tersedia.']);
+                throw ValidationException::withMessages(['product_variant_id' => 'This product is unavailable.']);
             }
 
             $cart = $this->current($store, $sessionId);
@@ -65,7 +66,7 @@ class CartService
             $newQuantity = ($item->quantity ?? 0) + $quantity;
 
             if ($newQuantity > 99) {
-                throw ValidationException::withMessages(['quantity' => 'Maksimal 99 item untuk satu varian.']);
+                throw ValidationException::withMessages(['quantity' => 'The maximum quantity for a single variant is 99.']);
             }
 
             $this->assertStock($product, $variant, $newQuantity);
@@ -130,7 +131,7 @@ class CartService
 
         if ($quantity > $available) {
             throw ValidationException::withMessages([
-                'quantity' => 'Stok tersedia tidak mencukupi. Stok tersedia: '.$available.'.',
+                'quantity' => 'Insufficient stock. Available stock: '.$available.'.',
             ]);
         }
     }

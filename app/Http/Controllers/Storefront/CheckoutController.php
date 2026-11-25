@@ -50,20 +50,23 @@ class CheckoutController extends Controller
 
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
+        $user = $request->user();
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
-            $unitPrice = $item->variant->price ?? $item->product->price;
+            $product = $item->product;
+            $variant = $item->variant;
+            $unitPrice = $variant?->price ?? $product?->price ?? $item->unit_price;
+            $images = $product?->images ?? collect();
+            $image = $images->firstWhere('is_primary', true) ?? $images->first();
 
             return [
                 'id' => $item->id,
-                'name' => $item->product->name,
-                'variant_name' => $item->variant->name,
+                'name' => $product?->name ?? 'Product unavailable',
+                'variant_name' => $variant?->name ?? 'Variant unavailable',
                 'quantity' => $item->quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
-                'image_url' => ($image = $item->product->images->firstWhere('is_primary', true) ?? $item->product->images->first())
-                    ? Storage::disk('public')->url($image->path)
-                    : null,
+                'image_url' => $image ? Storage::disk('public')->url($image->path) : null,
             ];
         });
         $subtotal = number_format((float) $items->sum(fn (array $item): float => (float) $item['line_total']), 2, '.', '');
@@ -75,8 +78,8 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
-                'name' => auth()->user()?->name ?? '',
-                'email' => auth()->user()?->email ?? '',
+                'name' => $user?->name ?? '',
+                'email' => $user?->email ?? '',
                 'phone' => '',
             ],
         ])->toResponse($request);
@@ -132,14 +135,27 @@ class CheckoutController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
-            return $this->cartSessions->attach(redirect()->route('storefront.orders.show', [
-                'storeSubdomain' => $request->route('storeSubdomain'),
-                'orderNumber' => $order->order_number,
-            ])->with('error', 'Pesanan berhasil dibuat, tetapi sesi pembayaran belum tersedia. Silakan coba kembali.'), $request);
+            $appKey = (string) config('app.key');
+            $expires = now()->addDays(7)->timestamp;
+            $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
+            $finishUrl = rtrim((string) config('app.url'), '/').'/orders/'.rawurlencode($order->order_number)
+                .'?expires='.$expires.'&key='.$finishKey;
+
+            return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
+    {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    public function finish(string $orderNumber, StoreContext $context): Response
+    {
+        return $this->renderOrder($orderNumber, $context);
+    }
+
+    private function renderOrder(string $orderNumber, StoreContext $context): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -166,6 +182,7 @@ class CheckoutController extends Controller
                 'total' => $order->total,
                 'currency' => $order->currency,
                 'payment_url' => $order->paymentTransactions->first()?->redirect_url,
+                'tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
                     'variant_name' => $item->variant_name,

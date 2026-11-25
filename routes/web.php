@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FonnteDeliveryWebhookController;
+use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\OrderTrackingController;
 use App\Http\Controllers\Storefront\PaymentController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShippingController;
@@ -10,6 +13,7 @@ use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
+use App\Http\Middleware\ResolveStoreFromOrderNumber;
 use Illuminate\Support\Facades\Route;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
@@ -33,10 +37,20 @@ if ($storefrontRootDomain !== '') {
         });
 }
 
+Route::get('/orders/{orderNumber}', [CheckoutController::class, 'finish'])
+    ->middleware(ResolveStoreFromOrderNumber::class)
+    ->name('storefront.orders.finish');
+Route::get('/track/{orderNumber}', [OrderTrackingController::class, 'show'])->name('storefront.orders.track');
+
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
     ->name('payments.midtrans.notification');
 
-// Register the storefront host route before the application root route.
+Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)
+    ->name('webhooks.fonnte');
+
+Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)
+    ->name('webhooks.notification-deliveries');
+
 Route::inertia('/', 'welcome')->name('home');
 
 Route::prefix('{current_team}')
