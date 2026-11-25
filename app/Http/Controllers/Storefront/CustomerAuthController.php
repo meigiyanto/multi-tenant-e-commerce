@@ -92,7 +92,11 @@ class CustomerAuthController extends Controller
     private function linkActiveCart(int $storeId, string $sessionId, Customer $customer): void
     {
         Cart::query()->where('store_id', $storeId)->where('session_id', $sessionId)
-            ->where('status', 'active')->update(['customer_id' => $customer->id, 'user_id' => null]);
+            ->where('status', 'active')
+            ->where(function ($query) use ($customer): void {
+                $query->whereNull('customer_id')->orWhere('customer_id', $customer->id);
+            })
+            ->update(['customer_id' => $customer->id]);
     }
 
     public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
