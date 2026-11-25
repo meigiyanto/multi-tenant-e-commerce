@@ -14,6 +14,7 @@ use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShippingController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Middleware\EnsureCustomerAccount;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
@@ -44,7 +45,7 @@ if ($storefrontRootDomain !== '') {
                     return redirect()->route('register');
                 })->name('storefront.account.register');
             });
-            Route::middleware('auth')->group(function (): void {
+            Route::middleware(['auth', EnsureCustomerAccount::class])->group(function (): void {
                 Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
                 Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
                 Route::get('/account/profile', [CustomerProfileController::class, 'edit'])->name('storefront.account.profile');
