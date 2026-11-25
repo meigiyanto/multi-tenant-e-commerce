@@ -40,50 +40,29 @@ class Order extends Model
     }
 
     /** @return BelongsTo<Store, $this> */
-    public function store(): BelongsTo
-    {
-        return $this->belongsTo(Store::class);
-    }
+    public function store(): BelongsTo { return $this->belongsTo(Store::class); }
 
     /** @return BelongsTo<User, $this> */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
 
     /** @return BelongsTo<Customer, $this> */
-    public function customer(): BelongsTo
-    {
-        return $this->belongsTo(Customer::class);
-    }
+    public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }
 
     /** @return HasMany<OrderItem, $this> */
-    public function items(): HasMany
-    {
-        return $this->hasMany(OrderItem::class);
-    }
+    public function items(): HasMany { return $this->hasMany(OrderItem::class); }
 
     /** @return HasMany<OrderStatusHistory, $this> */
-    public function statusHistories(): HasMany
-    {
-        return $this->hasMany(OrderStatusHistory::class);
-    }
+    public function statusHistories(): HasMany { return $this->hasMany(OrderStatusHistory::class); }
 
     /** @return HasMany<InventoryReservation, $this> */
-    public function inventoryReservations(): HasMany
-    {
-        return $this->hasMany(InventoryReservation::class);
-    }
+    public function inventoryReservations(): HasMany { return $this->hasMany(InventoryReservation::class); }
 
     /** @return HasMany<PaymentTransaction, $this> */
-    public function paymentTransactions(): HasMany
-    {
-        return $this->hasMany(PaymentTransaction::class);
-    }
+    public function paymentTransactions(): HasMany { return $this->hasMany(PaymentTransaction::class); }
 
     /** @return HasMany<NotificationDelivery, $this> */
-    public function notificationDeliveries(): HasMany
-    {
-        return $this->hasMany(NotificationDelivery::class);
-    }
+    public function notificationDeliveries(): HasMany { return $this->hasMany(NotificationDelivery::class); }
+
+    /** @return HasMany<RefundRequest, $this> */
+    public function refundRequests(): HasMany { return $this->hasMany(RefundRequest::class); }
 }
