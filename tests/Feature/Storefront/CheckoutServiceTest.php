@@ -4,6 +4,7 @@ namespace Tests\Feature\Storefront;
 
 use App\Enums\TeamRole;
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\Team;
@@ -21,7 +22,8 @@ class CheckoutServiceTest extends TestCase
     {
         [$store, $cart, $variant] = $this->cartWithStock(5, 1);
 
-        $order = app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
+        $customer = $this->createCustomer($store);
+        $order = app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000, $customer);
 
         $this->assertInstanceOf(Order::class, $order);
         $this->assertSame('pending', $order->status);
@@ -64,7 +66,7 @@ class CheckoutServiceTest extends TestCase
         [$store, $cart, $variant] = $this->cartWithStock(1, 0);
 
         try {
-            app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
+            app(CheckoutService::class)->place($store, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000, $this->createCustomer($store));
             $this->fail('Checkout should reject quantities above available stock.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('cart', $exception->errors());
@@ -85,7 +87,7 @@ class CheckoutServiceTest extends TestCase
         $otherStore = $this->makeStore();
 
         try {
-            app(CheckoutService::class)->place($otherStore, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000);
+            app(CheckoutService::class)->place($otherStore, 'checkout-session', $this->customerData(), $this->shippingRate(), 12345, 'Jakarta Selatan, DKI Jakarta', 2000, $this->createCustomer($otherStore));
             $this->fail('A cart must not be checked out through another store.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('cart', $exception->errors());
@@ -132,6 +134,17 @@ class CheckoutServiceTest extends TestCase
             'status' => 'active',
             'timezone' => 'Asia/Jakarta',
             'currency' => 'IDR',
+        ]);
+    }
+
+    private function createCustomer(Store $store): Customer
+    {
+        return Customer::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Checkout Customer',
+            'email' => 'checkout-'.$store->id.'-'.uniqid().'@example.com',
+            'password' => 'password',
+            'email_verified_at' => now(),
         ]);
     }
 
