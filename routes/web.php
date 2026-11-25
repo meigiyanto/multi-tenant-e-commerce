@@ -40,13 +40,13 @@ if ($storefrontRootDomain !== '') {
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->name('storefront.cart.items.destroy');
             Route::middleware('guest:customer')->group(function (): void {
-                Route::get('/account/login', [CustomerAuthController::class, 'loginForm'])->name('storefront.account.login');
+                Route::get('/account/login', [CustomerAuthController::class, 'showLoginPage'])->name('storefront.account.login');
                 Route::post('/account/login', [CustomerAuthController::class, 'login'])->middleware('throttle:5,1')->name('storefront.account.login.submit');
-                Route::get('/account/register', [CustomerAuthController::class, 'registerForm'])->name('storefront.account.register');
+                Route::get('/account/register', [CustomerAuthController::class, 'showRegistrationPage'])->name('storefront.account.register');
                 Route::post('/account/register', [CustomerAuthController::class, 'register'])->middleware('throttle:5,1')->name('storefront.account.register.submit');
                 Route::get('/account/forgot-password', [CustomerPasswordResetController::class, 'requestForm'])->name('storefront.account.password.request');
                 Route::post('/account/forgot-password', [CustomerPasswordResetController::class, 'sendLink'])->middleware('throttle:5,1')->name('storefront.account.password.email');
-                Route::get('/account/reset-password/{token}', [CustomerPasswordResetController::class, 'resetForm'])->name('storefront.account.password.reset');
+                Route::get('/account/reset-password/{token}', [CustomerPasswordResetController::class, 'showResetPage'])->name('storefront.account.password.reset');
                 Route::post('/account/reset-password', [CustomerPasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('storefront.account.password.update');
             });
             Route::post('/account/logout', [CustomerAuthController::class, 'logout'])
