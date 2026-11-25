@@ -28,8 +28,10 @@ if ($storefrontRootDomain !== '') {
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
-            Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
-            Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
+            Route::middleware('auth')->group(function (): void {
+                Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
+                Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
+            });
             Route::get('/shipping/destinations', [ShippingController::class, 'destinations'])->name('storefront.shipping.destinations');
             Route::get('/shipping/quotes', [ShippingController::class, 'quotes'])->name('storefront.shipping.quotes');
             Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
@@ -42,14 +44,9 @@ Route::get('/orders/{orderNumber}', [CheckoutController::class, 'finish'])
     ->name('storefront.orders.finish');
 Route::get('/track/{orderNumber}', [OrderTrackingController::class, 'show'])->name('storefront.orders.track');
 
-Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])
-    ->name('payments.midtrans.notification');
-
-Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)
-    ->name('webhooks.fonnte');
-
-Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)
-    ->name('webhooks.notification-deliveries');
+Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.midtrans.notification');
+Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
+Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
 
 Route::inertia('/', 'welcome')->name('home');
 
