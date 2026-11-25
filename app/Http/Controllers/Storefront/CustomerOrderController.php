@@ -23,7 +23,10 @@ class CustomerOrderController extends Controller
                 $query->where('user_id', $user->id);
 
                 if ($user->hasVerifiedEmail()) {
-                    $query->orWhereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+                    $query->orWhere(function ($legacyQuery) use ($user): void {
+                        $legacyQuery->whereNull('user_id')
+                            ->whereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+                    });
                 }
             })
             ->withCount('items')
