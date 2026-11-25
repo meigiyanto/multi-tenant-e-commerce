@@ -38,6 +38,7 @@ class CustomerAuthController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $credentials = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string'],
@@ -61,6 +62,7 @@ class CustomerAuthController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255',
