@@ -91,7 +91,7 @@ class CheckoutController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
-        $user = $request->user();
+        $user = $request->user('customer');
 
         if (! $this->hasCompleteShippingProfile($user)) {
             return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your phone number and default shipping address before placing an order.');
