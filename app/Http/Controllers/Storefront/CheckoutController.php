@@ -48,7 +48,7 @@ class CheckoutController extends Controller
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
         $user = $request->user('customer');
-        $defaultAddress = $user->addresses()->where('is_default', true)->first();
+        $defaultAddress = $this->defaultShippingAddress($user);
         if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
             $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $request->route('storeSubdomain')]));
 
@@ -155,6 +155,25 @@ class CheckoutController extends Controller
 
             return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
+    }
+
+    private function defaultShippingAddress(Customer $user): ?CustomerAddress
+    {
+        $address = $user->addresses()->where('is_default', true)->first();
+        if ($address !== null || blank($user->shipping_address)) {
+            return $address;
+        }
+
+        return new CustomerAddress([
+            'label' => 'Alamat utama',
+            'type' => 'home',
+            'recipient_name' => $user->name,
+            'phone' => $user->phone ?? '',
+            'address' => $user->shipping_address,
+            'city' => $user->shipping_city ?? '',
+            'province' => $user->shipping_province ?? '',
+            'postal_code' => $user->shipping_postal_code,
+        ]);
     }
 
     private function hasCompleteShippingProfile(Customer $user, ?CustomerAddress $address): bool
