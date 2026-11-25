@@ -146,7 +146,7 @@ class StoreOrderController extends Controller
                     'status' => $payment->status,
                     'amount' => (string) $payment->amount,
                     'currency' => $payment->currency,
-                    'created_at' => $payment->created_at->toISOString(),
+                    'created_at' => $payment->created_at?->toISOString(),
                 ]),
                 'history' => $order->statusHistories->map(fn ($history): array => [
                     'id' => $history->id,
