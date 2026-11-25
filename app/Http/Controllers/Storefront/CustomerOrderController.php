@@ -16,17 +16,18 @@ class CustomerOrderController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $orders = Order::query()
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Order> $orderRecords */
+        $orderRecords = Order::query()
             ->where('store_id', $store->id)
             ->where('customer_id', $request->user('customer')->id)
             ->with('store:id,name')
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
-            ->get()
-            ->map(fn (Order $order): array => [
+            ->get();
+        $orders = $orderRecords->map(fn (Order $order): array => [
                 'order_number' => $order->order_number,
-                'store_name' => $order->store?->name ?? 'Deleted store',
+                'store_name' => $order->store->name,
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
                 'items_count' => $order->items_count,
