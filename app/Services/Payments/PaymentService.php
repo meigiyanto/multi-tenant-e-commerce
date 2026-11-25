@@ -316,8 +316,9 @@ class PaymentService
             $refundRequest->update([
                 'status' => 'refunded',
                 'refund_reference' => (string) $notification['refund_reference'],
-                'result_notes' => 'Midtrans confirmed the refund. Method: '.($notification['refund_method'] ?? 'not provided')
-                    .'; bank confirmation: '.($notification['bank_confirmed_at'] ?? 'not provided')
+                'result_notes' => "Midtrans confirmed the refund.\n\n"
+                    .'method: '.($notification['refund_method'] ?? 'not provided').";\n"
+                    .'bank confirmation: '.($notification['bank_confirmed_at'] ?? 'not provided')
                     .'; reason: '.($notification['refund_reason'] ?? 'not provided').'.',
                 'reviewed_at' => $refundRequest->reviewed_at ?? now(),
                 'resolved_at' => now(),
