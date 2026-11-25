@@ -33,20 +33,20 @@ export default function CreateTeamModal({ children }: PropsWithChildren) {
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Create a new team</DialogTitle>
+                                <DialogTitle>Create a merchant workspace</DialogTitle>
                                 <DialogDescription>
-                                    Create a new team to collaborate with
+                                    Create a workspace for your business and collaborate with
                                     others.
                                 </DialogDescription>
                             </DialogHeader>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Team name</Label>
+                                <Label htmlFor="name">Business or workspace name</Label>
                                 <Input
                                     id="name"
                                     name="name"
                                     data-test="create-team-name"
-                                    placeholder="My team"
+                                    placeholder="My business"
                                     required
                                 />
                                 <InputError message={errors.name} />
@@ -62,7 +62,7 @@ export default function CreateTeamModal({ children }: PropsWithChildren) {
                                     data-test="create-team-submit"
                                     disabled={processing}
                                 >
-                                    Create team
+                                    Create workspace
                                 </Button>
                             </DialogFooter>
                         </>
