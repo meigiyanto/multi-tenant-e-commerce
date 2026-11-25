@@ -61,6 +61,10 @@ if ($storefrontRootDomain !== '') {
                 Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
                 Route::get('/account/profile', [CustomerProfileController::class, 'edit'])->name('storefront.account.profile');
                 Route::patch('/account/profile', [CustomerProfileController::class, 'update'])->name('storefront.account.profile.update');
+                Route::post('/account/addresses', [CustomerProfileController::class, 'storeAddress'])->name('storefront.account.addresses.store');
+                Route::patch('/account/addresses/{address}', [CustomerProfileController::class, 'updateAddress'])->whereNumber('address')->name('storefront.account.addresses.update');
+                Route::put('/account/addresses/{address}/default', [CustomerProfileController::class, 'setDefaultAddress'])->whereNumber('address')->name('storefront.account.addresses.default');
+                Route::delete('/account/addresses/{address}', [CustomerProfileController::class, 'destroyAddress'])->whereNumber('address')->name('storefront.account.addresses.destroy');
                 Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
                 Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
             });
