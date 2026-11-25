@@ -120,7 +120,16 @@ class StorefrontCartTest extends TestCase
         $user = User::factory()->create(['name' => 'Account Customer']);
 
         $this->actingAs($user)
-            ->get('http://'.$store->slug.'.localhost/account/profile')
+            ->get('http://'.$store->slug.'.localhost/account')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/index')
+                ->where('summary.orders_count', 0)
+                ->where('summary.profile_complete', false)
+                ->has('latest_orders', 0),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account/profile')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('storefront/account/profile')
