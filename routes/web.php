@@ -64,8 +64,8 @@ if ($storefrontRootDomain !== '') {
             });
             Route::get('/shipping/destinations', [ShippingController::class, 'destinations'])->name('storefront.shipping.destinations');
             Route::get('/shipping/quotes', [ShippingController::class, 'quotes'])->name('storefront.shipping.quotes');
-            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->middleware('auth:customer')->name('storefront.orders.show');
-            Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->middleware('auth:customer')->name('storefront.orders.payment');
+            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->middleware(['auth:customer', EnsureCustomerAccount::class])->name('storefront.orders.show');
+            Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->middleware(['auth:customer', EnsureCustomerAccount::class])->name('storefront.orders.payment');
         });
 }
 
