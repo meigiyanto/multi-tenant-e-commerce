@@ -20,8 +20,8 @@ class TeamIndexPropsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('teams/index')
-                ->has('teams', 1)
-                ->where('teams.0.name', $user->name."'s Team"),
+                ->has('teams', 0)
+                ->where('canCreateTeam', false),
             );
     }
 }
