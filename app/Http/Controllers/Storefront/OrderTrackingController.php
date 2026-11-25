@@ -34,9 +34,9 @@ class OrderTrackingController extends Controller
                 'order_number' => $order->order_number,
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
-                'placed_at' => $order->placed_at?->toISOString(),
-                'shipped_at' => $order->shipped_at?->toISOString(),
-                'delivered_at' => $order->delivered_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
+                'shipped_at' => $order->shipped_at->toISOString(),
+                'delivered_at' => $order->delivered_at->toISOString(),
                 'shipping_courier' => $order->shipping_courier,
                 'shipping_service' => $order->shipping_service,
                 'tracking_number' => $order->shipping_tracking_number,
@@ -45,7 +45,7 @@ class OrderTrackingController extends Controller
                 'history' => $order->statusHistories->map(fn ($history): array => [
                     'status' => $history->to_status,
                     'note' => $history->note,
-                    'created_at' => $history->created_at?->toISOString(),
+                    'created_at' => $history->created_at->toISOString(),
                 ]),
             ],
         ]);
