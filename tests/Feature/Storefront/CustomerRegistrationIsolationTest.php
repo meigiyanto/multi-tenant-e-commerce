@@ -162,6 +162,37 @@ class CustomerRegistrationIsolationTest extends TestCase
         $this->assertNotEmpty($response->headers->getCookies());
     }
 
+    public function test_authenticated_customer_remains_visible_on_storefront_when_domain_differs_from_store_slug(): void
+    {
+        $team = Team::factory()->create();
+        $store = $team->stores()->create([
+            'name' => 'Nuvora',
+            'slug' => 'nuvora',
+            'status' => 'active',
+        ]);
+        $store->domains()->create([
+            'domain' => 'nuvora-1.localhost',
+            'type' => 'custom',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+        $customer = Customer::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Budi Santoso',
+            'email' => 'budi@example.com',
+            'password' => 'StrongPassword123!',
+            'email_verified_at' => now(),
+        ]);
+
+        $this->actingAs($customer, 'customer')
+            ->get('http://nuvora-1.localhost/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('auth.user.id', $customer->id)
+                ->where('auth.user.name', 'Budi Santoso'));
+    }
+
     public function test_platform_user_is_not_converted_into_a_customer_during_storefront_login(): void
     {
         $team = Team::factory()->create();
