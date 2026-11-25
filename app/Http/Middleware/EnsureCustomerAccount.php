@@ -12,6 +12,11 @@ class EnsureCustomerAccount
     {
         abort_if($request->user()?->isPlatformAdmin(), 403);
 
+        if (! $request->user()?->hasVerifiedEmail()
+            && ! $request->routeIs('storefront.account.verification', 'storefront.account.verification.send')) {
+            return redirect('/account/verify-email');
+        }
+
         return $next($request);
     }
 }
