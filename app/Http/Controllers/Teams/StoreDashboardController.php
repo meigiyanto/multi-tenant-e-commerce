@@ -35,12 +35,13 @@ class StoreDashboardController extends Controller
                 ->count(),
         ];
 
-        $recentOrders = (clone $orders)
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Order> $recentOrderRecords */
+        $recentOrderRecords = (clone $orders)
             ->withCount('items')
             ->orderByDesc('placed_at')
             ->limit(8)
-            ->get()
-            ->map(fn (Order $order): array => [
+            ->get();
+        $recentOrders = $recentOrderRecords->map(fn (Order $order): array => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'customer_name' => $order->customer_name,
