@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Storefront;
 
+use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -86,6 +89,149 @@ class StorefrontCartTest extends TestCase
     }
 
 
+    public function test_storefront_displays_the_authenticated_customer_identity(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['name' => 'Storefront Customer', 'email' => 'customer@example.com']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->where('auth.user.id', $user->id)
+                ->where('auth.user.name', 'Storefront Customer')
+                ->where('auth.user.email', 'customer@example.com'),
+            );
+    }
+
+    public function test_guest_storefront_exposes_no_authenticated_customer(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->where('auth.user', null),
+            );
+    }
+
+    public function test_authenticated_customer_can_open_storefront_account_pages(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['name' => 'Account Customer']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/index')
+                ->where('summary.orders_count', 0)
+                ->where('summary.profile_complete', false)
+                ->has('latest_orders', 0),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account/profile')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/profile')
+                ->where('profile.name', 'Account Customer'),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/orders')
+                ->has('orders', 0),
+            );
+    }
+
+    public function test_customer_order_history_includes_orders_from_every_store_without_leaking_other_customers_orders(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        [, , $otherStore] = $this->activeStoreWithVariant('other-store');
+        $user = User::factory()->create(['email' => 'legacy-customer@example.com']);
+
+        $this->createLegacyOrder($store, 'ORD-LEGACY-LOCAL', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($otherStore, 'ORD-LEGACY-OTHER-STORE', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($otherStore, 'ORD-LINKED-OTHER-STORE', 'legacy-customer@example.com', $user->id);
+        $this->createLegacyOrder($store, 'ORD-OTHER-CUSTOMER', 'someone-else@example.com', null);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/orders')
+                ->has('orders', 3)
+                ->where('orders.0.store_name', $otherStore->name)
+                ->where('orders.0.order_number', 'ORD-LINKED-OTHER-STORE')
+                ->where('orders.1.store_name', $otherStore->name)
+                ->where('orders.1.order_number', 'ORD-LEGACY-OTHER-STORE')
+                ->where('orders.2.order_number', 'ORD-LEGACY-LOCAL'),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('summary.orders_count', 3)
+                ->has('latest_orders', 3)
+                ->where('latest_orders.0.store_name', $otherStore->name),
+            );
+    }
+
+    public function test_unverified_customer_is_redirected_to_verification_and_can_resend_email(): void
+    {
+        Notification::fake();
+
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->unverified()->create(['email' => 'unverified@example.com']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account')
+            ->assertRedirect('http://'.$store->slug.'.localhost/account/verify-email');
+
+        $this->get('http://'.$store->slug.'.localhost/account/verify-email')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/verify-email')
+                ->where('email', 'unverified@example.com'),
+            );
+
+        $this->post('http://'.$store->slug.'.localhost/account/verification-notification')
+            ->assertRedirect()
+            ->assertSessionHas('status', 'verification-link-sent');
+
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_guest_cannot_open_storefront_account_pages(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/account')
+            ->assertRedirect('/login');
+
+        $this->get('http://'.$store->slug.'.localhost/account/profile')
+            ->assertRedirect('/login');
+
+        $this->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertRedirect('/login');
+    }
+
+    public function test_storefront_login_and_registration_return_to_customer_account(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/account/login')
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
+
+        $this->get('http://'.$store->slug.'.localhost/account/register')
+            ->assertRedirect(route('register'))
+            ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
+    }
+
     public function test_guest_is_redirected_to_login_before_checkout(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant();
@@ -104,10 +250,11 @@ class StorefrontCartTest extends TestCase
         $this->get('http://'.$store->slug.'.localhost/')->assertOk();
         $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
 
-        $this->actingAs(User::factory()->create())
-            ->get('http://'.$store->slug.'.localhost/checkout')
-            ->assertRedirect('/settings/profile')
-            ->assertSessionHas('error');
+        $response = $this->actingAs(User::factory()->create())
+            ->get('http://'.$store->slug.'.localhost/checkout');
+
+        $response->assertRedirect()->assertSessionHas('error');
+        $this->assertSame('/account/profile', parse_url((string) $response->headers->get('Location'), PHP_URL_PATH));
     }
 
     public function test_authenticated_checkout_displays_saved_customer_profile(): void
@@ -139,12 +286,36 @@ class StorefrontCartTest extends TestCase
             );
     }
 
+    private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId): Order
+    {
+        return Order::query()->create([
+            'store_id' => $store->id,
+            'user_id' => $userId,
+            'order_number' => $number,
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'customer_name' => 'Legacy Customer',
+            'customer_email' => $email,
+            'customer_phone' => '08123456789',
+            'shipping_address' => 'Jalan Merdeka 1',
+            'shipping_city' => 'Jakarta',
+            'shipping_province' => 'DKI Jakarta',
+            'shipping_postal_code' => '10110',
+            'currency' => $store->currency,
+            'subtotal' => '100000.00',
+            'shipping_amount' => '10000.00',
+            'discount_amount' => '0.00',
+            'total' => '110000.00',
+            'placed_at' => now(),
+        ]);
+    }
+
     /** @return array{Store, ProductVariant} */
     private function activeStoreWithVariant(string $slug = 'cart-store', int $stock = 5, int $price = 100000): array
     {
         $team = Team::factory()->create();
         $store = $team->stores()->create([
-            'name' => 'Cart Store',
+            'name' => $slug === 'other-store' ? 'Other Store' : 'Cart Store',
             'slug' => $slug.'-'.$team->id,
             'status' => 'active',
             'timezone' => 'Asia/Jakarta',

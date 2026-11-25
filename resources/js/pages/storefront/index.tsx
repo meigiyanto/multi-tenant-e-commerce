@@ -1,10 +1,11 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, MapPin, Package, Phone, Search, ShoppingBag, Store, X, LoaderCircle } from 'lucide-react';
+import { Mail, MapPin, Package, Phone, Search, ShoppingBag, Store, X, LoaderCircle, UserRound, LogOut, ClipboardList } from 'lucide-react';
 
 type Variant = { id: number; name: string; options: Record<string, string>; price: string; stock: number | null };
 type Product = { id: number; name: string; slug: string; description: string | null; category: string | null; price: string; compare_at_price: string | null; image_url: string | null; in_stock: boolean; variants: Variant[] };
 type Props = {
+    auth: { user: { id: number; name: string; email: string } | null; isPlatformAdmin: boolean };
     store: { name: string; slug: string; currency: string; description: string; logo_url: string | null; banner_url: string | null; primary_color: string; accent_color: string; navigation: { label: string; url: string }[]; contact: { email: string; phone: string; address: string } };
     products: Product[];
     domain: string | null;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function StorefrontIndex({ store, products, domain, cart_count }: Props) {
+    const { auth } = usePage<Props>().props;
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('All');
     const [sort, setSort] = useState('featured');
@@ -42,7 +44,17 @@ export default function StorefrontIndex({ store, products, domain, cart_count }:
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-8">
                     <a href="/" className="flex min-w-0 items-center gap-3">{store.logo_url ? <img src={store.logo_url} alt={store.name + ' logo'} className="h-10 w-10 rounded-md object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-md text-white" style={{ backgroundColor: store.primary_color }}><Store className="h-5 w-5" /></span>}<span className="truncate text-lg font-semibold tracking-tight" style={{ color: store.accent_color }}>{store.name}</span></a>
                     <nav aria-label="Store navigation" className="hidden items-center gap-7 md:flex"><a href="#collection" className="text-sm text-slate-600 hover:text-slate-950">Shop</a>{store.navigation.map((item, i) => <a key={i} href={item.url} className="text-sm text-slate-600 hover:text-slate-950">{item.label}</a>)}</nav>
-                    <a href="/cart" aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" />{cartCount > 0 ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white" style={{ backgroundColor: store.primary_color }} >{cartCount}</span> : null}</a>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {auth.user ? <details className="relative">
+                            <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-md border border-black/10 bg-white px-3 text-sm font-medium"><UserRound className="h-4 w-4" /><span className="hidden max-w-28 truncate sm:inline">{auth.user.name}</span></summary>
+                            <div className="absolute right-0 top-12 z-40 w-56 rounded-md border border-black/10 bg-white p-2 shadow-lg">
+                                <div className="border-b border-black/5 px-3 py-2"><p className="truncate text-sm font-semibold">{auth.user.name}</p><p className="truncate text-xs text-slate-500">{auth.user.email}</p></div>
+                                {auth.isPlatformAdmin ? <Link href="/platform/admin/teams" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50">Platform management</Link> : <><Link href="/account" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><UserRound className="h-4 w-4" />My account</Link><Link href="/account/orders" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><ClipboardList className="h-4 w-4" />My orders</Link></>}
+                                <button type="button" onClick={() => router.post('/logout')} className="flex w-full items-center gap-2 rounded px-3 py-2.5 text-left text-sm text-rose-700 hover:bg-rose-50"><LogOut className="h-4 w-4" />Log out</button>
+                            </div>
+                        </details> : <div className="flex items-center gap-2"><Link href="/account/login" className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-black/5">Log in</Link><Link href="/account/register" className="rounded-md px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: store.primary_color }}>Register</Link></div>}
+                        <a href="/cart" aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" />{cartCount > 0 ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white" style={{ backgroundColor: store.primary_color }} >{cartCount}</span> : null}</a>
+                    </div>
                 </div>
             </header>
             <main>

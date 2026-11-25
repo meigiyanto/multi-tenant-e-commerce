@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -38,6 +39,27 @@ class Order extends Model
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Scope orders visible to a customer across every storefront.
+     * Legacy orders are matched by email only when the email is verified and the order is unclaimed.
+     *
+     * @param Builder<Order> $query
+     * @return Builder<Order>
+     */
+    public function scopeForCustomer(Builder $query, User $user): Builder
+    {
+        return $query->where(function (Builder $orders) use ($user): void {
+            $orders->where('user_id', $user->id);
+
+            if ($user->hasVerifiedEmail()) {
+                $orders->orWhere(function (Builder $legacy) use ($user): void {
+                    $legacy->whereNull('user_id')
+                        ->whereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+                });
+            }
+        });
     }
 
     /** @return BelongsTo<Store, $this> */

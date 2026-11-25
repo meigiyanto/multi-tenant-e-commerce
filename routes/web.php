@@ -4,6 +4,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CustomerAccountController;
+use App\Http\Controllers\Storefront\CustomerEmailVerificationController;
+use App\Http\Controllers\Storefront\CustomerOrderController;
+use App\Http\Controllers\Storefront\CustomerProfileController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\OrderTrackingController;
 use App\Http\Controllers\Storefront\PaymentController;
@@ -11,10 +15,12 @@ use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShippingController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Middleware\EnsureCustomerAccount;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
@@ -28,7 +34,25 @@ if ($storefrontRootDomain !== '') {
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
-            Route::middleware('auth')->group(function (): void {
+            Route::middleware('guest')->group(function (): void {
+                Route::get('/account/login', function (\Illuminate\Http\Request $request) {
+                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
+
+                    return redirect()->route('login');
+                })->name('storefront.account.login');
+                Route::get('/account/register', function (\Illuminate\Http\Request $request) {
+                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
+
+                    return redirect()->route('register');
+                })->name('storefront.account.register');
+            });
+            Route::middleware(['auth', EnsureCustomerAccount::class])->group(function (): void {
+                Route::get('/account/verify-email', [CustomerEmailVerificationController::class, 'show'])->name('storefront.account.verification');
+                Route::post('/account/verification-notification', [CustomerEmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('storefront.account.verification.send');
+                Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
+                Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
+                Route::get('/account/profile', [CustomerProfileController::class, 'edit'])->name('storefront.account.profile');
+                Route::patch('/account/profile', [CustomerProfileController::class, 'update'])->name('storefront.account.profile.update');
                 Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
                 Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
             });
@@ -47,6 +71,15 @@ Route::get('/track/{orderNumber}', [OrderTrackingController::class, 'show'])->na
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.midtrans.notification');
 Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
+
+Route::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
+    $request->session()->put('platform_login', true);
+
+    return Inertia::render('auth/platform-login', [
+        'canResetPassword' => \Laravel\Fortify\Features::enabled(\Laravel\Fortify\Features::resetPasswords()),
+        'status' => $request->session()->get('status'),
+    ]);
+})->name('platform.login');
 
 Route::inertia('/', 'welcome')->name('home');
 
