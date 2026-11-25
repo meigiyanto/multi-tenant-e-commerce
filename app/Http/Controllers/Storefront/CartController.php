@@ -96,7 +96,10 @@ class CartController extends Controller
 
         Cart::query()->where('store_id', $storeId)
             ->where('session_id', $sessionId)->where('status', 'active')
-            ->update(['customer_id' => $customer->id, 'user_id' => null]);
+            ->where(function ($query) use ($customer): void {
+                $query->whereNull('customer_id')->orWhere('customer_id', $customer->id);
+            })
+            ->update(['customer_id' => $customer->id]);
     }
 
     public function destroy(string $storeSubdomain, Request $request, int $item, StoreContext $context): SymfonyResponse
