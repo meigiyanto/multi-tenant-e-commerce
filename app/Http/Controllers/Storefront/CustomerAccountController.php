@@ -16,7 +16,8 @@ class CustomerAccountController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $orders = Order::query()->forCustomer($request->user());
+        $customer = $request->user('customer');
+        $orders = Order::query()->where('store_id', $store->id)->where('customer_id', $customer->id);
 
         $latestOrders = (clone $orders)
             ->with(['store:id,name'])
@@ -36,7 +37,7 @@ class CustomerAccountController extends Controller
                 'items_count' => $order->items_count,
             ]);
 
-        $user = $request->user();
+        $user = $customer;
         $profileComplete = filled($user->name) && filled($user->email)
             && filled($user->phone) && filled($user->shipping_address)
             && filled($user->shipping_city) && filled($user->shipping_province)
