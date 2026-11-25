@@ -20,9 +20,13 @@ use Inertia\Response;
 
 class TeamController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        $hasExistingStore = $user->teams()->whereHas('stores')->exists();
+        if (! Gate::allows('create', Team::class) && ! $hasExistingStore) {
+            return to_route('merchant.application.show');
+        }
         $hasApprovedApplication = MerchantApplication::query()
             ->where('user_id', $user->id)->where('status', 'approved')->exists();
         $teams = $user->teams()
