@@ -20,8 +20,11 @@ class CustomerAccountController extends Controller
         $orders = Order::query()
             ->where('store_id', $store->id)
             ->where(function ($query) use ($user): void {
-                $query->where('user_id', $user->id)
-                    ->orWhereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+                $query->where('user_id', $user->id);
+
+                if ($user->hasVerifiedEmail()) {
+                    $query->orWhereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
+                }
             });
 
         $latestOrders = (clone $orders)
