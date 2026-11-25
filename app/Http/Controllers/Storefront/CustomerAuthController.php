@@ -101,19 +101,14 @@ class CustomerAuthController extends Controller
 
     public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
-        $store = $context->store();
-        $customer = $request->user('customer');
-        if ($store !== null && $customer !== null) {
-            Cart::query()->where('store_id', $store->id)
-                ->where('session_id', $cartSessions->id($request))
-                ->where('customer_id', $customer->id)
-                ->where('status', 'active')->update(['customer_id' => null]);
-        }
-
         Auth::guard('customer')->logout();
         $request->session()->regenerate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('storefront.home', ['storeSubdomain' => $context->store()?->slug]);
+        $response = redirect()->route('storefront.home', [
+            'storeSubdomain' => $context->store()?->slug,
+        ]);
+
+        return $cartSessions->rotateAndAttach($response, $request);
     }
 }
