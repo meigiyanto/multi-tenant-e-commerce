@@ -202,6 +202,41 @@ class StorefrontCartTest extends TestCase
         Notification::assertSentTo($customer, VerifyCustomerEmail::class);
     }
 
+    public function test_customer_logout_only_unlinks_their_own_active_cart(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $customer = $this->createCustomer($store, ['email' => 'logout-customer@example.com']);
+        $otherCustomer = $this->createCustomer($store, ['email' => 'other-logout@example.com']);
+        $sessionId = 'logout-cart-session-token-12345678901234567890';
+        $ownedCart = Cart::query()->create([
+            'store_id' => $store->id,
+            'customer_id' => $customer->id,
+            'session_id' => $sessionId,
+            'status' => 'active',
+        ]);
+        $otherCart = Cart::query()->create([
+            'store_id' => $store->id,
+            'customer_id' => $otherCustomer->id,
+            'session_id' => $sessionId,
+            'status' => 'active',
+        ]);
+
+        $this->withHeader('X-Storefront-Cart-Token', $sessionId)
+            ->actingAs($customer, 'customer')
+            ->post('http://'.$store->slug.'.localhost/account/logout')
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('carts', [
+            'id' => $ownedCart->id,
+            'customer_id' => null,
+        ]);
+        $this->assertDatabaseHas('carts', [
+            'id' => $otherCart->id,
+            'customer_id' => $otherCustomer->id,
+        ]);
+        $this->assertGuest('customer');
+    }
+
     public function test_guest_cannot_open_storefront_account_pages(): void
     {
         [$store] = $this->activeStoreWithVariant();
