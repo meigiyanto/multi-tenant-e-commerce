@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Controllers\\Storefront;
+namespace App\Http\Controllers\Storefront;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Order;
-use App\\Support\\Stores\\StoreContext;
-use Illuminate\\Http\\Request;
-use Inertia\\Inertia;
-use Inertia\\Response;
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Support\Stores\StoreContext;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CustomerAccountController extends Controller
 {
