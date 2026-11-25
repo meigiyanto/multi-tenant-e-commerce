@@ -46,13 +46,19 @@ class CustomerProfileController extends Controller
 
         $user->save();
 
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
+
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $emailChanged
-                ? __('Profile updated. Your email address has changed.')
+                ? __('Profile updated. A verification link has been sent to your new email address.')
                 : __('Profile updated.'),
         ]);
 
-        return to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
+        return $emailChanged
+            ? to_route('storefront.account.verification', ['storeSubdomain' => $store->slug])
+            : to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
     }
 }
