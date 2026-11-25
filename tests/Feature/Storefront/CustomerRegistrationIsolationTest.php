@@ -37,11 +37,11 @@ class CustomerRegistrationIsolationTest extends TestCase
         $membershipsBefore = $team->memberships()->count();
 
         $response = $this->post('http://shop.localhost/account/register', [
-                'name' => 'Dewi Anggraini',
-                'email' => 'DEWI@example.com',
-                'password' => 'StrongPassword123!',
-                'password_confirmation' => 'StrongPassword123!',
-            ]);
+            'name' => 'Dewi Anggraini',
+            'email' => 'DEWI@example.com',
+            'password' => 'StrongPassword123!',
+            'password_confirmation' => 'StrongPassword123!',
+        ]);
 
         $customer = Customer::query()->where('store_id', $store->id)
             ->where('email', 'dewi@example.com')->firstOrFail();

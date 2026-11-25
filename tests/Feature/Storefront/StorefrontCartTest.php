@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -88,7 +89,6 @@ class StorefrontCartTest extends TestCase
         $this->delete('http://'.$store->slug.'.localhost/cart/items/'.$itemId)->assertRedirect();
         $this->assertDatabaseMissing('cart_items', ['id' => $itemId]);
     }
-
 
     public function test_storefront_displays_the_authenticated_customer_identity(): void
     {
@@ -342,7 +342,7 @@ class StorefrontCartTest extends TestCase
         $data = array_merge([
             'store_id' => $store->id,
             'name' => 'Store Customer',
-            'email' => 'customer-'.\Illuminate\Support\Str::uuid().'@example.com',
+            'email' => 'customer-'.Str::uuid().'@example.com',
             'password' => 'password',
         ], $attributes);
         $verifiedAt = array_key_exists('email_verified_at', $attributes) ? $attributes['email_verified_at'] : now();

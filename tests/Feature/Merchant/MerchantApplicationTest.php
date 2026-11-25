@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Merchant;
 
-use App\Models\MerchantApplication;
 use App\Enums\TeamRole;
+use App\Models\MerchantApplication;
 use App\Models\PlatformAdmin;
 use App\Models\Team;
 use App\Models\User;
@@ -68,7 +68,6 @@ class MerchantApplicationTest extends TestCase
 
         $this->assertDatabaseHas('teams', ['name' => 'Velora Workspace', 'is_personal' => false]);
     }
-
 
     public function test_customer_cannot_create_a_store_without_merchant_approval(): void
     {

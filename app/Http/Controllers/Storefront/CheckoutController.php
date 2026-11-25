@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Services\Payments\PaymentService;
 use App\Services\Shipping\ShippingQuoteService;
@@ -20,9 +21,13 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 class CheckoutController extends Controller
 {
     private readonly CartService $carts;
+
     private readonly CheckoutService $checkout;
+
     private readonly ShippingQuoteService $shipping;
+
     private readonly PaymentService $payments;
+
     private readonly CartSessionService $cartSessions;
 
     public function __construct(CartService $carts, CheckoutService $checkout, ShippingQuoteService $shipping, PaymentService $payments, CartSessionService $cartSessions)
@@ -145,7 +150,7 @@ class CheckoutController extends Controller
         }
     }
 
-    private function hasCompleteShippingProfile(\App\Models\Customer $user): bool
+    private function hasCompleteShippingProfile(Customer $user): bool
     {
         return filled($user->phone)
             && filled($user->shipping_address)

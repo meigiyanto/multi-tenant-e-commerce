@@ -105,6 +105,7 @@ class MigrateLegacyStorefrontCustomers extends Command
                 $eligible++;
                 if (! $apply) {
                     $this->line("Would migrate user {$user->id} ({$email}) to store {$storeId}.");
+
                     continue;
                 }
 

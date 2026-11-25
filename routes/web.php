@@ -1,17 +1,17 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Merchant\MerchantApplicationController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
+use App\Http\Controllers\Merchant\MerchantApplicationController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
-use App\Http\Controllers\Storefront\CustomerAuthController;
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\CustomerAccountController;
+use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\CustomerEmailVerificationController;
 use App\Http\Controllers\Storefront\CustomerOrderController;
 use App\Http\Controllers\Storefront\CustomerPasswordResetController;
 use App\Http\Controllers\Storefront\CustomerProfileController;
-use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\OrderTrackingController;
 use App\Http\Controllers\Storefront\PaymentController;
 use App\Http\Controllers\Storefront\ProductController;
@@ -24,8 +24,10 @@ use App\Http\Middleware\EnsureMerchantTeamContext;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Laravel\Fortify\Features;
 
 $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
@@ -75,10 +77,11 @@ Route::get('/track/{orderNumber}', [OrderTrackingController::class, 'show'])->na
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.midtrans.notification');
 Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
-Route::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
+Route::middleware('guest')->get('/platform/login', function (Request $request) {
     $request->session()->put('platform_login', true);
+
     return Inertia::render('auth/platform-login', [
-        'canResetPassword' => \Laravel\Fortify\Features::enabled(\Laravel\Fortify\Features::resetPasswords()),
+        'canResetPassword' => Features::enabled(Features::resetPasswords()),
         'status' => $request->session()->get('status'),
     ]);
 })->name('platform.login');

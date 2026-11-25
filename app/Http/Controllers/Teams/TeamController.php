@@ -111,7 +111,9 @@ class TeamController extends Controller
         $user = $request->user();
         $fallbackTeam = $user->isCurrentTeam($team) ? $user->fallbackTeam($team) : null;
         $team->memberships()->where('user_id', $user->id)->delete();
-        if ($fallbackTeam) $user->switchTeam($fallbackTeam);
+        if ($fallbackTeam) {
+            $user->switchTeam($fallbackTeam);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('You left the team ":name"', ['name' => $team->name])]);
 
         return to_route('teams.index');
@@ -128,7 +130,9 @@ class TeamController extends Controller
             $team->memberships()->delete();
             $team->delete();
         });
-        if ($fallbackTeam) $user->switchTeam($fallbackTeam);
+        if ($fallbackTeam) {
+            $user->switchTeam($fallbackTeam);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Team deleted.')]);
 
         return to_route('teams.index');

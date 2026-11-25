@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 #[Fillable([
     'store_id', 'user_id', 'customer_id', 'order_number', 'status', 'payment_status', 'customer_name',
@@ -38,7 +37,7 @@ class Order extends Model
     /**
      * Legacy scope retained while existing User-linked order history is migrated.
      *
-     * @param Builder<Order> $query
+     * @param  Builder<Order>  $query
      * @return Builder<Order>
      */
     public function scopeForCustomer(Builder $query, User $user): Builder

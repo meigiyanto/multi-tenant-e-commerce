@@ -3,9 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\TeamRole;
+use App\Models\PlatformAdmin;
 use App\Models\Team;
 use App\Models\TeamInvitation;
-use App\Models\PlatformAdmin;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -227,5 +227,4 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('platform.login'));
         $response->assertSessionHasErrors('email');
     }
-
 }

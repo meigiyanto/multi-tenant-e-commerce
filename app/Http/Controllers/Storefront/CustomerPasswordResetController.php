@@ -9,6 +9,7 @@ use App\Support\Stores\StoreContext;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -38,7 +39,7 @@ class CustomerPasswordResetController extends Controller
 
         if ($customer !== null) {
             $token = Str::random(64);
-            \Illuminate\Support\Facades\DB::table('customer_password_reset_tokens')->updateOrInsert(
+            DB::table('customer_password_reset_tokens')->updateOrInsert(
                 ['store_id' => $store->id, 'email' => $email],
                 ['token' => Hash::make($token), 'created_at' => now()],
             );
@@ -70,7 +71,7 @@ class CustomerPasswordResetController extends Controller
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
         ]);
         $email = Str::lower(trim($data['email']));
-        $record = \Illuminate\Support\Facades\DB::table('customer_password_reset_tokens')
+        $record = DB::table('customer_password_reset_tokens')
             ->where('store_id', $store->id)->where('email', $email)->first();
 
         if ($record === null || $record->created_at === null
@@ -85,7 +86,7 @@ class CustomerPasswordResetController extends Controller
         }
 
         $customer->forceFill(['password' => $data['password']])->save();
-        \Illuminate\Support\Facades\DB::table('customer_password_reset_tokens')
+        DB::table('customer_password_reset_tokens')
             ->where('store_id', $store->id)->where('email', $email)->delete();
         event(new PasswordReset($customer));
 

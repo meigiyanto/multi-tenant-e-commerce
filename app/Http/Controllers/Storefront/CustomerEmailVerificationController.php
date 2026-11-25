@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Support\Stores\StoreContext;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Auth\Events\Verified;
 use Inertia\Inertia;
 use Inertia\Response;
 

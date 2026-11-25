@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
@@ -93,7 +94,7 @@ class CartController extends Controller
             return;
         }
 
-        \App\Models\Cart::query()->where('store_id', $storeId)
+        Cart::query()->where('store_id', $storeId)
             ->where('session_id', $sessionId)->where('status', 'active')
             ->update(['customer_id' => $customer->id, 'user_id' => null]);
     }
