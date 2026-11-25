@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'shipping_tracking_url', 'shipped_at', 'delivered_at', 'customer_note', 'currency',
     'subtotal', 'shipping_amount', 'discount_amount', 'total', 'placed_at',
 ])]
+/**
+ * @property Carbon|null $placed_at
+ * @property Carbon|null $shipped_at
+ * @property Carbon|null $delivered_at
+ */
 class Order extends Model
 {
     protected function casts(): array
