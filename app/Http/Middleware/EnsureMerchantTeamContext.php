@@ -12,7 +12,7 @@ class EnsureMerchantTeamContext
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $team = $request->route('current_team');
+        $team = $request->route('current_team') ?? $request->route('team');
 
         if (is_string($team)) {
             $team = Team::query()->where('slug', $team)->first();
@@ -25,7 +25,9 @@ class EnsureMerchantTeamContext
             ->where('status', 'approved')
             ->exists();
         abort_if($team->is_personal && ! $hasStore, 403);
-        abort_unless($hasStore || $hasApprovedApplication, 403);
+        if ($request->route('current_team') !== null) {
+            abort_unless($hasStore || $hasApprovedApplication, 403);
+        }
 
         return $next($request);
     }
