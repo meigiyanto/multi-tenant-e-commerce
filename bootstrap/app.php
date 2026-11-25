@@ -44,7 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('platform.admin.teams.index');
             }
 
-            $team = $user?->currentTeam;
+            $team = $user?->current_team_id ? $user->currentTeam : null;
 
             return $team
                 ? route('dashboard', ['current_team' => $team->slug])
