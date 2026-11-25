@@ -41,7 +41,7 @@ class CheckoutController extends Controller
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
-        $user = $request->user();
+        $user = $request->user('customer');
         if (! $this->hasCompleteShippingProfile($user)) {
             $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
 
@@ -126,7 +126,7 @@ class CheckoutController extends Controller
         $destinationId = (int) $data['shipping_destination_id'];
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
         $weight = $this->shipping->weight($cart);
-        $order = $this->checkout->place($store, $this->cartSessions->id($request), $data, $rate, $destinationId, $data['shipping_destination_label'], $weight);
+        $order = $this->checkout->place($store, $this->cartSessions->id($request), $data, $rate, $destinationId, $data['shipping_destination_label'], $weight, $user);
 
         try {
             $payment = $this->payments->start($order);
@@ -145,7 +145,7 @@ class CheckoutController extends Controller
         }
     }
 
-    private function hasCompleteShippingProfile(\App\Models\User $user): bool
+    private function hasCompleteShippingProfile(\App\Models\Customer $user): bool
     {
         return filled($user->phone)
             && filled($user->shipping_address)
