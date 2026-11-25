@@ -23,7 +23,10 @@ class CustomerPasswordResetController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        return Inertia::render('storefront/account/forgot-password', ['store' => ['name' => $store->name]]);
+        return Inertia::render('storefront/account/forgot-password', [
+            'store' => ['name' => $store->name],
+            'status' => request()->session()->get('status'),
+        ]);
     }
 
     public function sendLink(Request $request, StoreContext $context): RedirectResponse
