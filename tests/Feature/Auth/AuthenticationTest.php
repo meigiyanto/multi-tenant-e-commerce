@@ -137,6 +137,7 @@ class AuthenticationTest extends TestCase
 
         $response->assertTooManyRequests();
     }
+
     public function test_platform_login_screen_is_separate_from_customer_login(): void
     {
         $response = $this->get(route('platform.login'));
@@ -176,6 +177,21 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
         $response->assertRedirect(route('platform.admin.teams.index'));
+    }
+
+    public function test_platform_admins_cannot_use_the_customer_login_page(): void
+    {
+        $user = User::factory()->create();
+        PlatformAdmin::query()->create(['user_id' => $user->id]);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertRedirect(route('platform.login'));
+        $response->assertSessionHasErrors('email');
     }
 
 }
