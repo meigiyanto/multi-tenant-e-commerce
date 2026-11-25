@@ -20,22 +20,13 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 class CheckoutController extends Controller
 {
     private readonly CartService $carts;
-
     private readonly CheckoutService $checkout;
-
     private readonly ShippingQuoteService $shipping;
-
     private readonly PaymentService $payments;
-
     private readonly CartSessionService $cartSessions;
 
-    public function __construct(
-        CartService $carts,
-        CheckoutService $checkout,
-        ShippingQuoteService $shipping,
-        PaymentService $payments,
-        CartSessionService $cartSessions
-    ) {
+    public function __construct(CartService $carts, CheckoutService $checkout, ShippingQuoteService $shipping, PaymentService $payments, CartSessionService $cartSessions)
+    {
         $this->carts = $carts;
         $this->checkout = $checkout;
         $this->shipping = $shipping;
@@ -47,10 +38,15 @@ class CheckoutController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
-
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
+
         $user = $request->user();
+        if (! $this->hasCompleteShippingProfile($user)) {
+            $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
+
+            return redirect()->route('profile.edit')->with('error', 'Complete your contact information and default shipping address before checkout.');
+        }
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
             $product = $item->product;
@@ -78,9 +74,13 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'weight_grams' => $this->shipping->weight($cart),
             'customer' => [
-                'name' => $user?->name ?? '',
-                'email' => $user?->email ?? '',
-                'phone' => '',
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? '',
+                'shipping_address' => $user->shipping_address ?? '',
+                'shipping_city' => $user->shipping_city ?? '',
+                'shipping_province' => $user->shipping_province ?? '',
+                'shipping_postal_code' => $user->shipping_postal_code ?? '',
             ],
         ])->toResponse($request);
 
@@ -91,21 +91,30 @@ class CheckoutController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
+        $user = $request->user();
+
+        if (! $this->hasCompleteShippingProfile($user)) {
+            return redirect()->route('profile.edit')->with('error', 'Complete your phone number and default shipping address before placing an order.');
+        }
 
         $data = $request->validate([
-            'customer_name' => ['required', 'string', 'max:160'],
-            'customer_email' => ['required', 'email', 'max:180'],
-            'customer_phone' => ['required', 'string', 'max:40'],
-            'shipping_address' => ['required', 'string', 'max:2000'],
             'shipping_city' => ['required', 'string', 'max:120'],
             'shipping_province' => ['required', 'string', 'max:120'],
-            'shipping_postal_code' => ['required', 'string', 'max:20'],
             'shipping_destination_id' => ['required', 'integer', 'min:1'],
             'shipping_destination_label' => ['required', 'string', 'max:180'],
             'shipping_courier' => ['required', 'string', 'max:40'],
             'shipping_service' => ['required', 'string', 'max:80'],
             'customer_note' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $data = [
+            ...$data,
+            'customer_name' => $user->name,
+            'customer_email' => $user->email,
+            'customer_phone' => $user->phone,
+            'shipping_address' => $user->shipping_address,
+            'shipping_postal_code' => $user->shipping_postal_code,
+        ];
 
         $cart = Cart::query()
             ->where('store_id', $store->id)
@@ -117,15 +126,7 @@ class CheckoutController extends Controller
         $destinationId = (int) $data['shipping_destination_id'];
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
         $weight = $this->shipping->weight($cart);
-        $order = $this->checkout->place(
-            $store,
-            $this->cartSessions->id($request),
-            $data,
-            $rate,
-            $destinationId,
-            $data['shipping_destination_label'],
-            $weight,
-        );
+        $order = $this->checkout->place($store, $this->cartSessions->id($request), $data, $rate, $destinationId, $data['shipping_destination_label'], $weight);
 
         try {
             $payment = $this->payments->start($order);
@@ -134,7 +135,6 @@ class CheckoutController extends Controller
             return $this->cartSessions->attach($response, $request);
         } catch (\Throwable $exception) {
             report($exception);
-
             $appKey = (string) config('app.key');
             $expires = now()->addDays(7)->timestamp;
             $finishKey = hash_hmac('sha256', $order->order_number.'|'.$expires, $appKey);
@@ -143,6 +143,15 @@ class CheckoutController extends Controller
 
             return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
+    }
+
+    private function hasCompleteShippingProfile(\App\Models\User $user): bool
+    {
+        return filled($user->phone)
+            && filled($user->shipping_address)
+            && filled($user->shipping_city)
+            && filled($user->shipping_province)
+            && filled($user->shipping_postal_code);
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
@@ -159,12 +168,8 @@ class CheckoutController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
-
-        $order = Order::query()
-            ->where('store_id', $store->id)
-            ->where('order_number', $orderNumber)
-            ->with(['items', 'paymentTransactions' => fn ($query) => $query->latest()])
-            ->firstOrFail();
+        $order = Order::query()->where('store_id', $store->id)->where('order_number', $orderNumber)
+            ->with(['items', 'paymentTransactions' => fn ($query) => $query->latest()])->firstOrFail();
 
         return Inertia::render('storefront/order-confirmation', [
             'store' => ['name' => $store->name, 'currency' => $store->currency],
