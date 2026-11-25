@@ -105,7 +105,7 @@ class CustomerProfileController extends Controller
         return back()->with('success', 'Address added successfully.');
     }
 
-    public function updateAddress(Request $request, StoreContext $context, int $address): RedirectResponse
+    public function updateAddress(Request $request, StoreContext $context, string $address): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
