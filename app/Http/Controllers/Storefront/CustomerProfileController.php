@@ -47,13 +47,12 @@ class CustomerProfileController extends Controller
         $user->save();
 
         if ($emailChanged) {
-            $user->sendEmailVerificationNotification();
         }
 
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $emailChanged
-                ? __('Profile updated. A new verification link has been sent to your new email address.')
+                ? __('Profile updated. Your email address has changed.')
                 : __('Profile updated.'),
         ]);
 
