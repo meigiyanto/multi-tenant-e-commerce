@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Models\RefundRequest;
+use App\Notifications\Storefront\RefundRequestResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -63,6 +64,21 @@ class RefundRequestController extends Controller
             throw ValidationException::withMessages(['status' => 'This refund status transition is not allowed.']);
         }
 
+        if ($validated['status'] === 'processing' && $refundRequest->paymentTransaction->gateway === 'midtrans') {
+            $metadata = (array) ($refundRequest->paymentTransaction->metadata ?? []);
+            $paymentType = data_get($metadata, 'last_notification.payment_type')
+                ?? data_get($metadata, 'last_status_response.payment_type');
+            $gatewayStatus = data_get($metadata, 'last_notification.transaction_status')
+                ?? data_get($metadata, 'last_status_response.transaction_status');
+            $midtransRefundMethods = ['credit_card', 'gopay', 'qris', 'shopeepay', 'dana', 'ovo', 'kredivo', 'akulaku'];
+
+            if (in_array($paymentType, $midtransRefundMethods, true) && $gatewayStatus !== 'settlement') {
+                throw ValidationException::withMessages([
+                    'status' => 'Midtrans refunds for this payment method require a settled transaction. A captured or pending transaction must follow the applicable cancellation procedure instead.',
+                ]);
+            }
+        }
+
         if ($validated['status'] === 'refunded' && blank($validated['refund_reference'] ?? null) && blank($validated['result_notes'] ?? null)) {
             throw ValidationException::withMessages(['refund_reference' => 'Record a refund reference or explain the manual payout before marking this request as refunded.']);
         }
@@ -77,7 +93,7 @@ class RefundRequestController extends Controller
             'resolved_at' => in_array($validated['status'], ['refunded', 'rejected'], true) ? now() : null,
         ]);
 
-        return to_route('platform.admin.refunds.index')
+        if (in_array($refundRequest->status, ['refunded', 'rejected'], true)) {\n            $refundRequest->load(['customer', 'order']);\n            $refundRequest->customer->notify(new RefundRequestResult($refundRequest));\n        }\n\n        return to_route('platform.admin.refunds.index')
             ->with('success', 'Refund request updated.');
     }
 }
