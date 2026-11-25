@@ -16,7 +16,7 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): Response
     {
-        $user = $request->user();
+        $user = $request->user('web');
 
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -27,7 +27,7 @@ class ProfileController extends Controller
 
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $user = $request->user();
+        $user = $request->user('web');
         $emailChanged = $user->email !== $request->validated('email');
         $validated = $request->validated();
         unset($validated['current_password']);
@@ -58,7 +58,7 @@ class ProfileController extends Controller
 
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
-        $user = $request->user();
+        $user = $request->user('web');
         Auth::logout();
         $user->delete();
         $request->session()->invalidate();
