@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Policies;
+namespace App\Policies;
 
-use App\\Enums\\TeamPermission;
-use App\\Models\\MerchantApplication;
-use App\\Models\\Team;
-use App\\Models\\User;
+use App\Enums\TeamPermission;
+use App\Models\MerchantApplication;
+use App\Models\Team;
+use App\Models\User;
 
 class TeamPolicy
 {
