@@ -71,9 +71,9 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
             <Head title={store.name + ' — ' + team.name} />
             <div className="flex flex-col gap-8">
                 <div className="m-2">
-                    <Button asChild variant="ghost" size="sm" className="ml-0 mb-2">
+                    <Button asChild variant="outline" size="sm" className="ml-0 mb-2">
                         <Link href={'/settings/teams/' + team.slug + '/stores'}>
-                            <ArrowLeft /> Back to stores
+                            <ArrowLeft /> Go back
                         </Link>
                     </Button>
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">

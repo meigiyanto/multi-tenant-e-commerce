@@ -30,8 +30,8 @@ export default function StoreSettings({ team, store }: Props) {
             <Head title={'Storefront settings — ' + store.name} />
             <div className="flex flex-col m-2 gap-8">
                 <div className="m-2">
-                    <Button asChild variant="ghost" size="sm" className="ml-0 mb-2">
-                        <Link href={baseUrl}><ArrowLeft /> Back to store</Link>
+                    <Button asChild variant="outline" size="sm" className="ml-0 mb-2">
+                        <Link href={baseUrl}><ArrowLeft /> Go back</Link>
                     </Button>
                     <Heading variant="small" title="Storefront configuration" description={'Customize the public appearance and contact details of ' + store.name + '.'} />
                 </div>

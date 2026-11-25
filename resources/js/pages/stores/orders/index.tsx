@@ -52,8 +52,8 @@ export default function StoreOrdersIndex({ team, store, orders, filters, statuse
             <Head title={'Orders — ' + store.name} />
             <div className="flex flex-col gap-6">
                 <div className="m-2">
-                    <Button asChild variant="ghost" size="sm" className="mb-2">
-                        <Link href={base + '/dashboard'}><ArrowLeft /> Back to dashboard</Link>
+                    <Button asChild variant="outline" size="sm" className="mb-2">
+                        <Link href={base + '/dashboard'}><ArrowLeft /> Go back</Link>
                     </Button>
                     <Heading variant="small" title="Orders" description={'Manage orders placed in ' + store.name + '.'} />
                 </div>

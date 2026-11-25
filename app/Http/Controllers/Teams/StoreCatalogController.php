@@ -32,7 +32,7 @@ class StoreCatalogController extends Controller
             'team' => ['name' => $team->name, 'slug' => $team->slug],
             'store' => ['id' => $store->id, 'name' => $store->name, 'currency' => $store->currency],
             'products' => $store->products()->with(['category:id,name', 'images:id,product_id,path,is_primary', 'variants.inventory'])
-                ->latest()->paginate(15)->through(fn (Product $product) => [
+                ->latest()->paginate(10)->through(fn (Product $product) => [
                     'id' => $product->id,
                     'name' => $product->name,
                     'slug' => $product->slug,

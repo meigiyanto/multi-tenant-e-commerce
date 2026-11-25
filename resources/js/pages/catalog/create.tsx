@@ -19,7 +19,7 @@ export default function CatalogCreate({ team, store, categories }: Props) {
             <Head title={'Add product — ' + store.name} />
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
                 <div className="m-2">
-                    <Button asChild size="sm" variant="ghost" className="self-start"><Link href={base}><ArrowLeft /> Back to catalog</Link></Button>
+                    <Button asChild size="sm" variant="outline" className="self-start"><Link href={base}><ArrowLeft /> Go back</Link></Button>
                     <Heading title="Add product" description="Create a product and its Store-specific variants, pricing, photos, and initial inventory." />
                 </div>
                 <Form action={base + '/products'} method="post" encType="multipart/form-data" className="space-y-6">
