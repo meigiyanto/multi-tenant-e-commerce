@@ -7,7 +7,6 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\Team;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,7 +35,6 @@ class StoreDashboardController extends Controller
                 ->count(),
         ];
 
-        /** @var Collection<int, Order> $recentOrderRecords */
         $recentOrderRecords = (clone $orders)
             ->withCount('items')
             ->orderByDesc('placed_at')
