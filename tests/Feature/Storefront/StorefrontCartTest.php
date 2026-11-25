@@ -7,8 +7,10 @@ use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -145,31 +147,62 @@ class StorefrontCartTest extends TestCase
             );
     }
 
-    public function test_customer_order_history_includes_legacy_orders_linked_by_email_without_leaking_other_orders(): void
+    public function test_customer_order_history_includes_orders_from_every_store_without_leaking_other_customers_orders(): void
     {
         [$store] = $this->activeStoreWithVariant();
         [, , $otherStore] = $this->activeStoreWithVariant('other-store');
         $user = User::factory()->create(['email' => 'legacy-customer@example.com']);
 
-        $this->createLegacyOrder($store, 'ORD-LEGACY-CUSTOMER', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($store, 'ORD-LEGACY-LOCAL', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($otherStore, 'ORD-LEGACY-OTHER-STORE', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($otherStore, 'ORD-LINKED-OTHER-STORE', 'legacy-customer@example.com', $user->id);
         $this->createLegacyOrder($store, 'ORD-OTHER-CUSTOMER', 'someone-else@example.com', null);
-        $this->createLegacyOrder($otherStore, 'ORD-OTHER-STORE', 'legacy-customer@example.com', null);
 
         $this->actingAs($user)
             ->get('http://'.$store->slug.'.localhost/account/orders')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('storefront/account/orders')
-                ->has('orders', 1)
-                ->where('orders.0.order_number', 'ORD-LEGACY-CUSTOMER'),
+                ->has('orders', 3)
+                ->where('orders.0.store_name', $otherStore->name)
+                ->where('orders.0.order_number', 'ORD-LINKED-OTHER-STORE')
+                ->where('orders.1.store_name', $otherStore->name)
+                ->where('orders.1.order_number', 'ORD-LEGACY-OTHER-STORE')
+                ->where('orders.2.order_number', 'ORD-LEGACY-LOCAL'),
             );
 
         $this->get('http://'.$store->slug.'.localhost/account')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('summary.orders_count', 1)
-                ->has('latest_orders', 1),
+                ->where('summary.orders_count', 3)
+                ->has('latest_orders', 3)
+                ->where('latest_orders.0.store_name', $otherStore->name),
             );
+    }
+
+    public function test_unverified_customer_is_redirected_to_verification_and_can_resend_email(): void
+    {
+        Notification::fake();
+
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->unverified()->create(['email' => 'unverified@example.com']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account')
+            ->assertRedirect('http://'.$store->slug.'.localhost/account/verify-email');
+
+        $this->get('http://'.$store->slug.'.localhost/account/verify-email')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/verify-email')
+                ->where('email', 'unverified@example.com'),
+            );
+
+        $this->post('http://'.$store->slug.'.localhost/account/verification-notification')
+            ->assertRedirect()
+            ->assertSessionHas('status', 'verification-link-sent');
+
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_guest_cannot_open_storefront_account_pages(): void
