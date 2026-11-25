@@ -30,7 +30,12 @@ class LoginResponse implements LoginResponseContract
         }
 
         if ($request->user()?->isPlatformAdmin()) {
-            return redirect()->route('platform.admin.teams.index');
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('platform.login')
+                ->withErrors(['email' => 'Use the platform administrator sign-in page.']);
         }
 
         $team = $request->user()?->currentTeam;
