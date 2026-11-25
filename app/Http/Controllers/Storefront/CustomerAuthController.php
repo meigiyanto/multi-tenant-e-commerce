@@ -112,11 +112,14 @@ class CustomerAuthController extends Controller
         abort_if($store === null, 404);
 
         Auth::guard('customer')->logout();
-        $request->session()->regenerate(destroy: true);
+        $storeSubdomain = (string) $request->route('storeSubdomain');
+        abort_if($storeSubdomain === '', 404);
+
+        $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         $response = to_route('storefront.home', [
-            'storeSubdomain' => $store->slug,
+            'storeSubdomain' => $storeSubdomain,
         ]);
 
         return $cartSessions->rotateAndAttach($response, $request);
