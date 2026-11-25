@@ -133,7 +133,7 @@ class CustomerProfileController extends Controller
         return back()->with('success', 'Address updated successfully.');
     }
 
-    public function setDefaultAddress(Request $request, StoreContext $context, int $address): RedirectResponse
+    public function setDefaultAddress(Request $request, StoreContext $context, string $address): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -147,7 +147,7 @@ class CustomerProfileController extends Controller
         return back()->with('success', 'Default shipping address updated.');
     }
 
-    public function destroyAddress(Request $request, StoreContext $context, int $address): RedirectResponse
+    public function destroyAddress(Request $request, StoreContext $context, string $address): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
