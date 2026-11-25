@@ -53,7 +53,7 @@ class StoreOrderController extends Controller
                 'total' => (string) $order->total,
                 'currency' => $order->currency,
                 'items_count' => (int) $order->items_count,
-                'placed_at' => $order->placed_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
             ]);
 
         return Inertia::render('stores/orders/index', [
@@ -106,8 +106,8 @@ class StoreOrderController extends Controller
                     'tracking_number' => $order->shipping_tracking_number,
                     'customer_tracking_url' => route('storefront.orders.track', ['orderNumber' => $order->order_number, 'token' => hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'))]),
                     'tracking_url' => $order->shipping_tracking_url,
-                    'shipped_at' => $order->shipped_at?->toISOString(),
-                    'delivered_at' => $order->delivered_at?->toISOString(),
+                    'shipped_at' => $order->shipped_at->toISOString(),
+                    'delivered_at' => $order->delivered_at->toISOString(),
                 ],
                 'customer_note' => $order->customer_note,
                 'currency' => $order->currency,
@@ -115,7 +115,7 @@ class StoreOrderController extends Controller
                 'shipping_amount' => (string) $order->shipping_amount,
                 'discount_amount' => (string) $order->discount_amount,
                 'total' => (string) $order->total,
-                'placed_at' => $order->placed_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
                 'items' => $order->items->map(fn ($item): array => [
                     'id' => $item->id,
                     'product_name' => $item->product_name,
@@ -134,11 +134,11 @@ class StoreOrderController extends Controller
                     'provider_message_id' => $delivery->provider_message_id,
                     'last_error' => $delivery->last_error,
                     'retryable' => data_get($delivery->metadata, 'dispatch_error') !== null || data_get($delivery->metadata, 'job_failure') !== null,
-                    'queued_at' => $delivery->queued_at?->toISOString(),
-                    'sent_at' => $delivery->sent_at?->toISOString(),
-                    'delivered_at' => $delivery->delivered_at?->toISOString(),
-                    'read_at' => $delivery->read_at?->toISOString(),
-                    'failed_at' => $delivery->failed_at?->toISOString(),
+                    'queued_at' => $delivery->queued_at->toISOString(),
+                    'sent_at' => $delivery->sent_at->toISOString(),
+                    'delivered_at' => $delivery->delivered_at->toISOString(),
+                    'read_at' => $delivery->read_at->toISOString(),
+                    'failed_at' => $delivery->failed_at->toISOString(),
                 ]),
                 'payments' => $order->paymentTransactions->map(fn ($payment): array => [
                     'id' => $payment->id,
@@ -146,7 +146,7 @@ class StoreOrderController extends Controller
                     'status' => $payment->status,
                     'amount' => (string) $payment->amount,
                     'currency' => $payment->currency,
-                    'created_at' => $payment->created_at?->toISOString(),
+                    'created_at' => $payment->created_at->toISOString(),
                 ]),
                 'history' => $order->statusHistories->map(fn ($history): array => [
                     'id' => $history->id,
@@ -154,7 +154,7 @@ class StoreOrderController extends Controller
                     'to_status' => $history->to_status,
                     'note' => $history->note,
                     'actor' => $history->user?->name,
-                    'created_at' => $history->created_at?->toISOString(),
+                    'created_at' => $history->created_at->toISOString(),
                 ]),
                 'next_status' => match (true) {
                     $order->payment_status === 'paid' && $order->status === 'processing' => 'shipped',
