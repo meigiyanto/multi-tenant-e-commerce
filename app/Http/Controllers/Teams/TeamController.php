@@ -1,21 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\Teams;
+namespace App\\Http\\Controllers\\Teams;
 
-use App\Actions\Teams\CreateTeam;
-use App\Enums\TeamRole;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Teams\DeleteTeamRequest;
-use App\Http\Requests\Teams\SaveTeamRequest;
-use App\Models\Membership;
-use App\Models\Team;
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
+use App\\Actions\\Teams\\CreateTeam;
+use App\\Enums\\TeamRole;
+use App\\Http\\Controllers\\Controller;
+use App\\Http\\Requests\\Teams\\DeleteTeamRequest;
+use App\\Http\\Requests\\Teams\\SaveTeamRequest;
+use App\\Models\\Membership;
+use App\\Models\\MerchantApplication;
+use App\\Models\\Team;
+use App\\Models\\User;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Support\\Facades\\Gate;
+use Inertia\\Inertia;
+use Inertia\\Response;
 
 class TeamController extends Controller
 {
@@ -29,14 +30,19 @@ class TeamController extends Controller
             ->values()
             ->all();
 
-        return Inertia::render('teams/index', ['teams' => $teams]);
+        return Inertia::render('teams/index', [
+            'teams' => $teams,
+            'canCreateTeam' => Gate::allows('create', Team::class),
+            'merchantApplicationStatus' => MerchantApplication::query()
+                ->where('user_id', $user->id)->value('status'),
+        ]);
     }
 
     public function store(SaveTeamRequest $request, CreateTeam $createTeam): RedirectResponse
     {
         Gate::authorize('create', Team::class);
         $team = $createTeam->handle($request->user(), $request->validated('name'));
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Team created.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Merchant workspace created.')]);
 
         return to_route('teams.edit', ['team' => $team->slug]);
     }
@@ -100,7 +106,7 @@ class TeamController extends Controller
         $fallbackTeam = $user->isCurrentTeam($team) ? $user->fallbackTeam($team) : null;
         $team->memberships()->where('user_id', $user->id)->delete();
         if ($fallbackTeam) $user->switchTeam($fallbackTeam);
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('You left the team ":name"', ['name' => $team->name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('You left the team \":name\"', ['name' => $team->name])]);
 
         return to_route('teams.index');
     }
