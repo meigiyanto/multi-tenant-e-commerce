@@ -18,7 +18,7 @@ use Illuminate\Validation\Rule;
 
 class CustomerAuthController extends Controller
 {
-    public function loginForm(StoreContext $context): Response
+    public function showLoginPage(StoreContext $context): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -29,7 +29,7 @@ class CustomerAuthController extends Controller
         ]);
     }
 
-    public function registerForm(StoreContext $context): Response
+    public function showRegistrationPage(StoreContext $context): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
