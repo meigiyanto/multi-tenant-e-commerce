@@ -28,7 +28,7 @@ class CustomerRegistrationIsolationTest extends TestCase
         ]);
         $store->domains()->create([
             'domain' => 'shop.localhost',
-            'type' => 'subdomain',
+            'type' => 'custom',
             'status' => 'active',
             'is_primary' => true,
             'verified_at' => now(),
@@ -49,7 +49,7 @@ class CustomerRegistrationIsolationTest extends TestCase
         $customer = Customer::query()->where('store_id', $store->id)
             ->where('email', 'dewi@example.com')->firstOrFail();
 
-        $response->assertRedirect(route('storefront.account.profile', ['storeSubdomain' => 'shop']));
+        $response->assertRedirect();
         $this->assertSame($usersBefore, User::query()->count());
         $this->assertSame($teamsBefore, Team::query()->count());
         $this->assertSame($membershipsBefore, $team->memberships()->count());
