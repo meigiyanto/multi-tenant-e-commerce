@@ -108,12 +108,15 @@ class CustomerAuthController extends Controller
 
     public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): HttpResponse
     {
+        $store = $context->store();
+        abort_if($store === null, 404);
+
         Auth::guard('customer')->logout();
-        $request->session()->regenerate();
+        $request->session()->regenerate(destroy: true);
         $request->session()->regenerateToken();
 
-        $response = redirect()->route('storefront.home', [
-            'storeSubdomain' => $context->store()?->slug,
+        $response = to_route('storefront.home', [
+            'storeSubdomain' => $store->slug,
         ]);
 
         return $cartSessions->rotateAndAttach($response, $request);
