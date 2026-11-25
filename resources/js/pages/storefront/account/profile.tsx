@@ -2,9 +2,9 @@ import { Form } from '@inertiajs/react';
 import { UserRound } from 'lucide-react';\nimport CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
 type ProfileData = { name: string; email: string; phone: string | null; shipping_address: string | null; shipping_city: string | null; shipping_province: string | null; shipping_postal_code: string | null };
-type Props = { profile: ProfileData; success?: string };
+type Props = { store: { name: string }; profile: ProfileData; success?: string; error?: string };
 
-export default function CustomerProfile({ profile, success }: Props) {
+export default function CustomerProfile({ store, profile, success, error }: Props) {
     const fields = [
         { name: 'phone', label: 'Phone / WhatsApp', value: profile.phone ?? '', placeholder: '+62...' },
         { name: 'shipping_address', label: 'Street address', value: profile.shipping_address ?? '', placeholder: 'Street, building, house number' },
@@ -18,7 +18,7 @@ export default function CustomerProfile({ profile, success }: Props) {
             <div className="mx-auto max-w-2xl">
                 <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"><ArrowLeft className="h-4 w-4" /> Back to store</Link>
                 <div className="mt-8 flex items-center gap-3"><UserRound className="h-7 w-7" /><div><p className="text-xs uppercase tracking-widest text-slate-500">Customer account</p><h1 className="text-3xl font-semibold">My profile</h1></div></div>
-                {success ? <p className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p> : null}
+                {success ? <p className="mb-5 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p> : null}{error ? <p className="mb-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{error}</p> : null}
                 <Form action="/account/profile" method="patch" options={{ preserveScroll: true }} className="mt-8 space-y-5 rounded-lg border border-black/10 bg-white p-5 sm:p-7">
                     {({ processing, errors }) => <>
                         <div><label htmlFor="name" className="mb-1.5 block text-sm font-medium">Full name</label><input id="name" name="name" defaultValue={profile.name} required autoComplete="name" className="h-11 w-full rounded-md border border-black/15 px-3 text-sm outline-none focus:border-slate-500" />{errors.name ? <p className="mt-1 text-xs text-rose-600">{errors.name}</p> : null}</div>
