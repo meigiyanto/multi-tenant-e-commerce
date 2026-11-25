@@ -81,7 +81,7 @@ class StoreCatalogController extends Controller
                 if ($inventory->quantity > 0) {
                     $inventory->movements()->create([
                         'store_id' => $store->id,
-                        'user_id' => $request->user()->id,
+                        'user_id' => $request->user('web')->id,
                         'type' => 'initial',
                         'quantity' => $inventory->quantity,
                         'balance_after' => $inventory->quantity,
@@ -372,7 +372,7 @@ class StoreCatalogController extends Controller
         }
         $inventory->update(['quantity' => $next]);
         $inventory->movements()->create([
-            'store_id' => $store->id, 'user_id' => $request->user()->id,
+            'store_id' => $store->id, 'user_id' => $request->user('web')->id,
             'type' => $type, 'quantity' => $delta, 'balance_after' => $next, 'notes' => $notes,
         ]);
     }
