@@ -35,7 +35,7 @@ export default function CatalogIndex({ team, store, products, categories, canMan
             <Head title={'Catalog — ' + store.name} />
             <div className="flex flex-col gap-6">
                 <div className="m-2">
-                    <Button asChild size="sm" variant="ghost">
+                    <Button asChild size="sm" variant="outline">
                         <Link href={'/settings/teams/' + team.slug + '/stores/' + store.id}>
                             <ArrowLeft /> Back to store
                         </Link>
