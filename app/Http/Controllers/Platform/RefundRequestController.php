@@ -36,8 +36,7 @@ class RefundRequestController extends Controller
                         'gateway_order_id' => $refund->paymentTransaction->gateway_order_id,
                         'gateway_transaction_id' => $refund->paymentTransaction->gateway_transaction_id,
                         'status' => $refund->paymentTransaction->status,
-                        'payment_type' => data_get($refund->paymentTransaction->metadata, 'last_notification.payment_type')
-                            ?? data_get($refund->paymentTransaction->metadata, 'last_status_response.payment_type'),
+                        'payment_type' => data_get($refund->paymentTransaction->metadata, 'last_notification.payment_type') ?? data_get($refund->paymentTransaction->metadata, 'last_status_response.payment_type'),
                     ],
                     'reviewer' => $refund->reviewer?->only(['name']),
                 ]),
@@ -66,10 +65,8 @@ class RefundRequestController extends Controller
 
         if ($validated['status'] === 'processing' && $refundRequest->paymentTransaction->gateway === 'midtrans') {
             $metadata = (array) ($refundRequest->paymentTransaction->metadata ?? []);
-            $paymentType = data_get($metadata, 'last_notification.payment_type')
-                ?? data_get($metadata, 'last_status_response.payment_type');
-            $gatewayStatus = data_get($metadata, 'last_notification.transaction_status')
-                ?? data_get($metadata, 'last_status_response.transaction_status');
+            $paymentType = data_get($metadata, 'last_notification.payment_type') ?? data_get($metadata, 'last_status_response.payment_type');
+            $gatewayStatus = data_get($metadata, 'last_notification.transaction_status') ?? data_get($metadata, 'last_status_response.transaction_status');
             $midtransRefundMethods = ['credit_card', 'gopay', 'qris', 'shopeepay', 'dana', 'ovo', 'kredivo', 'akulaku'];
 
             if ($paymentType === null || (in_array($paymentType, $midtransRefundMethods, true) && $gatewayStatus !== 'settlement')) {
