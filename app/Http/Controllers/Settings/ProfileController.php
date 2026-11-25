@@ -22,6 +22,7 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
             'error' => $request->session()->get('error'),
+            'success' => $request->session()->get('success'),
             'profile' => $user->only(['name', 'email', 'phone', 'shipping_address', 'shipping_city', 'shipping_province', 'shipping_postal_code']),
         ]);
     }
@@ -37,6 +38,7 @@ class ProfileController extends Controller
 
         $user->save();
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
+        $request->session()->flash('success', __('Profile updated.'));
 
         return redirect()->intended(route('profile.edit'));
     }
