@@ -40,26 +40,6 @@ class Order extends Model
         ];
     }
 
-    /**
-     * Legacy scope retained while existing User-linked order history is migrated.
-     *
-     * @param  Builder<Order>  $query
-     * @return Builder<Order>
-     */
-    public function scopeForCustomer(Builder $query, User $user): Builder
-    {
-        return $query->where(function (Builder $orders) use ($user): void {
-            $orders->where('user_id', $user->id);
-
-            if ($user->hasVerifiedEmail()) {
-                $orders->orWhere(function (Builder $legacy) use ($user): void {
-                    $legacy->whereNull('user_id')
-                        ->whereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
-                });
-            }
-        });
-    }
-
     /** @return BelongsTo<Store, $this> */
     public function store(): BelongsTo
     {
