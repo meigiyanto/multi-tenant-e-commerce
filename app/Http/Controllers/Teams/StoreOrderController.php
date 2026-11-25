@@ -28,6 +28,7 @@ class StoreOrderController extends Controller
             'search' => ['nullable', 'string', 'max:120'],
         ]);
 
+        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, Order> $orders */
         $orders = Order::query()
             ->where('store_id', $store->id)
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
