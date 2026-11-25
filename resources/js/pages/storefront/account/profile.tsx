@@ -1,4 +1,4 @@
-import { Form, router, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';\nimport type { FormEvent } from 'react';
 import CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
 type ProfileData = { name: string; email: string; phone: string | null };
@@ -11,7 +11,7 @@ const labelClass = 'mb-1.5 block text-sm font-medium';
 export default function CustomerProfile({ store, profile, avatar_url, addresses }: Props) {
     const profileForm = useForm({ name: profile.name, email: profile.email, phone: profile.phone ?? '', avatar: null as File | null, current_password: '', password: '', password_confirmation: '' });
     const addressForm = useForm({ label: '', type: 'home' as 'home' | 'office', recipient_name: profile.name, phone: profile.phone ?? '', address: '', city: '', province: '', postal_code: '', is_default: addresses.length === 0 });
-    const submitProfile = (event: React.FormEvent) => { event.preventDefault(); profileForm.patch('/account/profile', { forceFormData: true, preserveScroll: true }); };
+    const submitProfile = (event: FormEvent) => { event.preventDefault(); profileForm.patch('/account/profile', { forceFormData: true, preserveScroll: true }); };
     const submitAddress = (event: React.FormEvent) => { event.preventDefault(); addressForm.post('/account/addresses', { preserveScroll: true, onSuccess: () => addressForm.reset('label', 'address', 'city', 'province', 'postal_code') }); };
     const defaultAddress = addresses.find((address) => address.is_default);
 
