@@ -51,6 +51,27 @@ class EmailVerificationTest extends TestCase
         $response->assertRedirect("/{$team->slug}/dashboard?verified=1");
     }
 
+    public function test_customer_without_a_team_returns_to_the_storefront_after_email_verification(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        Event::fake();
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)],
+        );
+
+        $response = $this->actingAs($user)
+            ->withSession(['url.intended' => 'https://nuvora.example.test/account'])
+            ->get($verificationUrl);
+
+        Event::assertDispatched(Verified::class);
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $response->assertRedirect('https://nuvora.example.test/account');
+    }
+
     public function test_email_is_not_verified_with_invalid_hash()
     {
         $user = User::factory()->unverified()->create();
