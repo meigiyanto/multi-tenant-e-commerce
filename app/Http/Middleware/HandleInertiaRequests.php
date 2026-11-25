@@ -37,9 +37,9 @@ class HandleInertiaRequests extends Middleware
     {
         $platformUser = $request->user();
         $isStorefront = $request->routeIs('storefront.*');
-        $store = $request->attributes->get('store');
-        $customer = $isStorefront && $store !== null ? $request->user('customer') : null;
-        if ($customer !== null && (int) $customer->store_id !== (int) $store->id) {
+        $storeSubdomain = $request->route('storeSubdomain');
+        $customer = $isStorefront && is_string($storeSubdomain) ? $request->user('customer') : null;
+        if ($customer !== null && $customer->store?->slug !== $storeSubdomain) {
             $customer = null;
         }
         $user = $isStorefront ? $customer : $platformUser;
