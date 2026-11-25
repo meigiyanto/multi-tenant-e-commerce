@@ -10,6 +10,7 @@ use App\Http\Controllers\Storefront\CustomerAccountController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\CustomerEmailVerificationController;
 use App\Http\Controllers\Storefront\CustomerOrderController;
+use App\Http\Controllers\Storefront\CustomerRefundRequestController;
 use App\Http\Controllers\Storefront\CustomerPasswordResetController;
 use App\Http\Controllers\Storefront\CustomerProfileController;
 use App\Http\Controllers\Storefront\OrderTrackingController;
@@ -58,7 +59,8 @@ if ($storefrontRootDomain !== '') {
                 Route::post('/account/verification-notification', [CustomerEmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('storefront.account.verification.send');
                 Route::get('/account/verify-email/{id}/{hash}', [CustomerEmailVerificationController::class, 'verify'])->middleware('signed')->name('storefront.account.verification.verify');
                 Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
-                Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');\n                Route::post('/account/orders/{orderNumber}/refund-requests', [CustomerRefundRequestController::class, 'store'])->middleware('throttle:5,1')->name('storefront.account.orders.refund-requests.store');
+                Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
+                Route::post('/account/orders/{orderNumber}/refund-requests', [CustomerRefundRequestController::class, 'store'])->middleware('throttle:5,1')->name('storefront.account.orders.refund-requests.store');
                 Route::get('/account/profile', [CustomerProfileController::class, 'edit'])->name('storefront.account.profile');
                 Route::patch('/account/profile', [CustomerProfileController::class, 'update'])->name('storefront.account.profile.update');
                 Route::post('/account/addresses', [CustomerProfileController::class, 'storeAddress'])->name('storefront.account.addresses.store');
