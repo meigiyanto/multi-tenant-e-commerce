@@ -125,7 +125,7 @@ class CustomerProfileController extends Controller
         DB::transaction(function () use ($customer, $record, $data): void {
             $makeDefault = (bool) ($data['is_default'] ?? false) || $record->is_default;
             if ($makeDefault) {
-                $customer->addresses()->whereKeyNot($record->id)->update(['is_default' => false]);
+                $customer->addresses()->where('id', '!=', $record->id)->update(['is_default' => false]);
             }
             $record->update([...$data, 'is_default' => $makeDefault]);
         });
