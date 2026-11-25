@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\Customer;
+use App\Services\Storefront\CartSessionService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,7 @@ class CustomerAuthController extends Controller
         return Inertia::render('storefront/account/register', ['store' => ['name' => $store->name]]);
     }
 
-    public function login(Request $request, StoreContext $context): RedirectResponse
+    public function login(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -50,11 +52,12 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer, (bool) ($credentials['remember'] ?? false));
         $request->session()->regenerate();
+        $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
 
         return to_route('storefront.account.index', ['storeSubdomain' => $store->slug]);
     }
 
-    public function register(Request $request, StoreContext $context): RedirectResponse
+    public function register(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -73,9 +76,16 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
+        $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
 
         return to_route('storefront.account.profile', ['storeSubdomain' => $store->slug])
             ->with('success', __('Your customer account has been created.'));
+    }
+
+    private function linkActiveCart(int $storeId, string $sessionId, Customer $customer): void
+    {
+        Cart::query()->where('store_id', $storeId)->where('session_id', $sessionId)
+            ->where('status', 'active')->update(['customer_id' => $customer->id, 'user_id' => null]);
     }
 
     public function logout(Request $request, StoreContext $context): RedirectResponse
