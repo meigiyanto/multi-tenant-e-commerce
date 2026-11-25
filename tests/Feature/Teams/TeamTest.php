@@ -437,6 +437,31 @@ class TeamTest extends TestCase
         $response->assertForbidden();
     }
 
+
+    public function test_the_teams_index_hides_empty_personal_customer_workspaces(): void
+    {
+        $user = User::factory()->create();
+        $merchantTeam = Team::factory()->create(['name' => 'Merchant Workspace']);
+        $merchantTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
+
+        $response = $this->actingAs($user)->get(route('teams.index'));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('teams/index')
+            ->has('teams', 1)
+            ->where('teams.0.name', 'Merchant Workspace'));
+    }
+
+    public function test_customers_cannot_open_a_personal_team_dashboard_without_a_store(): void
+    {
+        $user = User::factory()->create();
+        $personalTeam = $user->personalTeam();
+
+        $response = $this->actingAs($user)->get(route('dashboard', ['current_team' => $personalTeam->slug]));
+
+        $response->assertForbidden();
+    }
+
     public function test_guests_cannot_access_teams()
     {
         $response = $this->get(route('teams.index'));
