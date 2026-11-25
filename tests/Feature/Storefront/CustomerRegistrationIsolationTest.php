@@ -54,4 +54,39 @@ class CustomerRegistrationIsolationTest extends TestCase
         $this->assertGuest('web');
         Notification::assertSentTo($customer, VerifyCustomerEmail::class);
     }
+    public function test_platform_user_is_not_converted_into_a_customer_during_storefront_login(): void
+    {
+        $team = Team::factory()->create();
+        $store = $team->stores()->create([
+            'name' => 'Shop',
+            'slug' => 'shop',
+            'status' => 'active',
+        ]);
+        $store->domains()->create([
+            'domain' => 'shop.localhost',
+            'type' => 'custom',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+        $platformUser = User::factory()->create([
+            'email' => 'platform@example.com',
+            'password' => 'StrongPassword123!',
+        ]);
+
+        $response = $this->post('http://shop.localhost/account/login', [
+            'email' => $platformUser->email,
+            'password' => 'StrongPassword123!',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertDatabaseMissing('customers', [
+            'store_id' => $store->id,
+            'email' => $platformUser->email,
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $platformUser->id]);
+        $this->assertGuest('customer');
+        $this->assertGuest('web');
+    }
+
 }
