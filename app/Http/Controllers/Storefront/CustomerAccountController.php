@@ -33,7 +33,7 @@ class CustomerAccountController extends Controller
             'payment_status' => $order->payment_status,
             'total' => $order->total,
             'currency' => $order->currency,
-            'placed_at' => $order->placed_at?->toISOString(),
+            'placed_at' => $order->placed_at->toISOString(),
             'items_count' => $order->items_count,
         ]);
 
