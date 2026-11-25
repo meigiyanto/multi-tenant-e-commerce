@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature\\Merchant;
+namespace Tests\Feature\Merchant;
 
-use App\\Models\\MerchantApplication;
-use App\\Models\\PlatformAdmin;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Inertia\\Testing\\AssertableInertia as Assert;
-use Tests\\TestCase;
+use App\Models\MerchantApplication;
+use App\Models\PlatformAdmin;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
 
 class MerchantApplicationTest extends TestCase
 {
