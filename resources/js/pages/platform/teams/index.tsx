@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { ShieldCheck, Users, Store } from 'lucide-react';
+import { ShieldCheck, Users, Store, ClipboardCheck } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export default function PlatformTeamsIndex({ platformTeams }: Props) {
                 <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted"><ShieldCheck className="h-5 w-5" /></div>
                     <Heading variant="small" title="Platform Teams" description="Review tenant accounts and control their lifecycle." />
-                    <Badge className="ml-auto" variant="secondary">{platformTeams.total} teams</Badge>
+                    <div className="ml-auto flex items-center gap-2"><Button asChild size="sm" variant="outline"><Link href="/platform/admin/merchant-applications"><ClipboardCheck className="mr-1 h-4 w-4" /> Merchant applications</Link></Button><Badge variant="secondary">{platformTeams.total} teams</Badge></div>
                 </div>
                 <div className="space-y-3">
                     {platformTeams.data.map((team) => (
