@@ -18,7 +18,7 @@ class VerifyEmailResponse implements VerifyEmailResponseContract
             return new JsonResponse('', 204);
         }
 
-        $user = $request->user();
+        $user = $request->user('web');
 
         // Storefront customers are global accounts and do not need a Team.
         if (! $user?->currentTeam && ! $user?->personalTeam()) {
