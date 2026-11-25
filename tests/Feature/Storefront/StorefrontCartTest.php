@@ -114,6 +114,38 @@ class StorefrontCartTest extends TestCase
             );
     }
 
+    public function test_authenticated_customer_can_open_storefront_account_pages(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['name' => 'Account Customer']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account/profile')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/profile')
+                ->where('profile.name', 'Account Customer'),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/orders')
+                ->has('orders', 0),
+            );
+    }
+
+    public function test_guest_cannot_open_storefront_account_pages(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/account/profile')
+            ->assertRedirect('/login');
+
+        $this->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertRedirect('/login');
+    }
+
     public function test_guest_is_redirected_to_login_before_checkout(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant();
