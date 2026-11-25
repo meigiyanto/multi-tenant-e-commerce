@@ -16,7 +16,7 @@ class LoginResponse implements LoginResponseContract
         }
 
         if ($request->session()->pull('platform_login', false)) {
-            if (! $request->user()?->isPlatformAdmin()) {
+            if (! $request->user('web')?->isPlatformAdmin()) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -28,7 +28,7 @@ class LoginResponse implements LoginResponseContract
             return redirect()->route('platform.admin.teams.index');
         }
 
-        if ($request->user()?->isPlatformAdmin()) {
+        if ($request->user('web')?->isPlatformAdmin()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -37,7 +37,7 @@ class LoginResponse implements LoginResponseContract
                 ->withErrors(['email' => 'Use the platform administrator sign-in page.']);
         }
 
-        $team = $request->user()?->currentTeam;
+        $team = $request->user('web')?->currentTeam;
         $destination = $team
             ? route('dashboard', ['current_team' => $team->slug])
             : route('home');
