@@ -52,6 +52,7 @@ class StoreController extends Controller
     {
         Gate::authorize('update', $team);
         abort_unless($team->status === TeamStatus::Active->value, 403);
+        abort_if($team->is_personal && ! $team->stores()->exists(), 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
