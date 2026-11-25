@@ -10,7 +10,6 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Inertia\Inertia;
@@ -49,7 +48,7 @@ class CustomerPasswordResetController extends Controller
         return back()->with('status', 'customer-password-reset-link-sent');
     }
 
-    public function resetForm(string $token, Request $request, StoreContext $context): Response
+    public function showResetPage(string $token, Request $request, StoreContext $context): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
