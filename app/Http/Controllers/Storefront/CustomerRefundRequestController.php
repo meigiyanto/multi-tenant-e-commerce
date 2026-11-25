@@ -8,6 +8,7 @@ use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class CustomerRefundRequestController extends Controller
 {
@@ -49,7 +50,8 @@ class CustomerRefundRequestController extends Controller
             'status' => 'requested',
         ]);
 
-        return to_route('storefront.account.orders.index')
-            ->with('success', 'Your refund request has been submitted for review.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Your refund request has been submitted for review.']);
+
+        return to_route('storefront.account.orders.index');
     }
 }
