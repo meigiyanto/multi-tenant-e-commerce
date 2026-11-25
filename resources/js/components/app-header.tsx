@@ -64,13 +64,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
 
-    const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboardUrl,
-            icon: LayoutGrid,
-        },
-    ];
+    const mainNavItems: NavItem[] = currentTeam ? [{ title: 'Dashboard', href: dashboardUrl, icon: LayoutGrid }] : [];
 
     return (
         <>
@@ -240,7 +234,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                         <UserMenuContent user={auth.user} />
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                <TeamSwitcher inHeader />
+                                {page.props.teams?.length > 0 ? <TeamSwitcher inHeader /> : null}
                             </>
                         ) : null}
                     </div>
