@@ -59,7 +59,7 @@ if ($storefrontRootDomain !== '') {
             Route::get('/shipping/destinations', [ShippingController::class, 'destinations'])->name('storefront.shipping.destinations');
             Route::get('/shipping/quotes', [ShippingController::class, 'quotes'])->name('storefront.shipping.quotes');
             Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
-            Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->name('storefront.orders.payment');
+            Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->middleware('auth:customer')->name('storefront.orders.payment');
         });
 }
 
