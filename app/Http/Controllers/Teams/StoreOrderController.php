@@ -185,7 +185,7 @@ class StoreOrderController extends Controller
         $statusService->transition(
             $store,
             $order,
-            $request->user(),
+            $request->user('web'),
             $validated['status'],
             $validated['note'] ?? null,
             $validated['tracking_number'] ?? null,
