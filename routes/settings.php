@@ -9,6 +9,7 @@ use App\Http\Controllers\Teams\StoreOrderController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
+use App\Http\Middleware\EnsureMerchantTeamContext;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
