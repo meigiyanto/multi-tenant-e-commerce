@@ -50,9 +50,9 @@ class CheckoutController extends Controller
         $user = $request->user('customer');
         $defaultAddress = $user->addresses()->where('is_default', true)->first();
         if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
-            $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
+            $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $request->route('storeSubdomain')]));
 
-            return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your contact information and default shipping address before checkout.');
+            return redirect()->route('storefront.account.profile', ['storeSubdomain' => $request->route('storeSubdomain')])->with('error', 'Complete your contact information and default shipping address before checkout.');
         }
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
@@ -105,7 +105,7 @@ class CheckoutController extends Controller
 
         $defaultAddress = $user->addresses()->where('is_default', true)->first();
         if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
-            return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your phone number and default shipping address before placing an order.');
+            return redirect()->route('storefront.account.profile', ['storeSubdomain' => $request->route('storeSubdomain')])->with('error', 'Complete your phone number and default shipping address before placing an order.');
         }
 
         $data = $request->validate([
