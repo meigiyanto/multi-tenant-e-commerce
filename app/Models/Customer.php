@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
     'name',
     'email',
     'password',
-    'phone',
+    'phone', 'avatar_path',
     'shipping_address',
     'shipping_city',
     'shipping_province',
@@ -46,6 +46,12 @@ class Customer extends Authenticatable implements MustVerifyEmail
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /** @return HasMany<CustomerAddress, $this> */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class);
     }
 
     /** @return HasMany<Order, $this> */
