@@ -48,7 +48,7 @@ Route::post('/payments/midtrans/notification', [PaymentController::class, 'notif
 Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
 
-Route::middleware('guest')->get('/platform/login', function (\\Illuminate\\Http\\Request $request) {\n    $request->session()->put('platform_login', true);\n\n    return Inertia::render('auth/platform-login', [\n        'canResetPassword' => \\Laravel\\Fortify\\Features::enabled(\\Laravel\\Fortify\\Features::resetPasswords()),\n        'status' => $request->session()->get('status'),\n    ]);\n})->name('platform.login');\n\nRoute::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
+Route::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
     $request->session()->put('platform_login', true);
 
     return Inertia::render('auth/platform-login', [
