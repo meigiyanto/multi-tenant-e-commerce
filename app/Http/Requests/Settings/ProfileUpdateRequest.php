@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Settings;
+namespace App\\Http\\Requests\\Settings;
 
-use App\Concerns\ProfileValidationRules;
-use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
+use App\\Concerns\\ProfileValidationRules;
+use Illuminate\\Contracts\\Validation\\ValidationRule;
+use Illuminate\\Foundation\\Http\\FormRequest;
+use Illuminate\\Support\\Str;
+use Illuminate\\Validation\\Rules\\Password;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -28,6 +29,8 @@ class ProfileUpdateRequest extends FormRequest
             'shipping_city' => ['nullable', 'string', 'max:120'],
             'shipping_province' => ['nullable', 'string', 'max:120'],
             'shipping_postal_code' => ['nullable', 'string', 'max:20'],
+            'current_password' => ['required_with:password', 'current_password'],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
         ];
     }
 }
