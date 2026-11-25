@@ -14,6 +14,7 @@ class CustomerProfileController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('storefront/account/profile', [
+            'success' => $request->session()->get('success'),
             'profile' => $request->user()->only([
                 'name', 'email', 'phone', 'shipping_address', 'shipping_city',
                 'shipping_province', 'shipping_postal_code',
