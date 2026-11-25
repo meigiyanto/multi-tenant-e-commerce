@@ -86,6 +86,34 @@ class StorefrontCartTest extends TestCase
     }
 
 
+    public function test_storefront_displays_the_authenticated_customer_identity(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        $user = User::factory()->create(['name' => 'Storefront Customer', 'email' => 'customer@example.com']);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->where('auth.user.id', $user->id)
+                ->where('auth.user.name', 'Storefront Customer')
+                ->where('auth.user.email', 'customer@example.com'),
+            );
+    }
+
+    public function test_guest_storefront_exposes_no_authenticated_customer(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+
+        $this->get('http://'.$store->slug.'.localhost/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/index')
+                ->where('auth.user', null),
+            );
+    }
+
     public function test_guest_is_redirected_to_login_before_checkout(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant();
@@ -106,7 +134,7 @@ class StorefrontCartTest extends TestCase
 
         $this->actingAs(User::factory()->create())
             ->get('http://'.$store->slug.'.localhost/checkout')
-            ->assertRedirect('/settings/profile')
+            ->assertRedirect('/account/profile')
             ->assertSessionHas('error');
     }
 
