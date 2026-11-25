@@ -35,7 +35,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $platformUser = $request->user();
+        $platformUser = $request->user('web');
         $isStorefront = $request->routeIs('storefront.*');
         $storeSubdomain = $request->route('storeSubdomain');
         $customer = $isStorefront && is_string($storeSubdomain) ? $request->user('customer') : null;
