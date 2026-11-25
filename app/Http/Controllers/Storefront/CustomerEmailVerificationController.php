@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Events\Verified;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +23,21 @@ class CustomerEmailVerificationController extends Controller
             'status' => $request->session()->get('status'),
             'email' => $request->user('customer')->email,
         ]);
+    }
+
+    public function verify(Request $request, int $id, string $hash): RedirectResponse
+    {
+        $customer = $request->user('customer');
+        abort_unless($customer && (int) $customer->getKey() === $id
+            && hash_equals(sha1($customer->getEmailForVerification()), $hash), 403);
+
+        if ($customer->markEmailAsVerified()) {
+            event(new Verified($customer));
+        }
+
+        return to_route('storefront.account.index', [
+            'storeSubdomain' => $request->route('storeSubdomain'),
+        ])->with('verified', true);
     }
 
     public function send(Request $request): RedirectResponse
