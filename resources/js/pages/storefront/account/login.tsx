@@ -4,14 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/input-error';
 
-type Props = { store: { name: string } };
+type Props = { store: { name: string }; status?: string };
 
-export default function CustomerLogin({ store }: Props) {
+export default function CustomerLogin({ store, status }: Props) {
     return (
         <>
             <Head title={`Customer login - ${store.name}`} />
             <div className="mx-auto w-full max-w-md space-y-6 p-6">
                 <h1 className="text-2xl font-semibold">Customer login</h1>
+                {status === 'customer-password-reset' && <p role="status" className="text-sm">Your password has been reset. You can now log in.</p>}
                 <p className="text-sm text-muted-foreground">{store.name}</p>
                 <Form action="/account/login" method="post" className="space-y-4">
                     {({ errors, processing }) => (
@@ -22,6 +23,7 @@ export default function CustomerLogin({ store }: Props) {
                         </>
                     )}
                 </Form>
+                <p className="text-sm"><Link className="underline" href="/account/forgot-password">Lupa password?</Link></p>
                 <p className="text-sm">Belum punya akun? <Link className="underline" href="/account/register">Daftar</Link></p>
             </div>
         </>
