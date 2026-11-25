@@ -18,6 +18,7 @@ class TeamTest extends TestCase
     public function test_the_teams_index_page_can_be_rendered()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         $response = $this
             ->actingAs($user)
