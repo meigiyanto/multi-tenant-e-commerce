@@ -91,8 +91,15 @@ class CustomerAuthController extends Controller
             ->where('status', 'active')->update(['customer_id' => $customer->id, 'user_id' => null]);
     }
 
-    public function logout(Request $request, StoreContext $context): RedirectResponse
+    public function logout(Request $request, StoreContext $context, CartSessionService $cartSessions): RedirectResponse
     {
+        $store = $context->store();
+        if ($store !== null) {
+            Cart::query()->where('store_id', $store->id)
+                ->where('session_id', $cartSessions->id($request))
+                ->where('status', 'active')->update(['customer_id' => null]);
+        }
+
         Auth::guard('customer')->logout();
         $request->session()->regenerate();
         $request->session()->regenerateToken();
