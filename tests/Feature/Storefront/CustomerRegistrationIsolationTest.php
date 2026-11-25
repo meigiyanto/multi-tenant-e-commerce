@@ -55,6 +55,65 @@ class CustomerRegistrationIsolationTest extends TestCase
         Notification::assertSentTo($customer, VerifyCustomerEmail::class);
     }
 
+    public function test_customer_login_is_scoped_to_the_current_store_even_when_email_is_shared(): void
+    {
+        $firstTeam = Team::factory()->create();
+        $firstStore = $firstTeam->stores()->create([
+            'name' => 'First Shop',
+            'slug' => 'first-shop',
+            'status' => 'active',
+        ]);
+        $firstStore->domains()->create([
+            'domain' => 'first-shop.localhost',
+            'type' => 'custom',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+
+        $secondTeam = Team::factory()->create();
+        $secondStore = $secondTeam->stores()->create([
+            'name' => 'Second Shop',
+            'slug' => 'second-shop',
+            'status' => 'active',
+        ]);
+        $secondStore->domains()->create([
+            'domain' => 'second-shop.localhost',
+            'type' => 'custom',
+            'status' => 'active',
+            'is_primary' => true,
+            'verified_at' => now(),
+        ]);
+
+        $firstCustomer = Customer::query()->create([
+            'store_id' => $firstStore->id,
+            'name' => 'First Customer',
+            'email' => 'shared@example.com',
+            'password' => 'FirstPassword123!',
+        ]);
+        Customer::query()->create([
+            'store_id' => $secondStore->id,
+            'name' => 'Second Customer',
+            'email' => 'shared@example.com',
+            'password' => 'SecondPassword123!',
+        ]);
+
+        $this->post('http://first-shop.localhost/account/login', [
+            'email' => 'shared@example.com',
+            'password' => 'SecondPassword123!',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest('customer');
+
+        $this->post('http://first-shop.localhost/account/login', [
+            'email' => 'shared@example.com',
+            'password' => 'FirstPassword123!',
+        ])->assertRedirect();
+
+        $this->assertAuthenticatedAs($firstCustomer, 'customer');
+        $this->assertGuest('web');
+    }
+
     public function test_platform_user_is_not_converted_into_a_customer_during_storefront_login(): void
     {
         $team = Team::factory()->create();
