@@ -24,7 +24,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/fonnte/*',
         ]);
 
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            if ($request->routeIs('storefront.*')) {
+                return route('storefront.account.login', ['storeSubdomain' => $request->route('storeSubdomain')]);
+            }
+
+            return route('login');
+        });
+
         $middleware->redirectUsersTo(function (Request $request): string {
+            $customer = $request->user('customer');
+            if ($customer !== null && $request->routeIs('storefront.*')) {
+                return route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]);
+            }
+
             $user = $request->user();
 
             if ($user?->isPlatformAdmin()) {
