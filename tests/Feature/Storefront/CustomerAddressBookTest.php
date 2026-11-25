@@ -3,6 +3,7 @@
 namespace Tests\Feature\Storefront;
 
 use App\Models\Customer;
+use App\Models\Store;
 use App\Models\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -68,7 +69,7 @@ class CustomerAddressBookTest extends TestCase
             ->assertNotFound();
     }
 
-    /** @return array{0: \App\Models\Store, 1: Customer} */
+    /** @return array{0: Store, 1: Customer} */
     private function storeAndCustomer(): array
     {
         $team = Team::factory()->create();
