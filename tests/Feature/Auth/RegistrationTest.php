@@ -54,7 +54,10 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
 
-        $user = User::where('email', 'test@example.com')->first();
-        $response->assertRedirect(route('dashboard'));
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $this->assertDatabaseCount('teams', 0);
+        $this->assertDatabaseCount('memberships', 0);
+        $this->assertNull($user->current_team_id);
+        $response->assertRedirect(route('home'));
     }
 }
