@@ -13,7 +13,7 @@ import { send } from '@/routes/verification';
 type ProfileData = { name: string; email: string; phone: string | null; shipping_address: string | null; shipping_city: string | null; shipping_province: string | null; shipping_postal_code: string | null };
 type PageProps = { auth: Auth };
 
-export default function Profile({ mustVerifyEmail, status, error, profile }: { mustVerifyEmail: boolean; status?: string; error?: string; profile: ProfileData }) {
+export default function Profile({ mustVerifyEmail, status, error, success, profile }: { mustVerifyEmail: boolean; status?: string; error?: string; success?: string; profile: ProfileData }) {
     const { auth } = usePage<PageProps>().props;
     const fields = [
         { name: 'phone', label: 'Phone / WhatsApp', value: profile.phone ?? '', placeholder: '+62...' },
