@@ -1,7 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 
 type Application = { id: number; business_name: string; business_description: string | null; status: string; review_notes: string | null; created_at: string | null; user: { id: number; name: string; email: string }; reviewer: { id: number; name: string } | null };
 type Paginated<T> = { data: T[]; links: { url: string | null; label: string; active: boolean }[] };
@@ -18,12 +17,12 @@ export default function MerchantApplications({ applications }: { applications: P
                     {application.status === 'pending' ? <div className="space-y-3">
                         <Form action={`/platform/admin/merchant-applications/${application.id}`} method="patch" className="space-y-2">
                             <input type="hidden" name="status" value="approved" />
-                            <Textarea name="review_notes" defaultValue={application.review_notes ?? ''} rows={2} placeholder="Optional approval notes" />
+                            <textarea name="review_notes" defaultValue={application.review_notes ?? ''} rows={2} placeholder="Optional approval notes" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" />
                             <Button type="submit">Approve application</Button>
                         </Form>
                         <Form action={`/platform/admin/merchant-applications/${application.id}`} method="patch" className="space-y-2">
                             <input type="hidden" name="status" value="rejected" />
-                            <Textarea name="review_notes" rows={2} placeholder="Reason for rejection (optional)" />
+                            <textarea name="review_notes" rows={2} placeholder="Reason for rejection (optional)" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" />
                             <Button type="submit" variant="destructive">Reject application</Button>
                         </Form>
                     </div> : <p className="text-xs text-muted-foreground">Reviewed by {application.reviewer?.name ?? 'Platform'}.</p>}
