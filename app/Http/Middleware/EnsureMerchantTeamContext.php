@@ -18,7 +18,13 @@ class EnsureMerchantTeamContext
         }
 
         abort_unless($team instanceof Team, 404);
-        abort_if($team->is_personal && ! $team->stores()->exists(), 403);
+        $hasStore = $team->stores()->exists();
+        $hasApprovedApplication = MerchantApplication::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'approved')
+            ->exists();
+        abort_if($team->is_personal && ! $hasStore, 403);
+        abort_unless($hasStore || $hasApprovedApplication, 403);
 
         return $next($request);
     }
