@@ -103,7 +103,7 @@ class CheckoutController extends Controller
         abort_if($store === null, 404);
         $user = $request->user('customer');
 
-        $defaultAddress = $user->addresses()->where('is_default', true)->first();
+        $defaultAddress = $this->defaultShippingAddress($user);
         if (! $this->hasCompleteShippingProfile($user, $defaultAddress)) {
             return redirect()->route('storefront.account.profile', ['storeSubdomain' => $request->route('storeSubdomain')])->with('error', 'Complete your phone number and default shipping address before placing an order.');
         }
@@ -159,7 +159,7 @@ class CheckoutController extends Controller
 
     private function defaultShippingAddress(Customer $user): ?CustomerAddress
     {
-        $address = $user->addresses()->where('is_default', true)->first();
+        $address = $this->defaultShippingAddress($user);
         if ($address !== null || blank($user->shipping_address)) {
             return $address;
         }
