@@ -16,21 +16,10 @@ class CustomerAccountController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $user = $request->user();
-        $orders = Order::query()
-            ->where('store_id', $store->id)
-            ->where(function ($query) use ($user): void {
-                $query->where('user_id', $user->id);
-
-                if ($user->hasVerifiedEmail()) {
-                    $query->orWhere(function ($legacyQuery) use ($user): void {
-                        $legacyQuery->whereNull('user_id')
-                            ->whereRaw('LOWER(customer_email) = ?', [mb_strtolower($user->email)]);
-                    });
-                }
-            });
+        $orders = Order::query()->forCustomer($request->user());
 
         $latestOrders = (clone $orders)
+            ->with(['store:id,name'])
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
@@ -38,6 +27,7 @@ class CustomerAccountController extends Controller
             ->get()
             ->map(fn (Order $order): array => [
                 'order_number' => $order->order_number,
+                'store_name' => $order->store?->name ?? 'Deleted store',
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
                 'total' => $order->total,
