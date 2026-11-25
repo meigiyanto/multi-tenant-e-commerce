@@ -72,7 +72,7 @@ class RefundRequestController extends Controller
                 ?? data_get($metadata, 'last_status_response.transaction_status');
             $midtransRefundMethods = ['credit_card', 'gopay', 'qris', 'shopeepay', 'dana', 'ovo', 'kredivo', 'akulaku'];
 
-            if (in_array($paymentType, $midtransRefundMethods, true) && $gatewayStatus !== 'settlement') {
+            if ($paymentType === null || (in_array($paymentType, $midtransRefundMethods, true) && $gatewayStatus !== 'settlement')) {
                 throw ValidationException::withMessages([
                     'status' => 'Midtrans refunds for this payment method require a settled transaction. A captured or pending transaction must follow the applicable cancellation procedure instead.',
                 ]);
@@ -98,7 +98,8 @@ class RefundRequestController extends Controller
             $refundRequest->customer->notify(new RefundRequestResult($refundRequest));
         }
 
-        return to_route('platform.admin.refunds.index')
-            ->with('success', 'Refund request updated.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Refund request updated.']);
+
+        return to_route('platform.admin.refunds.index');
     }
 }
