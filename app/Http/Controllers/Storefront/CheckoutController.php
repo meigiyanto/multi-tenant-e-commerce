@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Services\Payments\PaymentService;
 use App\Services\Shipping\ShippingQuoteService;
@@ -20,9 +21,13 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 class CheckoutController extends Controller
 {
     private readonly CartService $carts;
+
     private readonly CheckoutService $checkout;
+
     private readonly ShippingQuoteService $shipping;
+
     private readonly PaymentService $payments;
+
     private readonly CartSessionService $cartSessions;
 
     public function __construct(CartService $carts, CheckoutService $checkout, ShippingQuoteService $shipping, PaymentService $payments, CartSessionService $cartSessions)
@@ -41,7 +46,7 @@ class CheckoutController extends Controller
         $cart = $this->carts->findCurrent($store, $this->cartSessions->id($request));
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
-        $user = $request->user();
+        $user = $request->user('customer');
         if (! $this->hasCompleteShippingProfile($user)) {
             $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
 
@@ -51,14 +56,14 @@ class CheckoutController extends Controller
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
             $product = $item->product;
             $variant = $item->variant;
-            $unitPrice = $variant?->price ?? $product?->price ?? $item->unit_price;
-            $images = $product?->images ?? collect();
+            $unitPrice = $variant->price ?? $product->price ?? $item->unit_price;
+            $images = $product->images;
             $image = $images->firstWhere('is_primary', true) ?? $images->first();
 
             return [
                 'id' => $item->id,
-                'name' => $product?->name ?? 'Product unavailable',
-                'variant_name' => $variant?->name ?? 'Variant unavailable',
+                'name' => $product->name,
+                'variant_name' => $variant->name,
                 'quantity' => $item->quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
@@ -91,7 +96,7 @@ class CheckoutController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
-        $user = $request->user();
+        $user = $request->user('customer');
 
         if (! $this->hasCompleteShippingProfile($user)) {
             return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug])->with('error', 'Complete your phone number and default shipping address before placing an order.');
@@ -107,7 +112,8 @@ class CheckoutController extends Controller
             'customer_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $data = [
+        /** @var array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $checkoutData */
+        $checkoutData = [
             ...$data,
             'customer_name' => $user->name,
             'customer_email' => $user->email,
@@ -126,7 +132,7 @@ class CheckoutController extends Controller
         $destinationId = (int) $data['shipping_destination_id'];
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
         $weight = $this->shipping->weight($cart);
-        $order = $this->checkout->place($store, $this->cartSessions->id($request), $data, $rate, $destinationId, $data['shipping_destination_label'], $weight);
+        $order = $this->checkout->place($store, $this->cartSessions->id($request), $checkoutData, $rate, $destinationId, $data['shipping_destination_label'], $weight, $user);
 
         try {
             $payment = $this->payments->start($order);
@@ -145,7 +151,7 @@ class CheckoutController extends Controller
         }
     }
 
-    private function hasCompleteShippingProfile(\App\Models\User $user): bool
+    private function hasCompleteShippingProfile(Customer $user): bool
     {
         return filled($user->phone)
             && filled($user->shipping_address)
@@ -154,9 +160,9 @@ class CheckoutController extends Controller
             && filled($user->shipping_postal_code);
     }
 
-    public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
+    public function order(Request $request, string $storeSubdomain, string $orderNumber, StoreContext $context): Response
     {
-        return $this->renderOrder($orderNumber, $context);
+        return $this->renderOrder($orderNumber, $context, (int) $request->user('customer')->id);
     }
 
     public function finish(string $orderNumber, StoreContext $context): Response
@@ -164,11 +170,12 @@ class CheckoutController extends Controller
         return $this->renderOrder($orderNumber, $context);
     }
 
-    private function renderOrder(string $orderNumber, StoreContext $context): Response
+    private function renderOrder(string $orderNumber, StoreContext $context, ?int $customerId = null): Response
     {
         $store = $context->store();
         abort_if($store === null, 404);
         $order = Order::query()->where('store_id', $store->id)->where('order_number', $orderNumber)
+            ->when($customerId !== null, fn ($query) => $query->where('customer_id', $customerId))
             ->with(['items', 'paymentTransactions' => fn ($query) => $query->latest()])->firstOrFail();
 
         return Inertia::render('storefront/order-confirmation', [

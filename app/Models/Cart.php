@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['store_id', 'user_id', 'session_id', 'status', 'expires_at'])]
+#[Fillable(['store_id', 'user_id', 'customer_id', 'session_id', 'status', 'expires_at'])]
 class Cart extends Model
 {
     protected function casts(): array
@@ -25,6 +25,12 @@ class Cart extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<Customer, $this> */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /** @return HasMany<CartItem, $this> */

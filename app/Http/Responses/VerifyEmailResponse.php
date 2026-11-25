@@ -14,8 +14,19 @@ class VerifyEmailResponse implements VerifyEmailResponseContract
 
     public function toResponse($request): Response
     {
-        return $request->wantsJson()
-            ? new JsonResponse('', 204)
-            : redirect()->intended($this->redirectPathForCurrentTeam($request, Fortify::redirects('email-verification')).'?verified=1');
+        if ($request->wantsJson()) {
+            return new JsonResponse('', 204);
+        }
+
+        $user = $request->user('web');
+
+        // Storefront customers are global accounts and do not need a Team.
+        if (! $user?->currentTeam && ! $user?->personalTeam()) {
+            return redirect()->intended('/');
+        }
+
+        return redirect()->intended(
+            $this->redirectPathForCurrentTeam($request, Fortify::redirects('email-verification')).'?verified=1',
+        );
     }
 }

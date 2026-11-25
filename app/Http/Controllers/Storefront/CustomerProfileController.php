@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Http\Requests\Storefront\CustomerProfileUpdateRequest;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,19 +19,19 @@ class CustomerProfileController extends Controller
 
         return Inertia::render('storefront/account/profile', [
             'store' => ['name' => $store->name],
-            'profile' => $request->user()->only([
+            'profile' => $request->user('customer')->only([
                 'name', 'email', 'phone', 'shipping_address', 'shipping_city',
                 'shipping_province', 'shipping_postal_code',
             ]),
         ]);
     }
 
-    public function update(ProfileUpdateRequest $request, StoreContext $context): RedirectResponse
+    public function update(CustomerProfileUpdateRequest $request, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $user = $request->user();
+        $user = $request->user('customer');
         $emailChanged = $user->email !== $request->validated('email');
         $validated = $request->validated();
         unset($validated['current_password']);
@@ -53,7 +53,7 @@ class CustomerProfileController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $emailChanged
-                ? __('Profile updated. A new verification link has been sent to your new email address.')
+                ? __('Profile updated. A verification link has been sent to your new email address.')
                 : __('Profile updated.'),
         ]);
 

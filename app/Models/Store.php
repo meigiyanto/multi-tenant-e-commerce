@@ -50,6 +50,12 @@ class Store extends Model
         return $this->hasOne(StoreDomain::class)->where('is_primary', true);
     }
 
+    /** @return HasMany<Customer, $this> */
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
     /** @return HasMany<Category, $this> */
     public function categories(): HasMany
     {

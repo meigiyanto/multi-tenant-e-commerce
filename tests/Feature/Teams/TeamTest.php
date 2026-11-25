@@ -441,7 +441,6 @@ class TeamTest extends TestCase
         $response->assertForbidden();
     }
 
-
     public function test_the_teams_index_hides_empty_personal_customer_workspaces(): void
     {
         $user = User::factory()->create();

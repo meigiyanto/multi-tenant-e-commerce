@@ -24,6 +24,33 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/fonnte/*',
         ]);
 
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            if ($request->routeIs('storefront.*')) {
+                return route('storefront.account.login', ['storeSubdomain' => $request->route('storeSubdomain')]);
+            }
+
+            return route('login');
+        });
+
+        $middleware->redirectUsersTo(function (Request $request): string {
+            $customer = $request->user('customer');
+            if ($customer !== null && $request->routeIs('storefront.*')) {
+                return route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]);
+            }
+
+            $user = $request->user('web');
+
+            if ($user?->isPlatformAdmin()) {
+                return route('platform.admin.teams.index');
+            }
+
+            $team = $user?->current_team_id ? $user->currentTeam : null;
+
+            return $team
+                ? route('dashboard', ['current_team' => $team->slug])
+                : route('home');
+        });
+
         $middleware->alias([
             'store.domain' => ResolveStoreFromDomain::class,
         ]);

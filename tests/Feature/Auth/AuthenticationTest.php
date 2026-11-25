@@ -3,9 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\TeamRole;
+use App\Models\PlatformAdmin;
 use App\Models\Team;
 use App\Models\TeamInvitation;
-use App\Models\PlatformAdmin;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -69,6 +69,30 @@ class AuthenticationTest extends TestCase
         $this->assertNull($freshUser->current_team_id);
         $this->assertCount(0, $freshUser->teams);
         $this->assertDatabaseMissing('team_members', ['user_id' => $user->id]);
+    }
+
+    public function test_authenticated_users_without_a_team_are_redirected_safely_from_login(): void
+    {
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+
+        $user->forceFill(['current_team_id' => null])->save();
+        $team?->members()->detach($user);
+        $team?->delete();
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('home'));
+    }
+
+    public function test_authenticated_platform_admins_are_redirected_from_customer_login(): void
+    {
+        $user = User::factory()->create();
+        PlatformAdmin::query()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('platform.admin.teams.index'));
     }
 
     public function test_passkey_login_response_redirects_to_home_without_a_team(): void
@@ -203,5 +227,4 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('platform.login'));
         $response->assertSessionHasErrors('email');
     }
-
 }

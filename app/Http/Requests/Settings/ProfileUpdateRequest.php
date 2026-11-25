@@ -24,14 +24,14 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...$this->profileRules($this->user()->id),
+            ...$this->profileRules($this->user('web')->id),
             'phone' => ['nullable', 'string', 'max:40'],
             'shipping_address' => ['nullable', 'string', 'max:2000'],
             'shipping_city' => ['nullable', 'string', 'max:120'],
             'shipping_province' => ['nullable', 'string', 'max:120'],
             'shipping_postal_code' => ['nullable', 'string', 'max:20'],
             'current_password' => ['nullable', Rule::requiredIf(fn (): bool => filled($this->input('password'))), 'current_password'],
-            'password' => ['nullable', 'confirmed', (Password::defaults() ?? Password::min(8))],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
         ];
     }
 }

@@ -35,18 +35,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        $platformUser = $request->user('web');
+        $isStorefront = $request->routeIs('storefront.*');
+        $storeSubdomain = $request->route('storeSubdomain');
+        $customer = $isStorefront && is_string($storeSubdomain) ? $request->user('customer') : null;
+        if ($customer !== null && $customer->store?->slug !== $storeSubdomain) {
+            $customer = null;
+        }
+        $user = $isStorefront ? $customer : $platformUser;
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
-                'isPlatformAdmin' => $user?->isPlatformAdmin() ?? false,
+                'isPlatformAdmin' => ! $isStorefront && ($platformUser?->isPlatformAdmin() ?? false),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
-            'teams' => fn () => $user?->toUserTeams(includeCurrent: true)->values()->all() ?? [],
+            'currentTeam' => fn () => ! $isStorefront && $platformUser?->currentTeam ? $platformUser->toUserTeam($platformUser->currentTeam) : null,
+            'teams' => fn () => ! $isStorefront ? ($platformUser?->toUserTeams(includeCurrent: true)->values()->all() ?? []) : [],
         ];
     }
 }

@@ -34,7 +34,7 @@ class OrderTrackingController extends Controller
                 'order_number' => $order->order_number,
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
-                'placed_at' => $order->placed_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
                 'shipped_at' => $order->shipped_at?->toISOString(),
                 'delivered_at' => $order->delivered_at?->toISOString(),
                 'shipping_courier' => $order->shipping_courier,

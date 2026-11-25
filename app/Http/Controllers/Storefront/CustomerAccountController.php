@@ -16,27 +16,28 @@ class CustomerAccountController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        $orders = Order::query()->forCustomer($request->user());
+        $customer = $request->user('customer');
+        $orders = Order::query()->where('store_id', $store->id)->where('customer_id', $customer->id);
 
-        $latestOrders = (clone $orders)
+        $latestOrderRecords = (clone $orders)
             ->with(['store:id,name'])
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
             ->limit(5)
-            ->get()
-            ->map(fn (Order $order): array => [
-                'order_number' => $order->order_number,
-                'store_name' => $order->store?->name ?? 'Deleted store',
-                'status' => $order->status,
-                'payment_status' => $order->payment_status,
-                'total' => $order->total,
-                'currency' => $order->currency,
-                'placed_at' => $order->placed_at?->toISOString(),
-                'items_count' => $order->items_count,
-            ]);
+            ->get();
+        $latestOrders = $latestOrderRecords->map(fn (Order $order): array => [
+            'order_number' => $order->order_number,
+            'store_name' => $order->store->name,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+            'total' => $order->total,
+            'currency' => $order->currency,
+            'placed_at' => $order->placed_at->toISOString(),
+            'items_count' => $order->items_count,
+        ]);
 
-        $user = $request->user();
+        $user = $customer;
         $profileComplete = filled($user->name) && filled($user->email)
             && filled($user->phone) && filled($user->shipping_address)
             && filled($user->shipping_city) && filled($user->shipping_province)

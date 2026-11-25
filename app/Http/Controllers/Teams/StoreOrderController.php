@@ -53,7 +53,7 @@ class StoreOrderController extends Controller
                 'total' => (string) $order->total,
                 'currency' => $order->currency,
                 'items_count' => (int) $order->items_count,
-                'placed_at' => $order->placed_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
             ]);
 
         return Inertia::render('stores/orders/index', [
@@ -115,7 +115,7 @@ class StoreOrderController extends Controller
                 'shipping_amount' => (string) $order->shipping_amount,
                 'discount_amount' => (string) $order->discount_amount,
                 'total' => (string) $order->total,
-                'placed_at' => $order->placed_at?->toISOString(),
+                'placed_at' => $order->placed_at->toISOString(),
                 'items' => $order->items->map(fn ($item): array => [
                     'id' => $item->id,
                     'product_name' => $item->product_name,
@@ -185,7 +185,7 @@ class StoreOrderController extends Controller
         $statusService->transition(
             $store,
             $order,
-            $request->user(),
+            $request->user('web'),
             $validated['status'],
             $validated['note'] ?? null,
             $validated['tracking_number'] ?? null,

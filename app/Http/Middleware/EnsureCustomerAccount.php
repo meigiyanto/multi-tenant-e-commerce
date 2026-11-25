@@ -10,11 +10,18 @@ class EnsureCustomerAccount
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_if($request->user()?->isPlatformAdmin(), 403);
+        $customer = $request->user('customer');
+        abort_unless($customer !== null, 403);
 
-        if (! $request->user()?->hasVerifiedEmail()
-            && ! $request->routeIs('storefront.account.verification', 'storefront.account.verification.send')) {
-            return redirect('/account/verify-email');
+        if (! $customer->hasVerifiedEmail()
+            && ! $request->routeIs(
+                'storefront.account.verification',
+                'storefront.account.verification.send',
+                'storefront.account.verification.verify',
+            )) {
+            return redirect()->route('storefront.account.verification', [
+                'storeSubdomain' => $request->route('storeSubdomain'),
+            ]);
         }
 
         return $next($request);

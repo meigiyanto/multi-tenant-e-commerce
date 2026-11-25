@@ -118,7 +118,7 @@ class OrderNotificationService
 
         foreach ($deliveries as $delivery) {
             $metadata = (array) $delivery->metadata;
-            unset($metadata['dispatch_error'], $metadata['job_failure']);
+            $metadata = array_diff_key($metadata, ['dispatch_error' => true, 'job_failure' => true]);
             $delivery->update([
                 'status' => 'queued',
                 'failed_at' => null,

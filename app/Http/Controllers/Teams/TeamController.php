@@ -22,7 +22,7 @@ class TeamController extends Controller
 {
     public function index(Request $request): Response|RedirectResponse
     {
-        $user = $request->user();
+        $user = $request->user('web');
         $hasExistingStore = $user->teams()->whereHas('stores')->exists();
         if (! Gate::allows('create', Team::class) && ! $hasExistingStore) {
             return to_route('merchant.application.show');
@@ -47,7 +47,7 @@ class TeamController extends Controller
     public function store(SaveTeamRequest $request, CreateTeam $createTeam): RedirectResponse
     {
         Gate::authorize('create', Team::class);
-        $team = $createTeam->handle($request->user(), $request->validated('name'));
+        $team = $createTeam->handle($request->user('web'), $request->validated('name'));
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Merchant workspace created.')]);
 
         return to_route('teams.edit', ['team' => $team->slug]);
@@ -56,7 +56,7 @@ class TeamController extends Controller
     public function edit(Request $request, Team $team): Response
     {
         Gate::authorize('view', $team);
-        $user = $request->user();
+        $user = $request->user('web');
 
         return Inertia::render('teams/edit', [
             'team' => [
@@ -99,8 +99,8 @@ class TeamController extends Controller
 
     public function switch(Request $request, Team $team): RedirectResponse
     {
-        abort_unless($request->user()->belongsToTeam($team), 403);
-        $request->user()->switchTeam($team);
+        abort_unless($request->user('web')->belongsToTeam($team), 403);
+        $request->user('web')->switchTeam($team);
 
         return back();
     }
@@ -108,10 +108,12 @@ class TeamController extends Controller
     public function leave(Request $request, Team $team): RedirectResponse
     {
         Gate::authorize('leave', $team);
-        $user = $request->user();
+        $user = $request->user('web');
         $fallbackTeam = $user->isCurrentTeam($team) ? $user->fallbackTeam($team) : null;
         $team->memberships()->where('user_id', $user->id)->delete();
-        if ($fallbackTeam) $user->switchTeam($fallbackTeam);
+        if ($fallbackTeam) {
+            $user->switchTeam($fallbackTeam);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('You left the team ":name"', ['name' => $team->name])]);
 
         return to_route('teams.index');
@@ -119,7 +121,7 @@ class TeamController extends Controller
 
     public function destroy(DeleteTeamRequest $request, Team $team): RedirectResponse
     {
-        $user = $request->user();
+        $user = $request->user('web');
         $fallbackTeam = $user->isCurrentTeam($team) ? $user->fallbackTeam($team) : null;
         DB::transaction(function () use ($user, $team) {
             User::where('current_team_id', $team->id)->where('id', '!=', $user->id)
@@ -128,7 +130,9 @@ class TeamController extends Controller
             $team->memberships()->delete();
             $team->delete();
         });
-        if ($fallbackTeam) $user->switchTeam($fallbackTeam);
+        if ($fallbackTeam) {
+            $user->switchTeam($fallbackTeam);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Team deleted.')]);
 
         return to_route('teams.index');

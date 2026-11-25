@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Notifications\OrderNotificationService;
+use App\Services\Orders\OrderTrackingUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -59,7 +60,7 @@ class OrderNotificationDeliveryTest extends TestCase
             ]),
         ]);
 
-        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(\App\Services\Orders\OrderTrackingUrl::class));
+        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(OrderTrackingUrl::class));
 
         $this->assertSame('sent', $delivery->fresh()->status);
         $this->assertSame('fonnte', $delivery->fresh()->provider);
@@ -84,7 +85,7 @@ class OrderNotificationDeliveryTest extends TestCase
         ]);
         Mail::shouldReceive('raw')->once();
 
-        (new SendOrderPaidEmail($delivery->id))->handle(app(\App\Services\Orders\OrderTrackingUrl::class));
+        (new SendOrderPaidEmail($delivery->id))->handle(app(OrderTrackingUrl::class));
 
         $this->assertSame('sent', $delivery->fresh()->status);
         $this->assertNotNull($delivery->fresh()->sent_at);
@@ -224,7 +225,7 @@ class OrderNotificationDeliveryTest extends TestCase
         $delivery->update(['status' => 'sending', 'updated_at' => now()]);
         Http::fake();
 
-        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(\App\Services\Orders\OrderTrackingUrl::class));
+        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(OrderTrackingUrl::class));
 
         Http::assertNothingSent();
         $this->assertSame('sending', $delivery->fresh()->status);
@@ -237,7 +238,7 @@ class OrderNotificationDeliveryTest extends TestCase
         config(['services.fonnte.token' => 'test-fonnte-token']);
         Http::fake(['api.fonnte.com/send' => Http::response(['status' => true, 'process' => 'pending'])]);
 
-        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(\App\Services\Orders\OrderTrackingUrl::class));
+        (new SendOrderPaidWhatsApp($delivery->id))->handle(app(OrderTrackingUrl::class));
 
         $this->assertSame('sent', $delivery->fresh()->status);
         $this->assertNull($delivery->fresh()->provider_message_id);

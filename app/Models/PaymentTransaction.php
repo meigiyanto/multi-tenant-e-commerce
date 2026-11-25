@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'store_id', 'order_id', 'gateway', 'gateway_order_id', 'gateway_transaction_id',
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 /**
  * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $paid_at
+ * @property Carbon|null $created_at
  */
 class PaymentTransaction extends Model
 {

@@ -18,7 +18,7 @@ class PaymentController extends Controller
 {
     public function __construct(private readonly PaymentService $payments) {}
 
-    public function start(string $storeSubdomain, string $orderNumber, StoreContext $context): RedirectResponse
+    public function start(Request $request, string $storeSubdomain, string $orderNumber, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
@@ -26,6 +26,7 @@ class PaymentController extends Controller
         $order = Order::query()
             ->where('store_id', $store->id)
             ->where('order_number', $orderNumber)
+            ->where('customer_id', $request->user('customer')->id)
             ->firstOrFail();
 
         $transaction = $this->payments->start($order);
