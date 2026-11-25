@@ -23,18 +23,21 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
             $table->unique(['store_id', 'email']);
+            $table->unique(['store_id', 'id']);
             $table->index(['store_id', 'created_at']);
         });
 
         Schema::table('orders', function (Blueprint $table): void {
-            $table->foreignId('customer_id')->nullable()->after('user_id')
-                ->constrained('customers')->nullOnDelete();
+            $table->unsignedBigInteger('customer_id')->nullable()->after('user_id');
+            $table->foreign(['store_id', 'customer_id'])->references(['store_id', 'id'])
+                ->on('customers')->restrictOnDelete();
             $table->index(['store_id', 'customer_id']);
         });
 
         Schema::table('carts', function (Blueprint $table): void {
-            $table->foreignId('customer_id')->nullable()->after('user_id')
-                ->constrained('customers')->nullOnDelete();
+            $table->unsignedBigInteger('customer_id')->nullable()->after('user_id');
+            $table->foreign(['store_id', 'customer_id'])->references(['store_id', 'id'])
+                ->on('customers')->restrictOnDelete();
             $table->index(['store_id', 'customer_id', 'status']);
         });
     }
@@ -42,7 +45,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('carts', function (Blueprint $table): void {
-            $table->dropForeign(['customer_id']);
+            $table->dropForeign(['store_id', 'customer_id']);
             $table->dropIndex(['store_id', 'customer_id', 'status']);
             $table->dropColumn('customer_id');
         });
