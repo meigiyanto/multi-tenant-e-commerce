@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Merchant\MerchantApplicationController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
@@ -84,5 +85,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
+Route::middleware(['auth', 'verified'])->prefix('merchant')->name('merchant.')->group(function () {
+    Route::get('application', [MerchantApplicationController::class, 'show'])->name('application.show');
+    Route::post('application', [MerchantApplicationController::class, 'store'])->middleware('throttle:6,1')->name('application.store');
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/platform.php';
