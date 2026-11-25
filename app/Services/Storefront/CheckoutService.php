@@ -22,6 +22,10 @@ class CheckoutService
      */
     public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams, Customer $customer): Order
     {
+        if ((int) $customer->store_id !== (int) $store->id) {
+            throw ValidationException::withMessages(['customer' => 'This customer account does not belong to the selected store.']);
+        }
+
         return DB::transaction(function () use ($store, $sessionId, $data, $shippingRate, $destinationId, $destinationLabel, $weightGrams, $customer): Order {
             $cart = Cart::query()
                 ->where('store_id', $store->id)
