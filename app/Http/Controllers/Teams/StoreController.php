@@ -7,6 +7,7 @@ use App\Enums\StoreDomainStatus;
 use App\Enums\StoreStatus;
 use App\Enums\TeamStatus;
 use App\Http\Controllers\Controller;
+use App\Models\MerchantApplication;
 use App\Models\Store;
 use App\Models\StoreDomain;
 use App\Models\Team;
