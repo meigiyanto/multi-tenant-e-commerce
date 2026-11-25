@@ -9,6 +9,7 @@ use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\CustomerAccountController;
 use App\Http\Controllers\Storefront\CustomerEmailVerificationController;
 use App\Http\Controllers\Storefront\CustomerOrderController;
+use App\Http\Controllers\Storefront\CustomerPasswordResetController;
 use App\Http\Controllers\Storefront\CustomerProfileController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\OrderTrackingController;
@@ -42,6 +43,10 @@ if ($storefrontRootDomain !== '') {
                 Route::post('/account/login', [CustomerAuthController::class, 'login'])->middleware('throttle:5,1')->name('storefront.account.login.submit');
                 Route::get('/account/register', [CustomerAuthController::class, 'registerForm'])->name('storefront.account.register');
                 Route::post('/account/register', [CustomerAuthController::class, 'register'])->middleware('throttle:5,1')->name('storefront.account.register.submit');
+                Route::get('/account/forgot-password', [CustomerPasswordResetController::class, 'requestForm'])->name('storefront.account.password.request');
+                Route::post('/account/forgot-password', [CustomerPasswordResetController::class, 'sendLink'])->middleware('throttle:5,1')->name('storefront.account.password.email');
+                Route::get('/account/reset-password/{token}', [CustomerPasswordResetController::class, 'resetForm'])->name('storefront.account.password.reset');
+                Route::post('/account/reset-password', [CustomerPasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('storefront.account.password.update');
             });
             Route::post('/account/logout', [CustomerAuthController::class, 'logout'])
                 ->middleware('auth:customer')->name('storefront.account.logout');
@@ -58,7 +63,7 @@ if ($storefrontRootDomain !== '') {
             });
             Route::get('/shipping/destinations', [ShippingController::class, 'destinations'])->name('storefront.shipping.destinations');
             Route::get('/shipping/quotes', [ShippingController::class, 'quotes'])->name('storefront.shipping.quotes');
-            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->name('storefront.orders.show');
+            Route::get('/orders/{orderNumber}', [CheckoutController::class, 'order'])->middleware('auth:customer')->name('storefront.orders.show');
             Route::post('/orders/{orderNumber}/payment', [PaymentController::class, 'start'])->middleware('auth:customer')->name('storefront.orders.payment');
         });
 }
