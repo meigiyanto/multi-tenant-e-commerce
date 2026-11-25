@@ -19,16 +19,17 @@ class CustomerAccountController extends Controller
         $customer = $request->user('customer');
         $orders = Order::query()->where('store_id', $store->id)->where('customer_id', $customer->id);
 
-        $latestOrders = (clone $orders)
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Order> $latestOrderRecords */
+        $latestOrderRecords = (clone $orders)
             ->with(['store:id,name'])
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
             ->limit(5)
-            ->get()
-            ->map(fn (Order $order): array => [
+            ->get();
+        $latestOrders = $latestOrderRecords->map(fn (Order $order): array => [
                 'order_number' => $order->order_number,
-                'store_name' => $order->store?->name ?? 'Deleted store',
+                'store_name' => $order->store->name,
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
                 'total' => $order->total,
