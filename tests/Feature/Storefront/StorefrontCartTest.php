@@ -348,8 +348,6 @@ class StorefrontCartTest extends TestCase
         ], $attributes));
     }
 
-    private function createLegacyOrder(
-
     private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId, ?int $customerId = null): Order
     {
         return Order::query()->create([
