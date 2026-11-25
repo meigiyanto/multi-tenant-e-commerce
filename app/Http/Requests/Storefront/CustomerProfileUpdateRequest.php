@@ -32,12 +32,10 @@ class CustomerProfileUpdateRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255',
                 Rule::unique('customers', 'email')->where('store_id', $customer->store_id)->ignore($customer->id)],
             'phone' => ['nullable', 'string', 'max:40'],
-            'shipping_address' => ['nullable', 'string', 'max:2000'],
-            'shipping_city' => ['nullable', 'string', 'max:120'],
-            'shipping_province' => ['nullable', 'string', 'max:120'],
-            'shipping_postal_code' => ['nullable', 'string', 'max:20'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', Rule::requiredIf(fn (): bool => filled($this->input('password'))), 'current_password:customer'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password_confirmation' => ['nullable', 'string'],
         ];
     }
 }
