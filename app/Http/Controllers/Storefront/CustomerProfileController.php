@@ -24,7 +24,7 @@ class CustomerProfileController extends Controller
 
         return Inertia::render('storefront/account/profile', [
             'store' => ['name' => $store->name],
-            'profile' => $customer->only(['name', 'email', 'phone']),
+            'profile' => $customer->only(['name', 'email']),
             'avatar_url' => $customer->avatar_path ? Storage::disk('public')->url($customer->avatar_path) : null,
             'addresses' => $customer->addresses()->orderByDesc('is_default')->orderBy('id')->get()
                 ->map(fn (CustomerAddress $address): array => [
