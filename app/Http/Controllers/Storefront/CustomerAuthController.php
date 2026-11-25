@@ -76,6 +76,7 @@ class CustomerAuthController extends Controller
             'password' => $data['password'],
         ]);
 
+        $customer->sendEmailVerificationNotification();
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
         $this->linkActiveCart($store->id, $cartSessions->id($request), $customer);
