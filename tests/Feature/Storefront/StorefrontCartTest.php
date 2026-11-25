@@ -84,6 +84,46 @@ class StorefrontCartTest extends TestCase
         $this->assertDatabaseMissing('cart_items', ['id' => $itemId]);
     }
 
+
+    public function test_guest_is_redirected_to_login_before_checkout(): void
+    {
+        [$store, $variant] = $this->activeStoreWithVariant();
+        $this->withHeader('X-Storefront-Cart-Token', 'checkout-guest-token-0000000000000000000000000000000000000000');
+        $this->get('http://'.$store->slug.'.localhost/')->assertOk();
+        $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
+
+        $this->get('http://'.$store->slug.'.localhost/checkout')->assertRedirect('/login');
+    }
+
+    public function test_authenticated_checkout_displays_saved_customer_profile(): void
+    {
+        [$store, $variant] = $this->activeStoreWithVariant();
+        $this->withHeader('X-Storefront-Cart-Token', 'checkout-user-token-0000000000000000000000000000000000000000');
+        $this->get('http://'.$store->slug.'.localhost/')->assertOk();
+        $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
+
+        $user = User::factory()->create([
+            'name' => 'Saved Customer',
+            'email' => 'saved@example.com',
+            'phone' => '+628123456789',
+            'shipping_address' => 'Jl. Merdeka No. 10',
+            'shipping_city' => 'Jakarta Selatan',
+            'shipping_province' => 'DKI Jakarta',
+            'shipping_postal_code' => '12345',
+        ]);
+
+        $this->actingAs($user)->get('http://'.$store->slug.'.localhost/checkout')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/checkout')
+                ->where('customer.name', 'Saved Customer')
+                ->where('customer.email', 'saved@example.com')
+                ->where('customer.phone', '+628123456789')
+                ->where('customer.shipping_address', 'Jl. Merdeka No. 10')
+                ->where('customer.shipping_postal_code', '12345'),
+            );
+    }
+
     /** @return array{Store, ProductVariant} */
     private function activeStoreWithVariant(string $slug = 'cart-store', int $stock = 5, int $price = 100000): array
     {
