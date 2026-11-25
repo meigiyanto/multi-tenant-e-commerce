@@ -54,6 +54,7 @@ class CustomerRegistrationIsolationTest extends TestCase
         $this->assertGuest('web');
         Notification::assertSentTo($customer, VerifyCustomerEmail::class);
     }
+
     public function test_platform_user_is_not_converted_into_a_customer_during_storefront_login(): void
     {
         $team = Team::factory()->create();
@@ -88,5 +89,4 @@ class CustomerRegistrationIsolationTest extends TestCase
         $this->assertGuest('customer');
         $this->assertGuest('web');
     }
-
 }
