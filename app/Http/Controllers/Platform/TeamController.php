@@ -18,6 +18,7 @@ class TeamController extends Controller
     {
         return Inertia::render('platform/teams/index', [
             'platformTeams' => Team::query()
+                ->where(fn ($query) => $query->where('is_personal', false)->orWhereHas('stores'))
                 ->withCount(['stores', 'members'])
                 ->latest()
                 ->paginate(20)
@@ -36,12 +37,8 @@ class TeamController extends Controller
 
     public function updateStatus(Request $request, Team $team, TeamLifecycleService $lifecycle): RedirectResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', Rule::enum(TeamStatus::class)],
-        ]);
-
+        $validated = $request->validate(['status' => ['required', Rule::enum(TeamStatus::class)]]);
         $lifecycle->transition($team, TeamStatus::from((string) $validated['status']));
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Team status updated.')]);
 
         return to_route('platform.admin.teams.index');
