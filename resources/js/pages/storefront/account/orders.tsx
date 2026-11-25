@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ClipboardList, Package } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { ClipboardList, Package } from 'lucide-react';\nimport CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
 type Order = { order_number: string; status: string; payment_status: string; items_count: number; total: string; currency: string; placed_at: string | null; tracking_url: string };
 type Props = { store: { name: string; currency: string }; orders: Order[] };
