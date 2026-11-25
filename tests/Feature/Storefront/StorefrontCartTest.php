@@ -315,7 +315,7 @@ class StorefrontCartTest extends TestCase
     {
         $team = Team::factory()->create();
         $store = $team->stores()->create([
-            'name' => 'Cart Store',
+            'name' => $slug === 'other-store' ? 'Other Store' : 'Cart Store',
             'slug' => $slug.'-'.$team->id,
             'status' => 'active',
             'timezone' => 'Asia/Jakarta',
