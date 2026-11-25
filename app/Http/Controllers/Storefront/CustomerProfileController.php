@@ -35,6 +35,9 @@ class CustomerProfileController extends Controller
         $emailChanged = $user->email !== $request->validated('email');
         $validated = $request->validated();
         unset($validated['current_password']);
+        if (blank($validated['password'] ?? null)) {
+            unset($validated['password']);
+        }
         $user->fill($validated);
 
         if ($emailChanged) {
