@@ -12,7 +12,7 @@ use Inertia\Inertia;
 
 class CustomerRefundRequestController extends Controller
 {
-    public function store(Request $request, string $orderNumber, StoreContext $context): RedirectResponse
+    public function store(Request $request, string $storeSubdomain, string $orderNumber, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
