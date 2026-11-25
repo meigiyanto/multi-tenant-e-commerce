@@ -156,7 +156,7 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', env('STOREFRONT_ROOT_DOMAIN') ? '.'.ltrim((string) env('STOREFRONT_ROOT_DOMAIN'), '.') : null),
 
     /*
     |--------------------------------------------------------------------------
