@@ -57,6 +57,8 @@ class CustomerProfileController extends Controller
                 : __('Profile updated.'),
         ]);
 
-        return redirect()->route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
+        return $emailChanged
+            ? to_route('storefront.account.verification', ['storeSubdomain' => $store->slug])
+            : to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
     }
 }
