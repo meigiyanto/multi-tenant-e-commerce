@@ -5,6 +5,7 @@ namespace Tests\Feature\Storefront;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
