@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\TeamInvitation;
+use App\Models\PlatformAdmin;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -136,4 +137,45 @@ class AuthenticationTest extends TestCase
 
         $response->assertTooManyRequests();
     }
+    public function test_platform_login_screen_is_separate_from_customer_login(): void
+    {
+        $response = $this->get(route('platform.login'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('auth/platform-login')
+            ->where('canResetPassword', Features::enabled(Features::resetPasswords())),
+        );
+    }
+
+    public function test_non_platform_users_cannot_sign_in_through_platform_login(): void
+    {
+        $user = User::factory()->create();
+        $this->get(route('platform.login'));
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertRedirect(route('platform.login'));
+        $response->assertSessionHasErrors('email');
+    }
+
+    public function test_platform_admins_are_redirected_to_platform_management_after_login(): void
+    {
+        $user = User::factory()->create();
+        PlatformAdmin::query()->create(['user_id' => $user->id]);
+        $this->get(route('platform.login'));
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('platform.admin.teams.index'));
+    }
+
 }
