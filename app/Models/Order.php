@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $placed_at
+ * @property Carbon|null $shipped_at
+ * @property Carbon|null $delivered_at
+ */
 #[Fillable([
     'store_id', 'user_id', 'customer_id', 'order_number', 'status', 'payment_status', 'customer_name',
     'customer_email', 'customer_phone', 'shipping_address', 'shipping_city',
@@ -18,11 +23,6 @@ use Illuminate\Support\Carbon;
     'shipping_tracking_url', 'shipped_at', 'delivered_at', 'customer_note', 'currency',
     'subtotal', 'shipping_amount', 'discount_amount', 'total', 'placed_at',
 ])]
-/**
- * @property Carbon|null $placed_at
- * @property Carbon|null $shipped_at
- * @property Carbon|null $delivered_at
- */
 class Order extends Model
 {
     protected function casts(): array
