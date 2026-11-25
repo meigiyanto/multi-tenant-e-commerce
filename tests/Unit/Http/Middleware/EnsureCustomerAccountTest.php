@@ -1,14 +1,14 @@
 <?php
 
-namespace Tests\\Unit\\Http\\Middleware;
+namespace Tests\Unit\Http\Middleware;
 
-use App\\Http\\Middleware\\EnsureCustomerAccount;
-use App\\Models\\Team;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Http\\Request;
-use Symfony\\Component\\HttpKernel\\Exception\\HttpException;
-use Tests\\TestCase;
+use App\Http\Middleware\EnsureCustomerAccount;
+use App\Models\Team;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\TestCase;
 
 class EnsureCustomerAccountTest extends TestCase
 {
