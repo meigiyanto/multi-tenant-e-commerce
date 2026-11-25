@@ -97,6 +97,19 @@ class StorefrontCartTest extends TestCase
         $this->assertSame('/login', parse_url((string) $response->headers->get('Location'), PHP_URL_PATH));
     }
 
+    public function test_authenticated_customer_without_shipping_profile_is_redirected_to_profile_settings(): void
+    {
+        [$store, $variant] = $this->activeStoreWithVariant();
+        $this->withHeader('X-Storefront-Cart-Token', 'checkout-profile-token-0000000000000000000000000000000000000000');
+        $this->get('http://'.$store->slug.'.localhost/')->assertOk();
+        $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
+
+        $this->actingAs(User::factory()->create())
+            ->get('http://'.$store->slug.'.localhost/checkout')
+            ->assertRedirect('/settings/profile')
+            ->assertSessionHas('error');
+    }
+
     public function test_authenticated_checkout_displays_saved_customer_profile(): void
     {
         [$store, $variant] = $this->activeStoreWithVariant();
