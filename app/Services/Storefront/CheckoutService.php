@@ -3,13 +3,13 @@
 namespace App\Services\Storefront;
 
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Inventory;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Store;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,9 +20,9 @@ class CheckoutService
      * @phpstan-param array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $data
      * @phpstan-param array{courier: string, service: string, amount: int} $shippingRate
      */
-    public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams): Order
+    public function place(Store $store, string $sessionId, array $data, array $shippingRate, int $destinationId, string $destinationLabel, int $weightGrams, Customer $customer): Order
     {
-        return DB::transaction(function () use ($store, $sessionId, $data, $shippingRate, $destinationId, $destinationLabel, $weightGrams): Order {
+        return DB::transaction(function () use ($store, $sessionId, $data, $shippingRate, $destinationId, $destinationLabel, $weightGrams, $customer): Order {
             $cart = Cart::query()
                 ->where('store_id', $store->id)
                 ->where('session_id', $sessionId)
@@ -107,7 +107,8 @@ class CheckoutService
             $shippingAmount = (int) $shippingRate['amount'];
             $order = Order::query()->create([
                 'store_id' => $store->id,
-                'user_id' => Auth::id(),
+                'user_id' => null,
+                'customer_id' => $customer->id,
                 'order_number' => 'ORD-'.now()->format('Ymd').'-'.Str::upper(Str::random(8)),
                 'status' => 'pending',
                 'payment_status' => 'pending',
@@ -167,7 +168,7 @@ class CheckoutService
                 'note' => 'Order created from storefront checkout.',
             ]);
 
-            $cart->update(['status' => 'converted', 'user_id' => Auth::id()]);
+            $cart->update(['status' => 'converted', 'user_id' => null, 'customer_id' => $customer->id]);
 
             return $order;
         });
