@@ -12,13 +12,6 @@ class EnsureCustomerAccount
     {
         abort_unless($request->user('customer') !== null, 403);
 
-        if (! $request->user('customer')->hasVerifiedEmail()
-            && ! $request->routeIs('storefront.account.verification', 'storefront.account.verification.send')) {
-            return redirect()->route('storefront.account.verification', [
-                'storeSubdomain' => $request->route('storeSubdomain'),
-            ]);
-        }
-
         return $next($request);
     }
 }
