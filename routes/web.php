@@ -36,17 +36,15 @@ if ($storefrontRootDomain !== '') {
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->name('storefront.cart.items.destroy');
-            Route::middleware('guest')->group(function (): void {
-                Route::get('/account/login', function (\Illuminate\Http\Request $request) {
-                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
-                    return redirect()->route('login');
-                })->name('storefront.account.login');
-                Route::get('/account/register', function (\Illuminate\Http\Request $request) {
-                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
-                    return redirect()->route('register');
-                })->name('storefront.account.register');
+            Route::middleware('guest:customer')->group(function (): void {
+                Route::get('/account/login', [CustomerAuthController::class, 'loginForm'])->name('storefront.account.login');
+                Route::post('/account/login', [CustomerAuthController::class, 'login'])->middleware('throttle:5,1')->name('storefront.account.login.submit');
+                Route::get('/account/register', [CustomerAuthController::class, 'registerForm'])->name('storefront.account.register');
+                Route::post('/account/register', [CustomerAuthController::class, 'register'])->middleware('throttle:5,1')->name('storefront.account.register.submit');
             });
-            Route::middleware(['auth', EnsureCustomerAccount::class])->group(function (): void {
+            Route::post('/account/logout', [CustomerAuthController::class, 'logout'])
+                ->middleware('auth:customer')->name('storefront.account.logout');
+            Route::middleware(['auth:customer', EnsureCustomerAccount::class])->group(function (): void {
                 Route::get('/account/verify-email', [CustomerEmailVerificationController::class, 'show'])->name('storefront.account.verification');
                 Route::post('/account/verification-notification', [CustomerEmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('storefront.account.verification.send');
                 Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
