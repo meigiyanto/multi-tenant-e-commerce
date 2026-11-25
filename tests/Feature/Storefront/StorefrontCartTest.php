@@ -148,6 +148,9 @@ class StorefrontCartTest extends TestCase
     {
         [$store] = $this->activeStoreWithVariant();
 
+        $this->get('http://'.$store->slug.'.localhost/account')
+            ->assertRedirect('/login');
+
         $this->get('http://'.$store->slug.'.localhost/account/profile')
             ->assertRedirect('/login');
 
@@ -160,11 +163,11 @@ class StorefrontCartTest extends TestCase
         [$store] = $this->activeStoreWithVariant();
 
         $this->get('http://'.$store->slug.'.localhost/account/login')
-            ->assertRedirect('/login')
+            ->assertRedirect(route('login'))
             ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
 
         $this->get('http://'.$store->slug.'.localhost/account/register')
-            ->assertRedirect('/register')
+            ->assertRedirect(route('register'))
             ->assertSessionHas('url.intended', 'http://'.$store->slug.'.localhost/account');
     }
 
