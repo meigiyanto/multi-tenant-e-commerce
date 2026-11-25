@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 ])]
 /**
  * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $created_at
  * @property Carbon|null $queued_at
  * @property Carbon|null $sent_at
  * @property Carbon|null $delivered_at
