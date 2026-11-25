@@ -17,7 +17,8 @@ class CustomerOrderController extends Controller
         abort_if($store === null, 404);
 
         $orders = Order::query()
-            ->forCustomer($request->user())
+            ->where('store_id', $store->id)
+            ->where('customer_id', $request->user('customer')->id)
             ->with('store:id,name')
             ->withCount('items')
             ->latest('placed_at')
