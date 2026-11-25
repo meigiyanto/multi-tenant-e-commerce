@@ -1,31 +1,59 @@
-import { Form } from '@inertiajs/react';
+import { Form, router, useForm } from '@inertiajs/react';
 import CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
-type ProfileData = { name: string; email: string; phone: string | null; shipping_address: string | null; shipping_city: string | null; shipping_province: string | null; shipping_postal_code: string | null };
-type Props = { store: { name: string }; profile: ProfileData };
+type ProfileData = { name: string; email: string; phone: string | null };
+type CustomerAddress = { id: number; label: string; type: 'home' | 'office'; recipient_name: string; phone: string; address: string; city: string; province: string; postal_code: string | null; is_default: boolean };
+type Props = { store: { name: string }; profile: ProfileData; avatar_url: string | null; addresses: CustomerAddress[] };
 
-export default function CustomerProfile({ store, profile }: Props) {
-    const fields = [
-        { name: 'phone', label: 'Phone / WhatsApp', value: profile.phone ?? '', placeholder: '+62...' },
-        { name: 'shipping_address', label: 'Street address', value: profile.shipping_address ?? '', placeholder: 'Street, building, house number' },
-        { name: 'shipping_city', label: 'City / Regency', value: profile.shipping_city ?? '', placeholder: 'City or regency' },
-        { name: 'shipping_province', label: 'Province', value: profile.shipping_province ?? '', placeholder: 'Province' },
-        { name: 'shipping_postal_code', label: 'Postal code', value: profile.shipping_postal_code ?? '', placeholder: 'Postal code' },
-    ];
-    const inputClass = 'h-11 w-full rounded-md border border-black/15 px-3 text-sm outline-none focus:border-slate-500';
+const inputClass = 'h-11 w-full rounded-md border border-black/15 px-3 text-sm outline-none focus:border-slate-500';
+const labelClass = 'mb-1.5 block text-sm font-medium';
+
+export default function CustomerProfile({ store, profile, avatar_url, addresses }: Props) {
+    const profileForm = useForm({ name: profile.name, email: profile.email, phone: profile.phone ?? '', avatar: null as File | null, current_password: '', password: '', password_confirmation: '' });
+    const addressForm = useForm({ label: '', type: 'home' as 'home' | 'office', recipient_name: profile.name, phone: profile.phone ?? '', address: '', city: '', province: '', postal_code: '', is_default: addresses.length === 0 });
+    const submitProfile = (event: React.FormEvent) => { event.preventDefault(); profileForm.patch('/account/profile', { forceFormData: true, preserveScroll: true }); };
+    const submitAddress = (event: React.FormEvent) => { event.preventDefault(); addressForm.post('/account/addresses', { preserveScroll: true, onSuccess: () => addressForm.reset('label', 'address', 'city', 'province', 'postal_code') }); };
+    const defaultAddress = addresses.find((address) => address.is_default);
+
     return <CustomerAccountLayout title="My profile" storeName={store.name}>
-        <Form action="/account/profile" method="patch" options={{ preserveScroll: true }} className="space-y-5 rounded-lg border border-black/10 bg-white p-5 sm:p-7">
-            {({ processing, errors }) => <>
-                <div><label htmlFor="name" className="mb-1.5 block text-sm font-medium">Full name</label><input id="name" name="name" defaultValue={profile.name} required autoComplete="name" className={inputClass} />{errors.name ? <p className="mt-1 text-xs text-rose-600">{errors.name}</p> : null}</div>
-                <div><label htmlFor="email" className="mb-1.5 block text-sm font-medium">Email address</label><input id="email" name="email" type="email" defaultValue={profile.email} required autoComplete="email" className={inputClass} />{errors.email ? <p className="mt-1 text-xs text-rose-600">{errors.email}</p> : null}</div>
-                <div className="border-t border-black/5 pt-5"><h2 className="font-semibold">Default shipping details</h2><p className="mt-1 text-sm text-slate-500">These details are used to prefill your checkout information.</p></div>
-                {fields.map((field) => <div key={field.name}><label htmlFor={field.name} className="mb-1.5 block text-sm font-medium">{field.label}</label><input id={field.name} name={field.name} defaultValue={field.value} placeholder={field.placeholder} className={inputClass} />{errors[field.name as keyof typeof errors] ? <p className="mt-1 text-xs text-rose-600">{errors[field.name as keyof typeof errors]}</p> : null}</div>)}
+        <div className="space-y-7">
+            <form onSubmit={submitProfile} className="space-y-5 rounded-lg border border-black/10 bg-white p-5 sm:p-7">
+                <div><h2 className="font-semibold">Personal information</h2><p className="mt-1 text-sm text-slate-500">Manage your contact details and profile photo.</p></div>
+                <div className="flex items-center gap-4">
+                    {avatar_url ? <img src={avatar_url} alt="Profile photo" className="h-20 w-20 rounded-full border border-black/10 object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-2xl font-semibold text-slate-500">{profile.name.slice(0, 1).toUpperCase()}</div>}
+                    <div className="min-w-0 flex-1"><label htmlFor="avatar" className={labelClass}>Profile photo</label><input id="avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => profileForm.setData('avatar', event.target.files?.[0] ?? null)} className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium" /><p className="mt-1 text-xs text-slate-500">JPG, PNG, or WebP. Maximum 2 MB.</p>{profileForm.errors.avatar ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.avatar}</p> : null}</div>
+                </div>
+                <div><label htmlFor="name" className={labelClass}>Full name</label><input id="name" value={profileForm.data.name} onChange={(event) => profileForm.setData('name', event.target.value)} required autoComplete="name" className={inputClass} />{profileForm.errors.name ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.name}</p> : null}</div>
+                <div><label htmlFor="email" className={labelClass}>Email address</label><input id="email" type="email" value={profileForm.data.email} onChange={(event) => profileForm.setData('email', event.target.value)} required autoComplete="email" className={inputClass} />{profileForm.errors.email ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.email}</p> : null}</div>
+                <div><label htmlFor="phone" className={labelClass}>Phone / WhatsApp</label><input id="phone" value={profileForm.data.phone} onChange={(event) => profileForm.setData('phone', event.target.value)} placeholder="+62..." autoComplete="tel" className={inputClass} />{profileForm.errors.phone ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.phone}</p> : null}</div>
                 <div className="border-t border-black/5 pt-5"><h2 className="font-semibold">Change password</h2><p className="mt-1 text-sm text-slate-500">Leave these fields blank if you do not want to change your password.</p></div>
-                <div><label htmlFor="current_password" className="mb-1.5 block text-sm font-medium">Current password</label><input id="current_password" name="current_password" type="password" autoComplete="current-password" className={inputClass} />{errors.current_password ? <p className="mt-1 text-xs text-rose-600">{errors.current_password}</p> : null}</div>
-                <div><label htmlFor="password" className="mb-1.5 block text-sm font-medium">New password</label><input id="password" name="password" type="password" autoComplete="new-password" className={inputClass} />{errors.password ? <p className="mt-1 text-xs text-rose-600">{errors.password}</p> : null}</div>
-                <div><label htmlFor="password_confirmation" className="mb-1.5 block text-sm font-medium">Confirm new password</label><input id="password_confirmation" name="password_confirmation" type="password" autoComplete="new-password" className={inputClass} /></div>
-                <button type="submit" disabled={processing} className="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{processing ? 'Saving...' : 'Save changes'}</button>
-            </>}
-        </Form>
+                <div><label htmlFor="current_password" className={labelClass}>Current password</label><input id="current_password" type="password" value={profileForm.data.current_password} onChange={(event) => profileForm.setData('current_password', event.target.value)} autoComplete="current-password" className={inputClass} />{profileForm.errors.current_password ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.current_password}</p> : null}</div>
+                <div><label htmlFor="password" className={labelClass}>New password</label><input id="password" type="password" value={profileForm.data.password} onChange={(event) => profileForm.setData('password', event.target.value)} autoComplete="new-password" className={inputClass} />{profileForm.errors.password ? <p className="mt-1 text-xs text-rose-600">{profileForm.errors.password}</p> : null}</div>
+                <div><label htmlFor="password_confirmation" className={labelClass}>Confirm new password</label><input id="password_confirmation" type="password" value={profileForm.data.password_confirmation} onChange={(event) => profileForm.setData('password_confirmation', event.target.value)} autoComplete="new-password" className={inputClass} /></div>
+                <button type="submit" disabled={profileForm.processing} className="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{profileForm.processing ? 'Saving...' : 'Save profile'}</button>
+            </form>
+
+            <section className="space-y-5 rounded-lg border border-black/10 bg-white p-5 sm:p-7">
+                <div><h2 className="font-semibold">My addresses</h2><p className="mt-1 text-sm text-slate-500">Save home and office addresses. Your default address is used for courier delivery at checkout.</p></div>
+                {addresses.length ? <div className="space-y-3">{addresses.map((address) => <article key={address.id} className="rounded-md border border-black/10 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{address.label}</h3><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{address.type === 'home' ? 'Rumah' : 'Kantor'}</span>{address.is_default ? <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Default pengiriman</span> : null}</div><p className="mt-2 text-sm font-medium">{address.recipient_name} · {address.phone}</p><p className="mt-1 whitespace-pre-line text-sm text-slate-600">{address.address}</p><p className="mt-1 text-sm text-slate-600">{[address.city, address.province, address.postal_code].filter(Boolean).join(', ')}</p></div>
+                        <div className="flex shrink-0 flex-wrap gap-2">{!address.is_default ? <button type="button" onClick={() => router.put('/account/addresses/' + address.id + '/default', {}, { preserveScroll: true })} className="rounded-md border border-black/15 px-3 py-2 text-xs font-medium hover:bg-slate-50">Jadikan default</button> : null}<button type="button" onClick={() => { if (window.confirm('Hapus alamat ini?')) router.delete('/account/addresses/' + address.id, { preserveScroll: true }); }} className="rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50">Hapus</button></div>
+                    </div>
+                </article>)}</div> : <p className="rounded-md bg-slate-50 p-4 text-sm text-slate-500">Belum ada alamat. Tambahkan alamat untuk melanjutkan checkout.</p>}
+                <div className="border-t border-black/5 pt-5"><h3 className="font-semibold">Tambah alamat baru</h3></div>
+                <form onSubmit={submitAddress} className="grid gap-4 sm:grid-cols-2">
+                    <div><label htmlFor="address_label" className={labelClass}>Nama alamat</label><input id="address_label" value={addressForm.data.label} onChange={(event) => addressForm.setData('label', event.target.value)} placeholder="Contoh: Rumah, Kantor Jakarta" required className={inputClass} />{addressForm.errors.label ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.label}</p> : null}</div>
+                    <div><label htmlFor="address_type" className={labelClass}>Jenis alamat</label><select id="address_type" value={addressForm.data.type} onChange={(event) => addressForm.setData('type', event.target.value as 'home' | 'office')} className={inputClass}><option value="home">Rumah</option><option value="office">Kantor</option></select></div>
+                    <div><label htmlFor="recipient_name" className={labelClass}>Nama penerima</label><input id="recipient_name" value={addressForm.data.recipient_name} onChange={(event) => addressForm.setData('recipient_name', event.target.value)} required className={inputClass} />{addressForm.errors.recipient_name ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.recipient_name}</p> : null}</div>
+                    <div><label htmlFor="address_phone" className={labelClass}>Nomor telepon penerima</label><input id="address_phone" value={addressForm.data.phone} onChange={(event) => addressForm.setData('phone', event.target.value)} required className={inputClass} />{addressForm.errors.phone ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.phone}</p> : null}</div>
+                    <div className="sm:col-span-2"><label htmlFor="street_address" className={labelClass}>Alamat lengkap</label><textarea id="street_address" value={addressForm.data.address} onChange={(event) => addressForm.setData('address', event.target.value)} rows={3} required className="w-full rounded-md border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-slate-500" placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan" />{addressForm.errors.address ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.address}</p> : null}</div>
+                    <div><label htmlFor="city" className={labelClass}>Kota / Kabupaten</label><input id="city" value={addressForm.data.city} onChange={(event) => addressForm.setData('city', event.target.value)} required className={inputClass} />{addressForm.errors.city ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.city}</p> : null}</div>
+                    <div><label htmlFor="province" className={labelClass}>Provinsi</label><input id="province" value={addressForm.data.province} onChange={(event) => addressForm.setData('province', event.target.value)} required className={inputClass} />{addressForm.errors.province ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.province}</p> : null}</div>
+                    <div><label htmlFor="postal_code" className={labelClass}>Kode pos</label><input id="postal_code" value={addressForm.data.postal_code} onChange={(event) => addressForm.setData('postal_code', event.target.value)} className={inputClass} />{addressForm.errors.postal_code ? <p className="mt-1 text-xs text-rose-600">{addressForm.errors.postal_code}</p> : null}</div>
+                    <div className="flex items-center gap-2 self-end pb-2"><input id="is_default" type="checkbox" checked={addressForm.data.is_default} onChange={(event) => addressForm.setData('is_default', event.target.checked)} className="h-4 w-4 rounded border-slate-300" /><label htmlFor="is_default" className="text-sm">Jadikan alamat default pengiriman</label></div>
+                    <div className="sm:col-span-2"><button type="submit" disabled={addressForm.processing} className="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{addressForm.processing ? 'Menyimpan...' : 'Tambah alamat'}</button></div>
+                </form>
+            </section>
+        </div>
     </CustomerAccountLayout>;
 }
