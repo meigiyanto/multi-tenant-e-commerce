@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\TeamRole;
+use App\Models\MerchantApplication;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
@@ -26,7 +27,7 @@ class DashboardTest extends TestCase
     public function test_authenticated_users_can_visit_the_dashboard()
     {
         $user = User::factory()->create();
-        $team = $user->currentTeam;
+        $this->activateMerchantWorkspace($user);
 
         $response = $this
             ->actingAs($user)
@@ -39,6 +40,7 @@ class DashboardTest extends TestCase
     {
         $owner = User::factory()->create(['name' => 'Taylor Otwell']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $this->activateMerchantWorkspace($invitedUser);
         $team = Team::factory()->create(['name' => 'Laravel Team']);
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -69,6 +71,7 @@ class DashboardTest extends TestCase
     {
         $owner = User::factory()->create();
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $this->activateMerchantWorkspace($invitedUser);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
