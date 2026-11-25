@@ -21,6 +21,7 @@ export default function StorefrontIndex({ store, products, domain, cart_count }:
     const [variantId, setVariantId] = useState<number | null>(null);
     const [cartCount, setCartCount] = useState(cart_count);
     const [adding, setAdding] = useState(false);
+    const [accountMenuOpen, setAccountMenuOpen] = useState(false);
     useEffect(() => setCartCount(cart_count), [cart_count]);
     const categories = useMemo(() => ['All', ...new Set(products.map((p) => p.category).filter((v): v is string => Boolean(v)))], [products]);
     const visible = useMemo(() => {
@@ -45,14 +46,14 @@ export default function StorefrontIndex({ store, products, domain, cart_count }:
                     <a href="/" className="flex min-w-0 items-center gap-3">{store.logo_url ? <img src={store.logo_url} alt={store.name + ' logo'} className="h-10 w-10 rounded-md object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-md text-white" style={{ backgroundColor: store.primary_color }}><Store className="h-5 w-5" /></span>}<span className="truncate text-lg font-semibold tracking-tight" style={{ color: store.accent_color }}>{store.name}</span></a>
                     <nav aria-label="Store navigation" className="hidden items-center gap-7 md:flex"><a href="#collection" className="text-sm text-slate-600 hover:text-slate-950">Shop</a>{store.navigation.map((item, i) => <a key={i} href={item.url} className="text-sm text-slate-600 hover:text-slate-950">{item.label}</a>)}</nav>
                     <div className="flex items-center gap-2 sm:gap-3">
-                        {auth.user ? <details className="relative">
-                            <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-md border border-black/10 bg-white px-3 text-sm font-medium"><UserRound className="h-4 w-4" /><span className="hidden max-w-28 truncate sm:inline">{auth.user.name}</span></summary>
-                            <div className="absolute right-0 top-12 z-40 w-56 rounded-md border border-black/10 bg-white p-2 shadow-lg">
+                        {auth.user ? <div className="relative">
+                            <button type="button" aria-expanded={accountMenuOpen} aria-controls="storefront-account-menu" onClick={() => setAccountMenuOpen((open) => !open)} className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-black/10 bg-white px-3 text-sm font-medium"><UserRound className="h-4 w-4" /><span className="hidden max-w-28 truncate sm:inline">{auth.user.name}</span></button>
+                            {accountMenuOpen ? <div id="storefront-account-menu" className="absolute right-0 top-12 z-40 w-56 rounded-md border border-black/10 bg-white p-2 shadow-lg">
                                 <div className="border-b border-black/5 px-3 py-2"><p className="truncate text-sm font-semibold">{auth.user.name}</p><p className="truncate text-xs text-slate-500">{auth.user.email}</p></div>
-                                {auth.isPlatformAdmin ? <Link href="/platform/admin/teams" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50">Platform management</Link> : <><Link href="/account" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><UserRound className="h-4 w-4" />My account</Link><Link href="/account/orders" className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><ClipboardList className="h-4 w-4" />My orders</Link></>}
+                                {auth.isPlatformAdmin ? <Link href="/platform/admin/teams" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50">Platform management</Link> : <><Link href="/account" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><UserRound className="h-4 w-4" />My account</Link><Link href="/account/orders" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-2 rounded px-3 py-2.5 text-sm hover:bg-slate-50"><ClipboardList className="h-4 w-4" />My orders</Link></>}
                                 <button type="button" onClick={() => router.post('/account/logout')} className="flex w-full items-center gap-2 rounded px-3 py-2.5 text-left text-sm text-rose-700 hover:bg-rose-50"><LogOut className="h-4 w-4" />Log out</button>
-                            </div>
-                        </details> : <div className="flex items-center gap-2"><Link href="/account/login" className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-black/5">Log in</Link><Link href="/account/register" className="rounded-md px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: store.primary_color }}>Register</Link></div>}
+                            </div> : null}
+                        </div> : <div className="flex items-center gap-2"><Link href="/account/login" className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-black/5">Log in</Link><Link href="/account/register" className="rounded-md px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: store.primary_color }}>Register</Link></div>}
                         <a href="/cart" aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-md border border-black/10"><ShoppingBag className="h-5 w-5" />{cartCount > 0 ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white" style={{ backgroundColor: store.primary_color }} >{cartCount}</span> : null}</a>
                     </div>
                 </div>
