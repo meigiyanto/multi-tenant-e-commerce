@@ -56,14 +56,14 @@ class CheckoutController extends Controller
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
             $product = $item->product;
             $variant = $item->variant;
-            $unitPrice = $variant?->price ?? $product?->price ?? $item->unit_price;
-            $images = $product?->images ?? collect();
+            $unitPrice = $variant->price ?? $product->price ?? $item->unit_price;
+            $images = $product->images;
             $image = $images->firstWhere('is_primary', true) ?? $images->first();
 
             return [
                 'id' => $item->id,
-                'name' => $product?->name ?? 'Product unavailable',
-                'variant_name' => $variant?->name ?? 'Variant unavailable',
+                'name' => $product->name,
+                'variant_name' => $variant->name,
                 'quantity' => $item->quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => number_format((float) $unitPrice * $item->quantity, 2, '.', ''),
@@ -112,7 +112,8 @@ class CheckoutController extends Controller
             'customer_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $data = [
+        /** @var array{customer_name: string, customer_email: string, customer_phone: string, shipping_address: string, shipping_city: string, shipping_province: string, shipping_postal_code: string, customer_note?: string|null} $checkoutData */
+        $checkoutData = [
             ...$data,
             'customer_name' => $user->name,
             'customer_email' => $user->email,
@@ -131,7 +132,7 @@ class CheckoutController extends Controller
         $destinationId = (int) $data['shipping_destination_id'];
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
         $weight = $this->shipping->weight($cart);
-        $order = $this->checkout->place($store, $this->cartSessions->id($request), $data, $rate, $destinationId, $data['shipping_destination_label'], $weight, $user);
+        $order = $this->checkout->place($store, $this->cartSessions->id($request), $checkoutData, $rate, $destinationId, $data['shipping_destination_label'], $weight, $user);
 
         try {
             $payment = $this->payments->start($order);
