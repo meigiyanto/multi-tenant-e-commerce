@@ -1,5 +1,5 @@
-import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, UserRound } from 'lucide-react';
+import { Form } from '@inertiajs/react';
+import { UserRound } from 'lucide-react';\nimport CustomerAccountLayout from '@/layouts/storefront/customer-account-layout';
 
 type ProfileData = { name: string; email: string; phone: string | null; shipping_address: string | null; shipping_city: string | null; shipping_province: string | null; shipping_postal_code: string | null };
 type Props = { profile: ProfileData; success?: string };
