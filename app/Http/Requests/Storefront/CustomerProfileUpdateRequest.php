@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Requests\\Storefront;
+namespace App\Http\Requests\Storefront;
 
-use App\\Concerns\\ProfileValidationRules;
-use Illuminate\\Contracts\\Validation\\ValidationRule;
-use Illuminate\\Foundation\\Http\\FormRequest;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\Rule;
-use Illuminate\\Validation\\Rules\\Password;
+use App\Concerns\ProfileValidationRules;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class CustomerProfileUpdateRequest extends FormRequest
 {
