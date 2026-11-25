@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
+import OrderNumberCopy from '@/components/order-number-copy';
 import { Button } from '@/components/ui/button';
 
 type Refund = {
@@ -17,7 +18,7 @@ export default function RefundRequests({ refundRequests }: { refundRequests: Pag
         <div className="space-y-6">
             <Heading variant="small" title="Refund requests" description="Review customer requests and record verified manual refund outcomes." />
             {refundRequests.data.map((refund) => <section key={refund.id} className="space-y-3 rounded-lg border p-5">
-                <div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-semibold">{refund.order.order_number}</h2><p className="text-sm text-muted-foreground">{refund.customer.name} · {refund.customer.email}</p><p className="text-sm text-muted-foreground">{refund.order.total} {refund.order.currency} · {refund.payment.gateway} · {refund.payment.payment_type ?? 'Payment method unavailable'}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs capitalize">{refund.status.replaceAll('_', ' ')}</span></div>
+                <div className="flex flex-wrap justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{refund.order.order_number}</h2><OrderNumberCopy value={refund.order.order_number} /></div><p className="text-sm text-muted-foreground">{refund.customer.name} · {refund.customer.email}</p><p className="text-sm text-muted-foreground">{refund.order.total} {refund.order.currency} · {refund.payment.gateway} · {refund.payment.payment_type ?? 'Payment method unavailable'}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs capitalize">{refund.status.replaceAll('_', ' ')}</span></div>
                 <div className="text-sm"><p className="font-medium">Customer reason</p><p className="whitespace-pre-wrap text-muted-foreground">{refund.reason}</p></div>
                 <p className="text-xs text-muted-foreground">Gateway order ID: {refund.payment.gateway_order_id} · Transaction ID: {refund.payment.gateway_transaction_id ?? 'Unavailable'}</p>
                 {refund.status === 'requested' ? <div className="flex flex-wrap gap-2">
