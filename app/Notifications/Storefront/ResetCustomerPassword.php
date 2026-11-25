@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Storefront;
 
+use App\Models\Customer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -13,12 +14,13 @@ class ResetCustomerPassword extends Notification
 
     public function __construct(private readonly string $token) {}
 
+    /** @return array<int, string> */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(Customer $notifiable): MailMessage
     {
         $url = URL::route('storefront.account.password.reset', [
             'storeSubdomain' => $notifiable->store->slug,
