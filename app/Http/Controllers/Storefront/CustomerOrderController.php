@@ -18,7 +18,7 @@ class CustomerOrderController extends Controller
 
         $orders = Order::query()
             ->forCustomer($request->user())
-            ->with(['store:id,name', 'items'])
+            ->with('store:id,name')
             ->withCount('items')
             ->latest('placed_at')
             ->latest('id')
