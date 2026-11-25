@@ -28,6 +28,7 @@ class TeamTest extends TestCase
     public function test_teams_can_be_created()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         $response = $this
             ->actingAs($user)
@@ -65,6 +66,7 @@ class TeamTest extends TestCase
     public function test_team_slug_uses_next_available_suffix()
     {
         $user = User::factory()->create();
+        MerchantApplication::query()->create(['user_id' => $user->id, 'business_name' => 'Test Business', 'status' => 'approved']);
 
         Team::factory()->create(['name' => 'Acme', 'slug' => 'acme']);
         Team::factory()->create(['name' => 'Acme One', 'slug' => 'acme-1']);
