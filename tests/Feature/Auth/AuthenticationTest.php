@@ -71,6 +71,30 @@ class AuthenticationTest extends TestCase
         $this->assertDatabaseMissing('team_members', ['user_id' => $user->id]);
     }
 
+    public function test_authenticated_users_without_a_team_are_redirected_safely_from_login(): void
+    {
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+
+        $user->forceFill(['current_team_id' => null])->save();
+        $team?->members()->detach($user);
+        $team?->delete();
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('home'));
+    }
+
+    public function test_authenticated_platform_admins_are_redirected_from_customer_login(): void
+    {
+        $user = User::factory()->create();
+        PlatformAdmin::query()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('platform.admin.teams.index'));
+    }
+
     public function test_passkey_login_response_redirects_to_home_without_a_team(): void
     {
         $user = User::factory()->create();
