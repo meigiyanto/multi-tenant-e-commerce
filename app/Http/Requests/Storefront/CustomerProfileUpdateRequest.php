@@ -31,7 +31,6 @@ class CustomerProfileUpdateRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255',
                 Rule::unique('customers', 'email')->where('store_id', $customer->store_id)->ignore($customer->id)],
-            'phone' => ['nullable', 'string', 'max:40'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', Rule::requiredIf(fn (): bool => filled($this->input('password'))), 'current_password:customer'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
