@@ -10,7 +10,7 @@ class EnsureCustomerAccount
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_if($request->user()?->isPlatformAdmin(), 403);
+        abort_unless($request->user()?->isCustomerAccount(), 403);
 
         if (! $request->user()?->hasVerifiedEmail()
             && ! $request->routeIs('storefront.account.verification', 'storefront.account.verification.send')) {
