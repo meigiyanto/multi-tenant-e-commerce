@@ -26,7 +26,7 @@ class CustomerProfileController extends Controller
         ]);
     }
 
-    public function update(ProfileUpdateRequest $request, StoreContext $context): RedirectResponse
+    public function update(CustomerProfileUpdateRequest $request, StoreContext $context): RedirectResponse
     {
         $store = $context->store();
         abort_if($store === null, 404);
