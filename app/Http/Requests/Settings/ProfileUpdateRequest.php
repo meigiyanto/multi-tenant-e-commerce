@@ -30,7 +30,7 @@ class ProfileUpdateRequest extends FormRequest
             'shipping_province' => ['nullable', 'string', 'max:120'],
             'shipping_postal_code' => ['nullable', 'string', 'max:20'],
             'current_password' => ['required_with:password', 'current_password'],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password' => ['nullable', 'confirmed', (Password::defaults() ?? Password::min(8))],
         ];
     }
 }
