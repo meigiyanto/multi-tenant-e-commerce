@@ -49,7 +49,7 @@ class StoreDashboardController extends Controller
             'total' => (string) $order->total,
             'currency' => $order->currency,
             'items_count' => (int) $order->items_count,
-            'placed_at' => $order->placed_at?->toISOString(),
+            'placed_at' => $order->placed_at->toISOString(),
         ]);
 
         return Inertia::render('stores/dashboard', [
