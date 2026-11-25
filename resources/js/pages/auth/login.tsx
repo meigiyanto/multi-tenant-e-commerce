@@ -120,6 +120,11 @@ export default function Login({
                                 Sign up
                             </TextLink>
                         </div>
+
+                        <div className="text-center text-xs text-muted-foreground">
+                            Managing the platform?{' '}
+                            <TextLink href="/platform/login">Platform administrator sign in</TextLink>
+                        </div>
                     </>
                 )}
             </Form>
