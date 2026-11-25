@@ -16,6 +16,7 @@ use App\Http\Controllers\Storefront\ShippingController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureCustomerAccount;
+use App\Http\Middleware\EnsureMerchantTeamContext;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
 use App\Http\Middleware\ResolveStoreFromOrderNumber;
@@ -33,16 +34,14 @@ if ($storefrontRootDomain !== '') {
             Route::get('/cart', [CartController::class, 'show'])->name('storefront.cart.show');
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
-            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->name('storefront.cart.items.destroy');
             Route::middleware('guest')->group(function (): void {
                 Route::get('/account/login', function (\Illuminate\Http\Request $request) {
                     $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
-
                     return redirect()->route('login');
                 })->name('storefront.account.login');
                 Route::get('/account/register', function (\Illuminate\Http\Request $request) {
                     $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
-
                     return redirect()->route('register');
                 })->name('storefront.account.register');
             });
@@ -64,35 +63,26 @@ if ($storefrontRootDomain !== '') {
 }
 
 Route::get('/orders/{orderNumber}', [CheckoutController::class, 'finish'])
-    ->middleware(ResolveStoreFromOrderNumber::class)
-    ->name('storefront.orders.finish');
+    ->middleware(ResolveStoreFromOrderNumber::class)->name('storefront.orders.finish');
 Route::get('/track/{orderNumber}', [OrderTrackingController::class, 'show'])->name('storefront.orders.track');
-
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.midtrans.notification');
 Route::post('/webhooks/fonnte/{secret}', FonnteDeliveryWebhookController::class)->name('webhooks.fonnte');
 Route::post('/webhooks/notification-deliveries/{uuid}', NotificationDeliveryWebhookController::class)->name('webhooks.notification-deliveries');
-
 Route::middleware('guest')->get('/platform/login', function (\Illuminate\Http\Request $request) {
     $request->session()->put('platform_login', true);
-
     return Inertia::render('auth/platform-login', [
         'canResetPassword' => \Laravel\Fortify\Features::enabled(\Laravel\Fortify\Features::resetPasswords()),
         'status' => $request->session()->get('status'),
     ]);
 })->name('platform.login');
-
 Route::inertia('/', 'welcome')->name('home');
-
-Route::prefix('{current_team}')
-    ->middleware(['auth', 'verified', EnsureTeamMembership::class])
+Route::prefix('{current_team}')->middleware(['auth', 'verified', EnsureTeamMembership::class, EnsureMerchantTeamContext::class])
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
     });
-
 Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
-
 require __DIR__.'/settings.php';
 require __DIR__.'/platform.php';
