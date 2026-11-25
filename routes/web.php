@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CustomerOrderController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\OrderTrackingController;
 use App\Http\Controllers\Storefront\PaymentController;
@@ -30,6 +31,7 @@ if ($storefrontRootDomain !== '') {
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
             Route::middleware('auth')->group(function (): void {
+                Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
                 Route::get('/checkout', [CheckoutController::class, 'show'])->name('storefront.checkout.show');
                 Route::post('/checkout', [CheckoutController::class, 'store'])->name('storefront.checkout.store');
             });
