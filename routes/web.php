@@ -5,6 +5,7 @@ use App\Http\Controllers\Merchant\MerchantApplicationController;
 use App\Http\Controllers\FonnteDeliveryWebhookController;
 use App\Http\Controllers\NotificationDeliveryWebhookController;
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\CustomerAccountController;
 use App\Http\Controllers\Storefront\CustomerEmailVerificationController;
 use App\Http\Controllers\Storefront\CustomerOrderController;
