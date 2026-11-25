@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers\\Merchant;
+namespace App\Http\Controllers\Merchant;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\MerchantApplication;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Gate;
-use Inertia\\Inertia;
-use Inertia\\Response;
+use App\Http\Controllers\Controller;
+use App\Models\MerchantApplication;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class MerchantApplicationController extends Controller
 {
