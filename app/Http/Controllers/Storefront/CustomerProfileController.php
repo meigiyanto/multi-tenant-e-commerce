@@ -58,7 +58,7 @@ class CustomerProfileController extends Controller
         ]);
 
         return $emailChanged
-            ? to_route('storefront.account.verification', ['storeSubdomain' => $request->route('storeSubdomain')])
-            : to_route('storefront.account.profile', ['storeSubdomain' => $request->route('storeSubdomain')]);
+            ? to_route('storefront.account.verification', ['storeSubdomain' => $store->slug])
+            : to_route('storefront.account.profile', ['storeSubdomain' => $store->slug]);
     }
 }

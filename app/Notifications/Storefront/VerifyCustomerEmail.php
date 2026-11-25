@@ -7,8 +7,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
-use LogicException;
 
 class VerifyCustomerEmail extends Notification
 {
@@ -22,21 +20,11 @@ class VerifyCustomerEmail extends Notification
 
     public function toMail(Customer $notifiable): MailMessage
     {
-        $rootDomain = trim((string) config('storefront.root_domain'));
-        $primaryDomain = $notifiable->store?->primaryDomain?->domain;
-        $suffix = '.'.$rootDomain;
-
-        if ($rootDomain === '' || ! is_string($primaryDomain) || ! Str::endsWith($primaryDomain, $suffix)) {
-            throw new LogicException('The store primary domain must be configured under the storefront root domain before sending verification emails.');
-        }
-
-        $storeSubdomain = Str::beforeLast($primaryDomain, $suffix);
-
         $url = URL::temporarySignedRoute(
             'storefront.account.verification.verify',
             now()->addMinutes((int) config('auth.verification.expire', 60)),
             [
-                'storeSubdomain' => $storeSubdomain,
+                'storeSubdomain' => $notifiable->store->slug,
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
             ],
