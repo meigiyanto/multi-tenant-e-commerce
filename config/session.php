@@ -156,7 +156,7 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN', env('STOREFRONT_ROOT_DOMAIN') ? '.'.ltrim((string) env('STOREFRONT_ROOT_DOMAIN'), '.') : null),
+    'domain' => env('SESSION_DOMAIN', ($storefrontRootDomain = env('STOREFRONT_ROOT_DOMAIN', env('APP_ENV') === 'production' ? null : 'localhost')) ? '.'.ltrim((string) $storefrontRootDomain, '.') : null),
 
     /*
     |--------------------------------------------------------------------------
