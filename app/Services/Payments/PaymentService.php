@@ -8,7 +8,9 @@ use App\Models\Inventory;
 use App\Models\InventoryReservation;
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Models\RefundRequest;
 use App\Services\Notifications\OrderNotificationService;
+use App\Notifications\Storefront\RefundRequestResult;
 use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -172,8 +174,164 @@ class PaymentService
             throw new RuntimeException('The payment notification signature is invalid.');
         }
 
+        if ($gatewayName === 'midtrans' && ($payload['transaction_status'] ?? null) === 'refund') {
+            $this->applyVerifiedMidtransRefund($payload);
+
+            return;
+        }
+
         $this->assertValidStatusCode($payload);
         $this->applyVerifiedStatus($payload, $gateway, $gatewayName, true);
+    }
+
+    /**
+     * A Midtrans refund notification is a refund event, not a payment-status
+     * transition. Keep the original payment transaction marked as paid.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function applyVerifiedMidtransRefund(array $payload): void
+    {
+        if ((string) ($payload['status_code'] ?? '') !== '200') {
+            throw new RuntimeException('The Midtrans refund notification status code is invalid.');
+        }
+
+        $refundAmount = $this->normalizeAmount($payload['refund_amount'] ?? null);
+        $refunds = $payload['refunds'] ?? null;
+
+        if (! is_array($refunds) || $refunds === []) {
+            throw new RuntimeException('The Midtrans refund notification does not contain refund details.');
+        }
+
+        $refundTotal = '0.00';
+        $refundDetail = null;
+
+        foreach ($refunds as $refund) {
+            if (! is_array($refund) || ! isset($refund['refund_amount'])) {
+                throw new RuntimeException('The Midtrans refund detail is invalid.');
+            }
+
+            $amount = $this->normalizeAmount($refund['refund_amount']);
+            [$totalInteger, $totalFraction] = explode('.', $refundTotal);
+            [$amountInteger, $amountFraction] = explode('.', $amount);
+            $refundTotal = number_format(
+                ((int) $totalInteger * 100 + (int) $totalFraction + (int) $amountInteger * 100 + (int) $amountFraction) / 100,
+                2,
+                '.',
+                ''
+            );
+
+            if ($refundDetail === null || $amount === $refundAmount) {
+                $refundDetail = $refund;
+            }
+        }
+
+        if ($refundTotal !== $refundAmount) {
+            throw new RuntimeException('The Midtrans refund details do not match the reported refund amount.');
+        }
+
+        $notificationReference = $refundDetail['refund_chargeback_id']
+            ?? $refundDetail['refund_key']
+            ?? null;
+
+        if (blank($notificationReference)) {
+            throw new RuntimeException('The Midtrans refund notification does not include a refund reference.');
+        }
+
+        $notification = [
+            'order_id' => (string) ($payload['order_id'] ?? ''),
+            'transaction_id' => (string) ($payload['transaction_id'] ?? ''),
+            'transaction_status' => 'refund',
+            'status_code' => '200',
+            'gross_amount' => (string) ($payload['gross_amount'] ?? ''),
+            'refund_amount' => $refundAmount,
+            'payment_type' => $payload['payment_type'] ?? null,
+            'refund_reference' => (string) $notificationReference,
+            'refund_key' => $refundDetail['refund_key'] ?? null,
+            'refund_method' => $refundDetail['refund_method'] ?? null,
+            'refund_reason' => $refundDetail['reason'] ?? null,
+            'bank_confirmed_at' => $refundDetail['bank_confirmed_at'] ?? null,
+            'created_at' => $refundDetail['created_at'] ?? null,
+        ];
+
+        $notifiableRefundId = null;
+        $alreadyResolved = false;
+
+        DB::transaction(function () use ($payload, $refundAmount, $notification, &$notifiableRefundId, &$alreadyResolved): void {
+            $transaction = PaymentTransaction::query()
+                ->where('gateway', 'midtrans')
+                ->where('gateway_order_id', (string) ($payload['order_id'] ?? ''))
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($this->normalizeAmount($payload['gross_amount'] ?? null) !== $this->normalizeAmount($transaction->amount)) {
+                throw new RuntimeException('The Midtrans refund gross amount does not match the original payment.');
+            }
+
+            $metadata = (array) ($transaction->metadata ?? []);
+            $metadata['last_refund_notification'] = $notification;
+            $transaction->update(['metadata' => $metadata]);
+
+            $refundRequest = RefundRequest::query()
+                ->where('payment_transaction_id', $transaction->id)
+                ->whereIn('status', ['requested', 'under_review', 'processing', 'refunded'])
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if ($refundRequest === null) {
+                Log::critical('Midtrans confirmed a refund without a matching customer refund request', [
+                    'payment_transaction_id' => $transaction->id,
+                    'gateway_order_id' => $transaction->gateway_order_id,
+                    'refund_reference' => $notification['refund_reference'],
+                    'refund_amount' => $refundAmount,
+                ]);
+
+                return;
+            }
+
+            if ($refundRequest->status === 'refunded') {
+                $alreadyResolved = true;
+
+                return;
+            }
+
+            if ($refundAmount !== $this->normalizeAmount($transaction->amount)) {
+                Log::critical('Midtrans confirmed a partial refund that the full-refund workflow cannot resolve automatically', [
+                    'payment_transaction_id' => $transaction->id,
+                    'refund_request_id' => $refundRequest->id,
+                    'refund_amount' => $refundAmount,
+                    'payment_amount' => (string) $transaction->amount,
+                    'refund_reference' => $notification['refund_reference'],
+                ]);
+
+                return;
+            }
+
+            $refundRequest->update([
+                'status' => 'refunded',
+                'refund_reference' => (string) $notification['refund_reference'],
+                'result_notes' => 'Midtrans confirmed the refund. Method: '.($notification['refund_method'] ?? 'not provided')
+                    .'; bank confirmation: '.($notification['bank_confirmed_at'] ?? 'not provided')
+                    .'; reason: '.($notification['refund_reason'] ?? 'not provided').'.',
+                'reviewed_at' => $refundRequest->reviewed_at ?? now(),
+                'resolved_at' => now(),
+            ]);
+
+            $notifiableRefundId = $refundRequest->id;
+        });
+
+        if ($notifiableRefundId !== null) {
+            $refundRequest = RefundRequest::query()->with(['customer', 'order'])->findOrFail($notifiableRefundId);
+            $refundRequest->customer->notify(new RefundRequestResult($refundRequest));
+        }
+
+        if ($alreadyResolved) {
+            Log::info('Duplicate Midtrans refund notification acknowledged', [
+                'order_id' => $payload['order_id'] ?? null,
+                'refund_reference' => $notification['refund_reference'],
+            ]);
+        }
     }
 
     public function reconcilePendingTransactions(string $gatewayName = 'midtrans'): int
