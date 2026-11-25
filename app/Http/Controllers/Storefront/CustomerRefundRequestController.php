@@ -52,6 +52,6 @@ class CustomerRefundRequestController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Your refund request has been submitted for review.']);
 
-        return to_route('storefront.account.orders.index');
+        return to_route('storefront.account.orders.index', ['storeSubdomain' => $storeSubdomain]);
     }
 }
