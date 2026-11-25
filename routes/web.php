@@ -19,6 +19,7 @@ use App\Http\Controllers\Storefront\ShippingController;
 use App\Http\Controllers\Storefront\StorefrontController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureCustomerAccount;
+use App\Http\Middleware\EnsureCustomerStoreContext;
 use App\Http\Middleware\EnsureMerchantTeamContext;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\ResolveStoreFromDomain;
@@ -30,7 +31,7 @@ $storefrontRootDomain = trim((string) config('storefront.root_domain'));
 
 if ($storefrontRootDomain !== '') {
     Route::domain('{storeSubdomain}.'.$storefrontRootDomain)
-        ->middleware(ResolveStoreFromDomain::class)
+        ->middleware([ResolveStoreFromDomain::class, EnsureCustomerStoreContext::class])
         ->group(function (): void {
             Route::get('/', StorefrontController::class)->name('storefront.home');
             Route::get('/products/{slug}', [ProductController::class, 'show'])->name('storefront.products.show');
