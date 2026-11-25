@@ -23,7 +23,10 @@ class CustomerAuthController extends Controller
         $store = $context->store();
         abort_if($store === null, 404);
 
-        return Inertia::render('storefront/account/login', ['store' => ['name' => $store->name]]);
+        return Inertia::render('storefront/account/login', [
+            'store' => ['name' => $store->name],
+            'status' => request()->session()->get('status'),
+        ]);
     }
 
     public function registerForm(StoreContext $context): Response
