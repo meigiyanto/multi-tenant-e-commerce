@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Storefront;
 
+use App\Models\Customer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -11,12 +12,13 @@ class VerifyCustomerEmail extends Notification
 {
     use Queueable;
 
+    /** @return array<int, string> */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(Customer $notifiable): MailMessage
     {
         $url = URL::temporarySignedRoute(
             'storefront.account.verification.verify',
