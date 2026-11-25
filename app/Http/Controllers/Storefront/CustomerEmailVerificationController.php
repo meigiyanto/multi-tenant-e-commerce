@@ -15,6 +15,7 @@ class CustomerEmailVerificationController extends Controller
     {
         $store = $context->store();
         abort_if($store === null, 404);
+        $request->session()->put('url.intended', url('/account'));
 
         return Inertia::render('storefront/account/verify-email', [
             'store' => ['name' => $store->name],
