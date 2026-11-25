@@ -300,7 +300,8 @@ class StorefrontCartTest extends TestCase
                 'password' => 'NewPassword123!',
                 'password_confirmation' => 'NewPassword123!',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Profile updated.']);
 
         $this->assertTrue(Hash::check('NewPassword123!', $user->fresh()->password));
     }
