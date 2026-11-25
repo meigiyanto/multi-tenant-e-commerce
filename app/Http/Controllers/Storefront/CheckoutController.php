@@ -45,7 +45,7 @@ class CheckoutController extends Controller
         if (! $this->hasCompleteShippingProfile($user)) {
             $request->session()->put('url.intended', route('storefront.checkout.show', ['storeSubdomain' => $store->slug]));
 
-            return redirect()->route('profile.edit')->with('error', 'Complete your contact information and default shipping address before checkout.');
+            return redirect()->route('storefront.account.profile')->with('error', 'Complete your contact information and default shipping address before checkout.');
         }
 
         $items = $this->carts->items($cart)->get()->map(function ($item): array {
