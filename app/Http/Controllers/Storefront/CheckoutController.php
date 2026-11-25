@@ -43,6 +43,8 @@ class CheckoutController extends Controller
 
         $user = $request->user();
         if (blank($user->phone) || blank($user->shipping_address) || blank($user->shipping_city) || blank($user->shipping_province) || blank($user->shipping_postal_code)) {
+            $request->session()->put('url.intended', route('storefront.checkout.show'));
+
             return redirect()->route('profile.edit')->with('error', 'Complete your contact information and default shipping address before checkout.');
         }
 
