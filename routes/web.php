@@ -32,6 +32,18 @@ if ($storefrontRootDomain !== '') {
             Route::post('/cart/items', [CartController::class, 'store'])->name('storefront.cart.items.store');
             Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('storefront.cart.items.update');
             Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->whereNumber('item')->name('storefront.cart.items.destroy');
+            Route::middleware('guest')->group(function (): void {
+                Route::get('/account/login', function (\\Illuminate\\Http\\Request $request) {
+                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
+
+                    return redirect()->route('login');
+                })->name('storefront.account.login');
+                Route::get('/account/register', function (\\Illuminate\\Http\\Request $request) {
+                    $request->session()->put('url.intended', route('storefront.account.index', ['storeSubdomain' => $request->route('storeSubdomain')]));
+
+                    return redirect()->route('register');
+                })->name('storefront.account.register');
+            });
             Route::middleware('auth')->group(function (): void {
                 Route::get('/account', [CustomerAccountController::class, 'index'])->name('storefront.account.index');
                 Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('storefront.account.orders.index');
