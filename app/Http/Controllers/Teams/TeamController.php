@@ -23,8 +23,10 @@ class TeamController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $hasApprovedApplication = MerchantApplication::query()
+            ->where('user_id', $user->id)->where('status', 'approved')->exists();
         $teams = $user->teams()
-            ->where(fn ($query) => $query->where('teams.is_personal', false)->orWhereHas('stores'))
+            ->where(fn ($query) => $query->whereHas('stores')->when($hasApprovedApplication, fn ($query) => $query->orWhere('teams.is_personal', false)))
             ->get()
             ->map(fn (Team $team) => $user->toUserTeam($team))
             ->values()
