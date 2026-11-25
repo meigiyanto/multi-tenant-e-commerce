@@ -38,6 +38,10 @@ class CheckoutService
                 throw ValidationException::withMessages(['cart' => 'The shopping cart is empty.']);
             }
 
+            if ($cart->customer_id !== null && (int) $cart->customer_id !== (int) $customer->id) {
+                throw ValidationException::withMessages(['cart' => 'This shopping cart belongs to another customer.']);
+            }
+
             $items = $cart->items()->with(['product', 'variant'])->lockForUpdate()->get();
 
             if ($items->isEmpty()) {
@@ -172,7 +176,7 @@ class CheckoutService
                 'note' => 'Order created from storefront checkout.',
             ]);
 
-            $cart->update(['status' => 'converted', 'user_id' => null, 'customer_id' => $customer->id]);
+            $cart->update(['status' => 'converted', 'customer_id' => $customer->id]);
 
             return $order;
         });
