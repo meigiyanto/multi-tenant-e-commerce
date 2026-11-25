@@ -97,6 +97,7 @@ class DashboardTest extends TestCase
     {
         $owner = User::factory()->create();
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $this->activateMerchantWorkspace($invitedUser);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -126,6 +127,7 @@ class DashboardTest extends TestCase
     {
         $owner = User::factory()->create();
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $this->activateMerchantWorkspace($invitedUser);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
