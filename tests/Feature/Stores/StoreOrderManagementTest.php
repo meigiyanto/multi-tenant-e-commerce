@@ -130,7 +130,7 @@ class StoreOrderManagementTest extends TestCase
             ->patch(route('teams.stores.orders.status', ['team' => $team, 'store' => $store, 'order' => $order]), [
                 'status' => 'shipped',
             ])
-            ->assertSessionHasErrors('status');
+            ->assertSessionHasErrors('tracking_number');
 
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'processing', 'payment_status' => 'pending']);
         $this->assertDatabaseCount('order_status_histories', 0);
@@ -146,7 +146,7 @@ class StoreOrderManagementTest extends TestCase
             ->patch(route('teams.stores.orders.status', ['team' => $team, 'store' => $store, 'order' => $order]), [
                 'status' => 'delivered',
             ])
-            ->assertSessionHasErrors('status');
+            ->assertSessionHasErrors('note');
 
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'processing']);
         $this->assertDatabaseCount('order_status_histories', 0);
