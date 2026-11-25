@@ -92,7 +92,7 @@ class StorefrontCartTest extends TestCase
         $this->get('http://'.$store->slug.'.localhost/')->assertOk();
         $this->post('http://'.$store->slug.'.localhost/cart/items', ['product_variant_id' => $variant->id])->assertRedirect();
 
-        $this->get('http://'.$store->slug.'.localhost/checkout')->assertRedirect('/login');
+        $response = $this->get('http://'.$store->slug.'.localhost/checkout')->assertRedirect();\n        $this->assertSame('/login', parse_url((string) $response->headers->get('Location'), PHP_URL_PATH));
     }
 
     public function test_authenticated_checkout_displays_saved_customer_profile(): void
