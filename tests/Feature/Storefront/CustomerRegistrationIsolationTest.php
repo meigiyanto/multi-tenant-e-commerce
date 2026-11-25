@@ -3,12 +3,10 @@
 namespace Tests\Feature\Storefront;
 
 use App\Models\Customer;
-use App\Models\Store;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Storefront\VerifyCustomerEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -38,8 +36,7 @@ class CustomerRegistrationIsolationTest extends TestCase
         $teamsBefore = Team::query()->count();
         $membershipsBefore = $team->memberships()->count();
 
-        $response = $this->withServerVariables(['HTTP_HOST' => 'shop.localhost'])
-            ->post('/account/register', [
+        $response = $this->post('http://shop.localhost/account/register', [
                 'name' => 'Dewi Anggraini',
                 'email' => 'DEWI@example.com',
                 'password' => 'StrongPassword123!',
