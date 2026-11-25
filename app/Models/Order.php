@@ -9,14 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
-/**
- * @property Carbon|null $placed_at
- * @property Carbon|null $shipped_at
- * @property Carbon|null $delivered_at
- * @property int $items_count
- */
 #[Fillable([
-    'store_id', 'user_id', 'order_number', 'status', 'payment_status', 'customer_name',
+    'store_id', 'user_id', 'customer_id', 'order_number', 'status', 'payment_status', 'customer_name',
     'customer_email', 'customer_phone', 'shipping_address', 'shipping_city',
     'shipping_province', 'shipping_postal_code', 'shipping_destination_id',
     'shipping_destination_label', 'shipping_provider', 'shipping_courier',
@@ -42,8 +36,7 @@ class Order extends Model
     }
 
     /**
-     * Scope orders visible to a customer across every storefront.
-     * Legacy orders are matched by email only when the email is verified and the order is unclaimed.
+     * Legacy scope retained while existing User-linked order history is migrated.
      *
      * @param Builder<Order> $query
      * @return Builder<Order>
@@ -72,6 +65,12 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<Customer, $this> */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /** @return HasMany<OrderItem, $this> */
