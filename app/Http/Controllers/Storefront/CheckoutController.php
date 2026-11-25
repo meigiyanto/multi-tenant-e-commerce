@@ -42,7 +42,7 @@ class CheckoutController extends Controller
         abort_if($cart === null || $cart->items()->doesntExist(), 404);
 
         $user = $request->user();
-        if (blank($user->phone) || blank($user->shipping_address) || blank($user->shipping_city) || blank($user->shipping_province) || blank($user->shipping_postal_code)) {
+        if (! $this->hasCompleteShippingProfile($user)) {
             $request->session()->put('url.intended', route('storefront.checkout.show'));
 
             return redirect()->route('profile.edit')->with('error', 'Complete your contact information and default shipping address before checkout.');
@@ -93,7 +93,7 @@ class CheckoutController extends Controller
         abort_if($store === null, 404);
         $user = $request->user();
 
-        if (blank($user->phone) || blank($user->shipping_address) || blank($user->shipping_postal_code)) {
+        if (! $this->hasCompleteShippingProfile($user)) {
             return redirect()->route('profile.edit')->with('error', 'Complete your phone number and default shipping address before placing an order.');
         }
 
@@ -143,6 +143,15 @@ class CheckoutController extends Controller
 
             return $this->cartSessions->attach(redirect()->to($finishUrl)->with('error', 'Your order was created, but the payment session is unavailable. Please try again.'), $request);
         }
+    }
+
+    private function hasCompleteShippingProfile(\App\Models\User $user): bool
+    {
+        return filled($user->phone)
+            && filled($user->shipping_address)
+            && filled($user->shipping_city)
+            && filled($user->shipping_province)
+            && filled($user->shipping_postal_code);
     }
 
     public function order(string $storeSubdomain, string $orderNumber, StoreContext $context): Response
