@@ -144,6 +144,33 @@ class StorefrontCartTest extends TestCase
             );
     }
 
+    public function test_customer_order_history_includes_legacy_orders_linked_by_email_without_leaking_other_orders(): void
+    {
+        [$store] = $this->activeStoreWithVariant();
+        [, , $otherStore] = $this->activeStoreWithVariant('other-store');
+        $user = User::factory()->create(['email' => 'legacy-customer@example.com']);
+
+        $this->createLegacyOrder($store, 'ORD-LEGACY-CUSTOMER', 'legacy-customer@example.com', null);
+        $this->createLegacyOrder($store, 'ORD-OTHER-CUSTOMER', 'someone-else@example.com', null);
+        $this->createLegacyOrder($otherStore, 'ORD-OTHER-STORE', 'legacy-customer@example.com', null);
+
+        $this->actingAs($user)
+            ->get('http://'.$store->slug.'.localhost/account/orders')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('storefront/account/orders')
+                ->has('orders', 1)
+                ->where('orders.0.order_number', 'ORD-LEGACY-CUSTOMER'),
+            );
+
+        $this->get('http://'.$store->slug.'.localhost/account')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('summary.orders_count', 1)
+                ->has('latest_orders', 1),
+            );
+    }
+
     public function test_guest_cannot_open_storefront_account_pages(): void
     {
         [$store] = $this->activeStoreWithVariant();
@@ -223,6 +250,30 @@ class StorefrontCartTest extends TestCase
                 ->where('customer.shipping_address', 'Jl. Merdeka No. 10')
                 ->where('customer.shipping_postal_code', '12345'),
             );
+    }
+
+    private function createLegacyOrder(Store $store, string $number, string $email, ?int $userId): Order
+    {
+        return Order::query()->create([
+            'store_id' => $store->id,
+            'user_id' => $userId,
+            'order_number' => $number,
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'customer_name' => 'Legacy Customer',
+            'customer_email' => $email,
+            'customer_phone' => '08123456789',
+            'shipping_address' => 'Jalan Merdeka 1',
+            'shipping_city' => 'Jakarta',
+            'shipping_province' => 'DKI Jakarta',
+            'shipping_postal_code' => '10110',
+            'currency' => $store->currency,
+            'subtotal' => '100000.00',
+            'shipping_amount' => '10000.00',
+            'discount_amount' => '0.00',
+            'total' => '110000.00',
+            'placed_at' => now(),
+        ]);
     }
 
     /** @return array{Store, ProductVariant} */
