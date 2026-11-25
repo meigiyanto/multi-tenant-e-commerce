@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'uuid', 'store_id', 'order_id', 'event', 'channel', 'recipient', 'status',
@@ -13,6 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 /**
  * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $queued_at
+ * @property Carbon|null $sent_at
+ * @property Carbon|null $delivered_at
+ * @property Carbon|null $read_at
+ * @property Carbon|null $failed_at
  */
 class NotificationDelivery extends Model
 {
