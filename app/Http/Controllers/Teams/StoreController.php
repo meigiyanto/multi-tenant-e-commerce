@@ -52,7 +52,13 @@ class StoreController extends Controller
     {
         Gate::authorize('update', $team);
         abort_unless($team->status === TeamStatus::Active->value, 403);
-        abort_if($team->is_personal && ! $team->stores()->exists(), 403);
+        $hasExistingStore = $team->stores()->exists();
+        $hasApprovedApplication = MerchantApplication::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'approved')
+            ->exists();
+        abort_unless($hasApprovedApplication || $hasExistingStore, 403);
+        abort_if($team->is_personal && ! $hasExistingStore, 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
