@@ -152,4 +152,17 @@ class DashboardTest extends TestCase
             'id' => $invitation->id,
         ]);
     }
+
+    private function activateMerchantWorkspace(User $user): void
+    {
+        MerchantApplication::query()->create([
+            'user_id' => $user->id,
+            'business_name' => 'Test Business '.$user->id,
+            'status' => 'approved',
+        ]);
+
+        $team = Team::factory()->create(['name' => 'Merchant Workspace '.$user->id]);
+        $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+        $user->switchTeam($team);
+    }
 }
