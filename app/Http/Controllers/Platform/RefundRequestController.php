@@ -93,7 +93,12 @@ class RefundRequestController extends Controller
             'resolved_at' => in_array($validated['status'], ['refunded', 'rejected'], true) ? now() : null,
         ]);
 
-        if (in_array($refundRequest->status, ['refunded', 'rejected'], true)) {\n            $refundRequest->load(['customer', 'order']);\n            $refundRequest->customer->notify(new RefundRequestResult($refundRequest));\n        }\n\n        return to_route('platform.admin.refunds.index')
+        if (in_array($refundRequest->status, ['refunded', 'rejected'], true)) {
+            $refundRequest->load(['customer', 'order']);
+            $refundRequest->customer->notify(new RefundRequestResult($refundRequest));
+        }
+
+        return to_route('platform.admin.refunds.index')
             ->with('success', 'Refund request updated.');
     }
 }
