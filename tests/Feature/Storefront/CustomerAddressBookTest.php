@@ -87,8 +87,8 @@ class CustomerAddressBookTest extends TestCase
             'email' => 'customer@example.com',
             'password' => 'StrongPassword123!',
             'phone' => '08123456789',
-            'email_verified_at' => now(),
         ]);
+        $customer->forceFill(['email_verified_at' => now()])->save();
 
         return [$store, $customer];
     }
