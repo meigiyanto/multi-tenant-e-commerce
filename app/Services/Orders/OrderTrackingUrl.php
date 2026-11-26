@@ -9,10 +9,8 @@ class OrderTrackingUrl
     public function for(Order $order): string
     {
         $token = hash_hmac('sha256', 'order-tracking|'.$order->order_number, (string) config('app.key'));
+        $path = '/track/'.rawurlencode($order->order_number);
 
-        return route('storefront.orders.track', [
-            'orderNumber' => $order->order_number,
-            'token' => $token,
-        ]);
+        return url($path).'?token='.rawurlencode($token);
     }
 }
