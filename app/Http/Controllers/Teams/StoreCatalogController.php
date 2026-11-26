@@ -11,6 +11,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\Team;
+use App\Services\Notifications\StoreNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -370,7 +371,9 @@ class StoreCatalogController extends Controller
         if ($next < $inventory->reserved_quantity) {
             throw ValidationException::withMessages(['quantity' => __('Stock cannot be lower than reserved quantity.')]);
         }
+        $previousAvailable = max(0, $inventory->quantity - $inventory->reserved_quantity);
         $inventory->update(['quantity' => $next]);
+        app(StoreNotificationService::class)->notifyLowStock($inventory->fresh(), $previousAvailable);
         $inventory->movements()->create([
             'store_id' => $store->id, 'user_id' => $request->user('web')->id,
             'type' => $type, 'quantity' => $delta, 'balance_after' => $next, 'notes' => $notes,
