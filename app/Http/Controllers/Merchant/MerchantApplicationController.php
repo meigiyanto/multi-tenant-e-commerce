@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
 use App\Models\MerchantApplication;
+use App\Services\Notifications\PlatformNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,6 +40,12 @@ class MerchantApplicationController extends Controller
             'reviewed_at' => null,
             'review_notes' => null,
         ])->save();
+
+        app(PlatformNotificationService::class)->notifyAdmins([
+            'event' => 'merchant_application_submitted', 'title' => 'New merchant application',
+            'message' => $application->business_name.' submitted a merchant application.',
+            'url' => route('platform.admin.merchant-applications.index'), 'subject_id' => $application->id,
+        ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Your merchant application has been submitted for review.')]);
 
