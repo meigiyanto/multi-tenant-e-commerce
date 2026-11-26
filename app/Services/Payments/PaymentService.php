@@ -408,8 +408,9 @@ class PaymentService
         bool $isNotification,
     ): void {
         $paidOrderId = null;
+        $notifyPlatformAdmins = false;
 
-        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification, &$paidOrderId): void {
+        DB::transaction(function () use ($payload, $gateway, $gatewayName, $isNotification, &$paidOrderId, &$notifyPlatformAdmins): void {
             $transaction = PaymentTransaction::query()
                 ->where('gateway', $gatewayName)
                 ->where('gateway_order_id', $payload['order_id'] ?? '')
@@ -431,6 +432,10 @@ class PaymentService
             $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
+                if ($transaction->status === 'paid' && $status === 'paid') {
+                    $paidOrderId = $transaction->order_id;
+                }
+
                 return;
             }
 
@@ -471,6 +476,7 @@ class PaymentService
 
             if ($status === 'paid') {
                 $paidOrderId = $order->id;
+                $notifyPlatformAdmins = true;
             }
 
             if ($status === 'paid' && $order->status === 'pending' && $inventoryError === null) {
@@ -504,13 +510,16 @@ class PaymentService
 
         if ($paidOrderId !== null) {
             app(OrderNotificationService::class)->queuePaymentConfirmed($paidOrderId);
-            $paidOrder = Order::query()->find($paidOrderId);
-            if ($paidOrder !== null) {
-                app(PlatformNotificationService::class)->notifyAdmins([
-                    'event' => 'payment_confirmed', 'title' => 'Payment confirmed',
-                    'message' => 'Payment for order '.$paidOrder->order_number.' was confirmed.',
-                    'url' => '/platform/admin/notifications', 'subject_id' => $paidOrder->id,
-                ]);
+
+            if ($notifyPlatformAdmins) {
+                $paidOrder = Order::query()->find($paidOrderId);
+                if ($paidOrder !== null) {
+                    app(PlatformNotificationService::class)->notifyAdmins([
+                        'event' => 'payment_confirmed', 'title' => 'Payment confirmed',
+                        'message' => 'Payment for order '.$paidOrder->order_number.' was confirmed.',
+                        'url' => '/platform/admin/notifications', 'subject_id' => $paidOrder->id,
+                    ]);
+                }
             }
         }
     }
