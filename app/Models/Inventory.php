@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $quantity
  * @property int $reserved_quantity
+ * @property-read Store|null $store
+ * @property-read ProductVariant|null $variant
  */
 class Inventory extends Model
 {
