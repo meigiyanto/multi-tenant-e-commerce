@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import OrderNumberCopy from '@/components/order-number-copy';
-import { ArrowLeft, ClipboardList, CreditCard, Package, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Bell, ClipboardList, CreditCard, Package, ShoppingBag } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ type Props = {
         paid_revenue: string;
         active_products: number;
     };
+    unreadNotifications: number;
     recentOrders: {
         id: number;
         order_number: string;
@@ -39,7 +40,7 @@ function statusVariant(status: string): 'default' | 'secondary' | 'destructive' 
     return 'outline';
 }
 
-export default function StoreDashboard({ team, store, stats, recentOrders }: Props) {
+export default function StoreDashboard({ team, store, stats, recentOrders, unreadNotifications }: Props) {
     const base = '/settings/teams/' + team.slug + '/stores/' + store.id;
     const cards = [
         { label: 'Total orders', value: stats.total_orders.toLocaleString('id-ID'), icon: ShoppingBag },
@@ -58,7 +59,7 @@ export default function StoreDashboard({ team, store, stats, recentOrders }: Pro
                     </Button>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                         <Heading variant="small" title={store.name} description={'Store dashboard for ' + team.name + '.'} />
-                        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/orders'}><ShoppingBag /> Manage orders</Link></Button><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button></div>
+                        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={base + '/orders'}><ShoppingBag /> Manage orders</Link></Button><Button asChild variant="outline"><Link href={base + '/catalog'}><Package /> Product catalog</Link></Button><Button asChild variant="outline"><Link href={base + '/notifications'}><Bell /> Notifications {unreadNotifications > 0 ? '(' + unreadNotifications + ')' : ''}</Link></Button></div>
                     </div>
                 </div>
 
