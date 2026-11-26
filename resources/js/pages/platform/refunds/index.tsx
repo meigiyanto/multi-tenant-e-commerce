@@ -80,7 +80,7 @@ There are no refund requests.
 </p>: null
 } <div className="flex flex-wrap gap-2 m-2">
 {
-refundRequests.links.map((link, index) => <a key={index} href={link.url ?? '#'} className={`rounded border px-3 py-2 text-sm ${link.active ? 'bg-muted font-semibold': ''}`} dangerouslySetInnerHTML={ { __html: link.label }} />)} < /div>
+refundRequests.links.map((link, index) => <a key={index} href={link.url ?? '#'} className={`rounded border px-3 py-2 text-sm ${link.active ? 'bg-muted font-semibold': ''}`} dangerouslySetInnerHTML={ { __html: link.label }} />)} </div>
         </div>
     </>
 }
