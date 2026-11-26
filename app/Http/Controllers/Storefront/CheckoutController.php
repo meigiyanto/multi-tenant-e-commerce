@@ -144,7 +144,7 @@ class CheckoutController extends Controller
         app(PlatformNotificationService::class)->notifyAdmins([
             'event' => 'order_created', 'title' => 'New order received',
             'message' => 'Order '.$order->order_number.' was placed and is awaiting payment.',
-            'url' => '/platform/admin/orders', 'subject_id' => $order->id,
+            'url' => '/platform/admin/notifications', 'subject_id' => $order->id,
         ]);
 
         try {
