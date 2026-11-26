@@ -7,13 +7,14 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\Team;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StoreDashboardController extends Controller
 {
-    public function __invoke(Team $team, Store $store): Response
+    public function __invoke(Request $request, Team $team, Store $store): Response
     {
         abort_unless((int) $store->team_id === (int) $team->id, 404);
         Gate::authorize('update', $store);
@@ -62,6 +63,7 @@ class StoreDashboardController extends Controller
             ],
             'stats' => $stats,
             'recentOrders' => $recentOrders,
+            'unreadNotifications' => $request->user()->unreadNotifications()->where('data->store_id', $store->id)->count(),
         ]);
     }
 }
