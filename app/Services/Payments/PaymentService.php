@@ -22,8 +22,7 @@ use Throwable;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways)
-    {}
+    public function __construct(private readonly PaymentGatewayManager $gateways) {}
 
     public function start(Order $order): PaymentTransaction
     {
@@ -209,7 +208,7 @@ class PaymentService
         $refundDetail = null;
 
         foreach ($refunds as $refund) {
-            if (! is_array($refund) || !isset($refund['refund_amount'])) {
+            if (!is_array($refund) || !isset($refund['refund_amount'])) {
                 throw new RuntimeException('The Midtrans refund detail is invalid.');
             }
 
