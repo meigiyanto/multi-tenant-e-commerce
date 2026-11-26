@@ -26,7 +26,7 @@ class RefundRequest extends Model
     {
         return $this->belongsTo(Order::class);
     }
-    
+
     /**
      * @return BelongsTo<Customer, $this>
      */
