@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\RefundRequest;
 use App\Notifications\Storefront\RefundRequestResult;
+use App\Services\Notifications\PlatformNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -93,6 +94,13 @@ class RefundRequestController extends Controller
         if (in_array($refundRequest->status, ['refunded', 'rejected'], true)) {
             $refundRequest->load(['customer', 'order']);
             $refundRequest->customer->notify(new RefundRequestResult($refundRequest));
+            app(PlatformNotificationService::class)->notifyAdmins([
+                'event' => $refundRequest->status === 'refunded' ? 'refund_completed' : 'refund_rejected',
+                'title' => $refundRequest->status === 'refunded' ? 'Refund completed' : 'Refund rejected',
+                'message' => 'Refund for order '.$refundRequest->order->order_number.' was '.$refundRequest->status.'.',
+                'url' => route('platform.admin.refunds.index'),
+                'subject_id' => $refundRequest->id,
+            ]);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Refund request updated.']);
