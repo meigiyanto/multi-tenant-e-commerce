@@ -331,6 +331,13 @@ class PaymentService
         if ($notifiableRefundId !== null) {
             $refundRequest = RefundRequest::query()->with(['customer', 'order'])->findOrFail($notifiableRefundId);
             $refundRequest->customer->notify(new RefundRequestResult($refundRequest));
+            app(PlatformNotificationService::class)->notifyAdmins([
+                'event' => 'refund_completed',
+                'title' => 'Refund completed',
+                'message' => 'Midtrans confirmed the refund for order '.$refundRequest->order->order_number.'.',
+                'url' => '/platform/admin/refunds',
+                'subject_id' => $refundRequest->id,
+            ]);
         }
 
         if ($alreadyResolved) {
