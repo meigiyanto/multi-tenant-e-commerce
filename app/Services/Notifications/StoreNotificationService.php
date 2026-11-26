@@ -20,18 +20,20 @@ class StoreNotificationService
             return;
         }
 
+        $store = $inventory->store;
+        $team = $store?->team;
         $variant = $inventory->variant;
         $product = $variant?->product;
 
-        if ($variant === null || $product === null) {
+        if ($store === null || $team === null || $variant === null || $product === null) {
             return;
         }
 
-        $this->notifyStoreOwner($inventory->store, [
+        $this->notifyStoreOwner($store, [
             'event' => 'inventory_low_stock',
             'title' => 'Low stock alert',
             'message' => $product->name.' ('.$variant->name.') has '.$available.' available units remaining.',
-            'url' => '/settings/teams/'.$inventory->store->team->slug.'/stores/'.$inventory->store_id.'/catalog/products/'.$product->id.'/edit',
+            'url' => '/settings/teams/'.$team->slug.'/stores/'.$inventory->store_id.'/catalog/products/'.$product->id.'/edit',
             'store_id' => $inventory->store_id,
             'subject_id' => $inventory->id,
             'inventory_id' => $inventory->id,
@@ -43,9 +45,11 @@ class StoreNotificationService
     public function notifyOrderReady(Order $order): void
     {
         $order->loadMissing('store.team');
-        $owner = $order->store?->team?->owner();
+        $store = $order->store;
+        $team = $store?->team;
+        $owner = $team?->owner();
 
-        if (! $owner instanceof User) {
+        if ($store === null || $team === null || ! $owner instanceof User) {
             return;
         }
 
@@ -62,7 +66,7 @@ class StoreNotificationService
             'event' => 'order_ready',
             'title' => 'New paid order',
             'message' => 'Order '.$order->order_number.' has been paid and is ready for processing.',
-            'url' => '/settings/teams/'.$order->store->team->slug.'/stores/'.$order->store_id.'/orders/'.$order->id,
+            'url' => '/settings/teams/'.$team->slug.'/stores/'.$order->store_id.'/orders/'.$order->id,
             'store_id' => $order->store_id,
             'subject_id' => $order->id,
             'order_id' => $order->id,
