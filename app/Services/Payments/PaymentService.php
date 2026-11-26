@@ -210,7 +210,7 @@ class PaymentService
         $refundDetail = null;
 
         foreach ($refunds as $refund) {
-            if (!is_array($refund) || ! isset($refund['refund_amount'])) {
+            if (! is_array($refund) || ! isset($refund['refund_amount'])) {
                 throw new RuntimeException('The Midtrans refund detail is invalid.');
             }
 
