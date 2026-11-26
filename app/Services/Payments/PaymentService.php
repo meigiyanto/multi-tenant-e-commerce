@@ -22,7 +22,8 @@ use Throwable;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways) {}
+    public function __construct(private readonly PaymentGatewayManager $gateways)
+    {}
 
     public function start(Order $order): PaymentTransaction
     {
@@ -200,7 +201,7 @@ class PaymentService
         $refundAmount = $this->normalizeAmount($payload['refund_amount'] ?? null);
         $refunds = $payload['refunds'] ?? null;
 
-        if (!is_array($refunds) || $refunds === []) {
+        if (! is_array($refunds) || $refunds === []) {
             throw new RuntimeException('The Midtrans refund notification does not contain refund details.');
         }
 
@@ -208,7 +209,7 @@ class PaymentService
         $refundDetail = null;
 
         foreach ($refunds as $refund) {
-            if (!is_array($refund) || !isset($refund['refund_amount'])) {
+            if (!is_array($refund) || ! isset($refund['refund_amount'])) {
                 throw new RuntimeException('The Midtrans refund detail is invalid.');
             }
 
