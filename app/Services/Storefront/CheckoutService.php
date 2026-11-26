@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Store;
+use App\Services\Notifications\StoreNotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -158,7 +159,10 @@ class CheckoutService
                     ]);
                 }
 
+                $previousAvailable = max(0, $inventory->quantity - $inventory->reserved_quantity);
                 $inventory->increment('reserved_quantity', $quantity);
+                $inventory->refresh();
+                app(StoreNotificationService::class)->notifyLowStock($inventory, $previousAvailable);
                 InventoryReservation::query()->create([
                     'store_id' => $store->id,
                     'order_id' => $order->id,
