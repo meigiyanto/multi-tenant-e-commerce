@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Models\MerchantApplication;
+use App\Notifications\Merchant\MerchantApplicationResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -47,6 +48,9 @@ class MerchantApplicationController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        $application->load('user');
+        $application->user->notify(new MerchantApplicationResult($application));
 
         Inertia::flash('toast', [
             'type' => 'success',
