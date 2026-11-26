@@ -52,6 +52,9 @@ class HandleInertiaRequests extends Middleware
                 'isPlatformAdmin' => ! $isStorefront && ($platformUser?->isPlatformAdmin() ?? false),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'platformNotifications' => fn () => ! $isStorefront && ($platformUser?->isPlatformAdmin() ?? false) ? [
+                'unread_count' => $platformUser->unreadNotifications()->count(),
+            ] : ['unread_count' => 0],
             'currentTeam' => fn () => ! $isStorefront && $platformUser?->currentTeam ? $platformUser->toUserTeam($platformUser->currentTeam) : null,
             'teams' => fn () => ! $isStorefront ? ($platformUser?->toUserTeams(includeCurrent: true)->values()->all() ?? []) : [],
         ];
