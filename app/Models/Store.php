@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $status
  * @property string $timezone
  * @property string $currency
+ * @property-read Team|null $team
  */
 #[Fillable([
     'team_id',
