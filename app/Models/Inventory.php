@@ -19,6 +19,12 @@ class Inventory extends Model
         return ['quantity' => 'integer', 'reserved_quantity' => 'integer', 'low_stock_threshold' => 'integer'];
     }
 
+    /** @return BelongsTo<Store, $this> */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
     /** @return BelongsTo<ProductVariant, $this> */
     public function variant(): BelongsTo
     {
