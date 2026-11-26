@@ -431,10 +431,6 @@ class PaymentService
             $status = $gateway->normalizeStatus($payload);
 
             if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
-                if ($transaction->status === 'paid' && $status === 'paid') {
-                    $paidOrderId = $transaction->order_id;
-                }
-
                 return;
             }
 
@@ -513,7 +509,7 @@ class PaymentService
                 app(PlatformNotificationService::class)->notifyAdmins([
                     'event' => 'payment_confirmed', 'title' => 'Payment confirmed',
                     'message' => 'Payment for order '.$paidOrder->order_number.' was confirmed.',
-                    'url' => '/platform/admin/orders', 'subject_id' => $paidOrder->id,
+                    'url' => '/platform/admin/notifications', 'subject_id' => $paidOrder->id,
                 ]);
             }
         }
