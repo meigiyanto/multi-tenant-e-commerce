@@ -6,6 +6,7 @@ use App\Http\Controllers\Teams\StoreCatalogController;
 use App\Http\Controllers\Teams\StoreController;
 use App\Http\Controllers\Teams\StoreDashboardController;
 use App\Http\Controllers\Teams\StoreOrderController;
+use App\Http\Controllers\Teams\StoreNotificationController;
 use App\Http\Controllers\Teams\TeamController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Teams\TeamMemberController;
@@ -35,6 +36,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('settings/teams/{team}/stores/{store}', [StoreController::class, 'show'])->name('teams.stores.show');
         Route::get('settings/teams/{team}/stores/{store}/dashboard', StoreDashboardController::class)->name('teams.stores.dashboard');
         Route::get('settings/teams/{team}/stores/{store}/orders', [StoreOrderController::class, 'index'])->name('teams.stores.orders.index');
+        Route::get('settings/teams/{team}/stores/{store}/notifications', [StoreNotificationController::class, 'index'])->name('teams.stores.notifications.index');
+        Route::post('settings/teams/{team}/stores/{store}/notifications/read-all', [StoreNotificationController::class, 'readAll'])->name('teams.stores.notifications.read-all');
+        Route::get('settings/teams/{team}/stores/{store}/notifications/{notification}/read', [StoreNotificationController::class, 'read'])->name('teams.stores.notifications.read');
         Route::get('settings/teams/{team}/stores/{store}/orders/{order}', [StoreOrderController::class, 'show'])->name('teams.stores.orders.show');
         Route::patch('settings/teams/{team}/stores/{store}/orders/{order}/status', [StoreOrderController::class, 'updateStatus'])->name('teams.stores.orders.status');
         Route::post('settings/teams/{team}/stores/{store}/orders/{order}/notifications/retry', [StoreOrderController::class, 'retryNotifications'])->name('teams.stores.orders.notifications.retry');
