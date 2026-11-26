@@ -36,6 +36,7 @@ class NotificationController extends Controller
     public function readAll(Request $request): RedirectResponse
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
+
         return to_route('platform.admin.notifications.index');
     }
 }
