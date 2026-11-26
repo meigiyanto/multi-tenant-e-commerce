@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Notifications\PlatformNotificationService;
 use App\Support\Stores\StoreContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,12 +43,18 @@ class CustomerRefundRequestController extends Controller
             throw ValidationException::withMessages(['reason' => 'A refund request already exists for this order.']);
         }
 
-        $order->refundRequests()->create([
+        $refundRequest = $order->refundRequests()->create([
             'store_id' => $store->id,
             'customer_id' => $customer->id,
             'payment_transaction_id' => $transaction->id,
             'reason' => $validated['reason'],
             'status' => 'requested',
+        ]);
+
+        app(PlatformNotificationService::class)->notifyAdmins([
+            'event' => 'refund_requested', 'title' => 'New refund request',
+            'message' => 'Refund requested for order '.$order->order_number.'.',
+            'url' => route('platform.admin.refunds.index'), 'subject_id' => $refundRequest->id,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Your refund request has been submitted for review.']);
