@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\Order;
 use App\Services\Payments\PaymentService;
+use App\Services\Notifications\PlatformNotificationService;
 use App\Services\Shipping\ShippingQuoteService;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CartSessionService;
@@ -139,6 +140,12 @@ class CheckoutController extends Controller
         $rate = $this->shipping->selectedRate($store, $cart, $destinationId, $data['shipping_courier'], $data['shipping_service']);
         $weight = $this->shipping->weight($cart);
         $order = $this->checkout->place($store, $this->cartSessions->id($request), $checkoutData, $rate, $destinationId, $data['shipping_destination_label'], $weight, $user);
+
+        app(PlatformNotificationService::class)->notifyAdmins([
+            'event' => 'order_created', 'title' => 'New order received',
+            'message' => 'Order '.$order->order_number.' was placed and is awaiting payment.',
+            'url' => '/platform/admin/orders', 'subject_id' => $order->id,
+        ]);
 
         try {
             $payment = $this->payments->start($order);
