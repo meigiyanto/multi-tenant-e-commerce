@@ -13,6 +13,7 @@ class NotificationController extends Controller
     public function index(Request $request): Response
     {
         $notifications = $request->user()->notifications()->latest()->paginate(25);
+
         return Inertia::render('platform/notifications/index', [
             'notifications' => $notifications->through(fn ($item): array => [
                 'id' => $item->id, 'event' => data_get($item->data, 'event'),
@@ -23,12 +24,15 @@ class NotificationController extends Controller
             'unreadCount' => $request->user()->unreadNotifications()->count(),
         ]);
     }
+
     public function read(Request $request, string $notification): RedirectResponse
     {
         $item = $request->user()->notifications()->whereKey($notification)->firstOrFail();
         $item->markAsRead();
+
         return redirect()->to((string) data_get($item->data, 'url', route('platform.admin.notifications.index')));
     }
+
     public function readAll(Request $request): RedirectResponse
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
