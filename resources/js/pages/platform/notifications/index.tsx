@@ -1,5 +1,4 @@
 import { Head, Link, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -8,7 +7,7 @@ type Props = { notifications: { data: Item[]; links: { url: string | null; label
 
 export default function PlatformNotificationsIndex({ notifications, unreadCount }: Props) {
     return (
-        <AppLayout>
+        <>
             <Head title="Platform Notifications" />
             <div className="space-y-6 p-4 md:p-6">
                 <div className="flex items-center justify-between gap-4">
@@ -24,6 +23,6 @@ export default function PlatformNotificationsIndex({ notifications, unreadCount 
                 </CardContent></Card>
                 <div className="flex flex-wrap gap-2">{notifications.links.map((link, index) => <Button key={index} variant={link.active ? 'default' : 'outline'} size="sm" disabled={!link.url} onClick={() => link.url && router.visit(link.url)}>{link.label.replace('&laquo;', '«').replace('&raquo;', '»')}</Button>)}</div>
             </div>
-        </AppLayout>
+        </>
     );
 }
