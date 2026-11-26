@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, ReceiptText, ShieldCheck } from 'lucide-react';
+import { Bell, BookOpen, FolderGit2, LayoutGrid, ReceiptText, ShieldCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -19,7 +19,7 @@ import type { NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
-    const { auth, currentTeam, teams } = page.props;
+    const { auth, currentTeam, teams, platformNotifications } = page.props;
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
 
     const mainNavItems: NavItem[] = [
@@ -28,6 +28,10 @@ export function AppSidebar() {
             title: 'Platform Teams',
             href: '/platform/admin/teams',
             icon: ShieldCheck,
+        }, {
+            title: 'Notifications' + (platformNotifications?.unread_count ? ` (${platformNotifications.unread_count})` : ''),
+            href: '/platform/admin/notifications',
+            icon: Bell,
         }, {
             title: 'Refund Requests',
             href: '/platform/admin/refunds',
