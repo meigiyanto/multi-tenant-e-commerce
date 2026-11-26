@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\RefundRequest;
 use App\Services\Notifications\OrderNotificationService;
+use App\Services\Notifications\PlatformNotificationService;
 use App\Notifications\Storefront\RefundRequestResult;
 use App\Support\Payments\PaymentGatewayManager;
 use Illuminate\Http\Client\ConnectionException;
@@ -507,6 +508,14 @@ class PaymentService
 
         if ($paidOrderId !== null) {
             app(OrderNotificationService::class)->queuePaymentConfirmed($paidOrderId);
+            $paidOrder = Order::query()->find($paidOrderId);
+            if ($paidOrder !== null) {
+                app(PlatformNotificationService::class)->notifyAdmins([
+                    'event' => 'payment_confirmed', 'title' => 'Payment confirmed',
+                    'message' => 'Payment for order '.$paidOrder->order_number.' was confirmed.',
+                    'url' => '/platform/admin/orders', 'subject_id' => $paidOrder->id,
+                ]);
+            }
         }
     }
 
