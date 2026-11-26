@@ -23,7 +23,8 @@ use Throwable;
 class PaymentService
 {
     public function __construct(private readonly PaymentGatewayManager $gateways)
-    {}
+    {
+    }
 
     public function start(Order $order): PaymentTransaction
     {
@@ -384,7 +385,7 @@ class PaymentService
                         $this->recordReconciliationAttempt($transaction, 'checked');
 
                         if (in_array($transaction->status, ['paid', 'failed', 'expired'], true)) {
-                            $reconciled++;
+                            $reconciled = $reconciled + 1;
                             Log::info('Midtrans payment reconciled from status API', [
                                 'payment_transaction_id' => $transaction->id,
                                 'order_id' => $transaction->gateway_order_id,
