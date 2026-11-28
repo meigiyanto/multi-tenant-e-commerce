@@ -1,6 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Globe2, LayoutDashboard, Package, Settings, Store as StoreIcon } from 'lucide-react';
+import { ArrowLeft, Bell, Globe2, LayoutDashboard, Package, Settings, Store as StoreIcon } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ type Props = {
         domains: StoreDomain[];
     };
     canManageStore: boolean;
+    canViewNotifications: boolean;
 };
 
 function VerificationCountdown({ expiresAt }: { expiresAt: string }) {
@@ -62,7 +63,7 @@ function VerificationCountdown({ expiresAt }: { expiresAt: string }) {
     return <p className="text-xs font-medium tabular-nums text-amber-600">Time remaining: {hours}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</p>;
 }
 
-export default function StoreShow({ team, store, canManageStore }: Props) {
+export default function StoreShow({ team, store, canManageStore, canViewNotifications }: Props) {
     const base = '/settings/teams/' + team.slug + '/stores/' + store.id;
     const storeNextStatus = store.status === 'draft' ? 'active' : store.status === 'active' ? 'suspended' : store.status === 'suspended' ? 'active' : null;
 
@@ -80,6 +81,7 @@ export default function StoreShow({ team, store, canManageStore }: Props) {
                         <Heading variant="small" title={store.name} description={'Store details for ' + team.name + '.'} />
                         <div className="flex flex-wrap gap-2">
                             {canManageStore ? <Button asChild><Link href={base + '/dashboard'}><LayoutDashboard /> Dashboard</Link></Button> : null}
+                            {canViewNotifications ? <Button asChild variant="outline"><Link href={base + '/notifications'}><Bell /> Notifications</Link></Button> : null}
                             <Button asChild variant="outline">
                                 <Link href={base + '/catalog'}>
                                     <Package /> Product catalog
