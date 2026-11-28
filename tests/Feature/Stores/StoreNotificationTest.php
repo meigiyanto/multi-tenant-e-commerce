@@ -83,7 +83,11 @@ class StoreNotificationTest extends TestCase
 
     public function test_paid_order_notification_is_idempotent_and_scoped_to_store_owner(): void
     {
-        [$owner, , $store] = $this->ownedStore();
+        [$owner, $team, $store] = $this->ownedStore();
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+        $team->members()->attach($member, ['role' => TeamRole::Member->value]);
         $order = Order::query()->create([
             'store_id' => $store->id,
             'order_number' => 'ORD-STORE-NOTIFY-1',
@@ -108,12 +112,22 @@ class StoreNotificationTest extends TestCase
         $service->notifyOrderReady($order);
         $service->notifyOrderReady($order);
 
-        $this->assertSame(1, DatabaseNotification::query()
-            ->where('notifiable_id', $owner->id)
-            ->where('type', StoreEventNotification::class)
-            ->where('data->event', 'order_ready')
-            ->where('data->subject_id', $order->id)
-            ->count());
+        foreach ([$owner, $admin] as $recipient) {
+            $this->assertSame(1, DatabaseNotification::query()
+                ->where('notifiable_id', $recipient->id)
+                ->where('type', StoreEventNotification::class)
+                ->where('data->event', 'order_ready')
+                ->where('data->subject_id', $order->id)
+                ->count());
+        }
+
+        $this->assertDatabaseMissing('notifications', [
+            'notifiable_id' => $member->id,
+            'type' => StoreEventNotification::class,
+        ]);
+
+        $this->actingAs($admin)->get(route('teams.stores.notifications.index', [$team, $store]))->assertOk();
+        $this->actingAs($member)->get(route('teams.stores.notifications.index', [$team, $store]))->assertForbidden();
     }
 
     /** @return array{User, Team, Store} */
