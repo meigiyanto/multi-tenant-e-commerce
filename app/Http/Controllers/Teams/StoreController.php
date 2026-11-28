@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teams;
 use App\Contracts\Stores\DomainOwnershipVerifier;
 use App\Enums\StoreDomainStatus;
 use App\Enums\StoreStatus;
+use App\Enums\TeamRole;
 use App\Enums\TeamStatus;
 use App\Http\Controllers\Controller;
 use App\Models\MerchantApplication;
@@ -77,7 +78,7 @@ class StoreController extends Controller
         return to_route('teams.stores.index', ['team' => $team->slug]);
     }
 
-    public function show(Team $team, Store $store, StoreDomainLifecycleService $domainLifecycle): Response
+    public function show(Request $request, Team $team, Store $store, StoreDomainLifecycleService $domainLifecycle): Response
     {
         $this->ensureStoreBelongsToTeam($team, $store);
         Gate::authorize('view', $store);
@@ -114,6 +115,7 @@ class StoreController extends Controller
                 ]),
             ],
             'canManageStore' => Gate::allows('update', $store),
+            'canViewNotifications' => in_array($request->user()->teamRole($team), [TeamRole::Owner, TeamRole::Admin], true),
         ]);
     }
 
