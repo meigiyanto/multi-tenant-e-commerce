@@ -62,6 +62,6 @@ class StoreNotificationController extends Controller
     private function authorizeStore(Team $team, Store $store): void
     {
         abort_unless((int) $store->team_id === (int) $team->id, 404);
-        Gate::authorize('update', $store);
+        Gate::authorize('view', $store);
     }
 }
