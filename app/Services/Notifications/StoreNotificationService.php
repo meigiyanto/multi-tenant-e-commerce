@@ -6,6 +6,7 @@ use App\Enums\TeamRole;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Store;
+use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Stores\StoreEventNotification;
 
@@ -74,7 +75,7 @@ class StoreNotificationService
     }
 
     /** @param array<string, mixed> $data */
-    private function notifyTeamManagers(\\App\\Models\\Team $team, array $data, bool $preventDuplicate = false): void
+    private function notifyTeamManagers(Team $team, array $data, bool $preventDuplicate = false): void
     {
         $recipients = $team->members()
             ->wherePivotIn('role', [TeamRole::Owner->value, TeamRole::Admin->value])
