@@ -18,9 +18,11 @@ class StoreNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_stock_adjustment_notifies_store_owner_when_available_stock_crosses_threshold(): void
+    public function test_stock_adjustment_notifies_store_managers_when_available_stock_crosses_threshold(): void
     {
         [$owner, $team, $store] = $this->ownedStore();
+        $admin = User::factory()->create();
+        $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
         $product = $store->products()->create([
             'name' => 'Canvas Bag', 'slug' => 'canvas-bag', 'status' => 'active',
             'price' => 125000, 'track_inventory' => true,
@@ -45,6 +47,11 @@ class StoreNotificationTest extends TestCase
 
         $this->assertSame(3, data_get($notification->data, 'available_quantity'));
         $this->assertSame($store->id, data_get($notification->data, 'store_id'));
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $admin->id,
+            'type' => StoreEventNotification::class,
+            'data->event' => 'inventory_low_stock',
+        ]);
 
         $this->actingAs($owner)->get(route('teams.stores.notifications.index', [$team, $store]))
             ->assertOk()
