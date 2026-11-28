@@ -64,6 +64,6 @@ class StoreNotificationController extends Controller
     {
         abort_unless((int) $store->team_id === (int) $team->id, 404);
         Gate::authorize('view', $store);
-        abort_unless(in_array($requestRole = request()->user()->teamRole($team), [TeamRole::Owner, TeamRole::Admin], true), 403);
+        abort_unless(in_array(auth()->user()->teamRole($team), [TeamRole::Owner, TeamRole::Admin], true), 403);
     }
 }
