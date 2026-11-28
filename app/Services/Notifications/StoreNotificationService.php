@@ -2,6 +2,7 @@
 
 namespace App\Services\Notifications;
 
+use App\Enums\TeamRole;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Store;
@@ -47,22 +48,11 @@ class StoreNotificationService
         $order->loadMissing('store.team');
         $store = $order->store;
         $team = $store?->team;
-        $owner = $team?->owner();
-
-        if ($store === null || $team === null || ! $owner instanceof User) {
+        if ($store === null || $team === null) {
             return;
         }
 
-        $alreadyNotified = $owner->notifications()
-            ->where('data->event', 'order_ready')
-            ->where('data->subject_id', $order->id)
-            ->exists();
-
-        if ($alreadyNotified) {
-            return;
-        }
-
-        $owner->notify(new StoreEventNotification([
+        $this->notifyTeamManagers($team, [
             'event' => 'order_ready',
             'title' => 'New paid order',
             'message' => 'Order '.$order->order_number.' has been paid and is ready for processing.',
@@ -70,16 +60,35 @@ class StoreNotificationService
             'store_id' => $order->store_id,
             'subject_id' => $order->id,
             'order_id' => $order->id,
-        ]));
+        ], true);
     }
 
     /** @param array<string, mixed> $data */
     private function notifyStoreOwner(Store $store, array $data): void
     {
-        $owner = $store->team?->owner();
+        $team = $store->team;
 
-        if ($owner instanceof User) {
-            $owner->notify(new StoreEventNotification($data));
+        if ($team !== null) {
+            $this->notifyTeamManagers($team, $data);
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function notifyTeamManagers(\\App\\Models\\Team $team, array $data, bool $preventDuplicate = false): void
+    {
+        $recipients = $team->members()
+            ->wherePivotIn('role', [TeamRole::Owner->value, TeamRole::Admin->value])
+            ->get();
+
+        foreach ($recipients as $recipient) {
+            if ($preventDuplicate && $recipient->notifications()
+                ->where('data->event', $data['event'] ?? null)
+                ->where('data->subject_id', $data['subject_id'] ?? null)
+                ->exists()) {
+                continue;
+            }
+
+            $recipient->notify(new StoreEventNotification($data));
         }
     }
 }
